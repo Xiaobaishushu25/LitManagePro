@@ -1,0 +1,32 @@
+<script setup lang="ts">
+
+import {WindowTitlebar} from "@tauri-controls/vue";
+import RightBar from "../layouts/RightBar.vue";
+import MainContent from "../layouts/MainContent.vue";
+import Footer from "../layouts/Footer.vue";
+</script>
+
+<template>
+  <div class="h-screen w-full flex flex-col">
+    <!-- 顶部标题栏 -->
+    <WindowTitlebar class="flex-shrink-0 bg-red-500 window-titlebar">LitManagePro</WindowTitlebar>
+    <div class="flex-grow flex flex-col">
+      <!-- 中间内容区域 -->
+      <div class="flex flex-grow"> <!-- flex-grow 让中间区域填充剩余空间 -->
+        <!-- 主内容区 -->
+        <MainContent class="flex-grow"/> <!-- flex-grow 让 MainContent 填充剩余空间 -->
+        <!-- 右侧边栏（固定宽度且禁止收缩） -->
+        <RightBar class="w-10 flex-shrink-0"/> <!-- w-10 = 40px, flex-shrink-0 禁止收缩 -->
+      </div>
+      <!-- 底部栏（强制显示在视口底部） -->
+      <Footer class="h-7 flex-shrink-0 w-full"/> <!-- h-7 = 30px, flex-shrink-0 禁止收缩, w-full 宽度100% -->
+    </div>
+  </div>
+
+</template>
+
+<style scoped>
+.window-titlebar :deep(button) {
+  @apply  hover:border-transparent shadow-none active:border-transparent;
+}
+</style>

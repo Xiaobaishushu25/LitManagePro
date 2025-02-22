@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.n-message .n-message__content {
+    @apply text-justify;
+}

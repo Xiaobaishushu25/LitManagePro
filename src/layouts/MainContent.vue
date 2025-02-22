@@ -1,10 +1,21 @@
 <script setup lang="ts">
 
+import Tree from "../components/main/Tree.vue";
+import Table from "../components/main/Table.vue";
+import TagCard from "../components/main/TagCard.vue";
 </script>
 
 <template>
 <div>
-  主界面
+  <n-split direction="horizontal" class="h-full" :max="0.85" :min="0.1" :default-size="0.2">
+    <template #1>
+<!--      <Tree/>-->
+      <TagCard></TagCard>
+    </template>
+    <template #2>
+      <Table/>
+    </template>
+  </n-split>
 </div>
 </template>
 

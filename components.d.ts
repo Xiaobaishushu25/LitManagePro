@@ -9,9 +9,19 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     NButton: typeof import('naive-ui')['NButton']
+    NCard: typeof import('naive-ui')['NCard']
+    NCollapseTransition: typeof import('naive-ui')['NCollapseTransition']
+    NDropdown: typeof import('naive-ui')['NDropdown']
+    NGrid: typeof import('naive-ui')['NGrid']
+    NGridItem: typeof import('naive-ui')['NGridItem']
+    NSplit: typeof import('naive-ui')['NSplit']
+    NSwitch: typeof import('naive-ui')['NSwitch']
+    NTag: typeof import('naive-ui')['NTag']
+    NTree: typeof import('naive-ui')['NTree']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Table: typeof import('./src/components/main/Table.vue')['default']
+    TagCard: typeof import('./src/components/main/TagCard.vue')['default']
     Tree: typeof import('./src/components/main/Tree.vue')['default']
   }
 }

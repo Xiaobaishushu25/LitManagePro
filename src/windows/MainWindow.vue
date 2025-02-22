@@ -9,7 +9,7 @@ import Footer from "../layouts/Footer.vue";
 <template>
   <div class="h-screen w-full flex flex-col">
     <!-- 顶部标题栏 -->
-    <WindowTitlebar class="flex-shrink-0 bg-red-500 window-titlebar">LitManagePro</WindowTitlebar>
+    <WindowTitlebar class="flex-shrink-0  window-titlebar">LitManagePro</WindowTitlebar>
     <div class="flex-grow flex flex-col">
       <!-- 中间内容区域 -->
       <div class="flex flex-grow"> <!-- flex-grow 让中间区域填充剩余空间 -->

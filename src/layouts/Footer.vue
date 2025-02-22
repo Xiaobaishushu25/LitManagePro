@@ -3,7 +3,7 @@
 </script>
 
 <template>
-<div class="">我是底栏</div>
+<div class="border-t border-t-gray-300">我是底栏</div>
 </template>
 
 <style scoped>

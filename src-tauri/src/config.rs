@@ -147,16 +147,9 @@ pub fn init_logger() -> WorkerGuard {
         // .with_thread_ids(true)
         .with_level(true)
         .with_thread_names(true)
-        .with_timer(local_time);
-
-    // 创建格式化器
-    // let format = fmt::format()
-    //     .with_thread_names(true)
-    //     .with_thread_ids(true)
-    //     .with_line_number(true)
-    //     .with_target(true)
-    //     .with_level(true)
-    //     .with_ansi(true);
+        .with_timer(local_time)
+        .with_filter(EnvFilter::new("info")) // 控制台显示 info 级别及以上的日志
+        .with_filter(EnvFilter::new("tao::platform_impl::platform::event_loop::runner=error")); // 过滤 tao 的警告日志
 
     // 配置日志订阅器
     Registry::default()

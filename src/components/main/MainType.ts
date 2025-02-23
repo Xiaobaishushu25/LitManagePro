@@ -13,4 +13,4 @@ interface Tags {
     tag_group: TagGroup;
     tags: Tag[];
 }
-export type {Tags};
+export type {TagGroup,Tags};

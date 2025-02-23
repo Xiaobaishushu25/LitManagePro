@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import {onMounted, ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
-import {Tags} from "./MainType.ts";
+import {TagGroup, Tags} from "./MainType.ts";
 import {message} from "../../message.ts";
 
 const show = ref(false)
+const showModal = ref(false)
 
 const showColorPicker = ref(false)
 const selectedColor = ref('#000000')
+
+const currentTagGroup = ref<TagGroup|null>(null)
+const newTagColor = ref('#c89f9f')
+const newTagTextColor = ref('#000000')
+const newTagValue = ref('')
 
 const open = ref<Record<number, boolean>>({});
 
@@ -19,11 +25,94 @@ onMounted(async ()=>{
   }).catch(e => {message.error(`查询标签数据出错${e}`)})
 })
 
+function showNewTagModal(id: number, name: string){
+  console.log(`Tag Group ID: ${id}, Name: ${name}`);
+  currentTagGroup.value={
+    id: id,
+    name: name
+  }
+  // currentTagGroup.value = name;
+  showModal.value = true;
+}
+function createNewTag(){
+  let value = currentTagGroup.value;
+  if (!value){
+    message.error(`创建标签失败，请检查当前标签组信息。`)
+  }
+  invoke('create_tag', {
+    tag_group_id: value!.id,
+    tag_value: newTagValue.value,
+    tag_color: newTagColor.value
+  }).then(data => {
+    console.log(data)
+    message.success(`创建标签成功`)
+  }).catch(e => {
+    message.error(`创建标签失败${e}`)
+  })
+}
 </script>
 
 <template>
+  <n-modal v-model:show="showModal"
+           preset="card"
+           class="w-80"
+           :mask-closable="false"
+           :draggable="true"
+           >
+    <template #header>
+      <n-flex :size="0" class="text-base">
+        <div>为</div>
+        <div class="text-orange-400">{{currentTagGroup!.name}}</div>
+        <div>组添加标签</div>
+      </n-flex>
+    </template>
+    <n-flex vertical>
+      <n-tag class="w-fit" :color="{color: newTagColor, textColor: newTagTextColor}">{{ newTagValue }}</n-tag>
+      <n-input v-model:value="newTagValue" placeholder="请输入标签名" />
+      <n-color-picker
+          v-model:value="newTagColor"
+          :swatches="[
+      '#FFFFFF',
+      '#18A058',
+      '#2080F0',
+      '#F0A020',
+    ]"
+      >
+        <template #label>
+          背景颜色
+        </template>
+      </n-color-picker>
+      <n-color-picker
+          v-model:value="newTagTextColor"
+          :show-alpha="false"
+          :swatches="[
+      '#FFFFFF',
+      '#18A058',
+      '#2080F0',
+      '#F0A020',
+      'rgba(208, 48, 80)',
+    ]"
+      >
+        <template #label>
+          文字颜色
+        </template>
+      </n-color-picker>
+    </n-flex>
+    <template #action>
+      <n-space>
+        <n-button @click="showModal = false">取消</n-button>
+        <n-button @click="createNewTag">确认</n-button>
+      </n-space>
+    </template>
+  </n-modal>
   <div>
     <n-grid :x-gap="0" :y-gap="5" :cols="1">
+      <n-grid-item>
+        <n-space>
+          <n-input placeholder="请输入标签名" />
+          <n-button>+</n-button>
+        </n-space>
+      </n-grid-item>
       <n-grid-item>
         <div class="light-green" />
       </n-grid-item>
@@ -45,7 +134,7 @@ onMounted(async ()=>{
               <n-tag v-for="tag in tags.tags" :key="tag.id" :color="{ color: `${tag.color}30`, textColor: tag.color }">
                 {{ tag.value }}
               </n-tag>
-              <n-button>+</n-button>
+              <n-button @click="showNewTagModal(tags.tag_group.id, tags.tag_group.name)">+</n-button>
             </div>
           </n-collapse-transition>
         </n-card>

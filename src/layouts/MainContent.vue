@@ -1,6 +1,5 @@
 <script setup lang="ts">
 
-import Tree from "../components/main/Tree.vue";
 import Table from "../components/main/Table.vue";
 import TagCard from "../components/main/TagCard.vue";
 </script>

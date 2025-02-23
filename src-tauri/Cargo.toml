@@ -1,7 +1,7 @@
 [package]
 name = "litmanagepro"
 version = "0.1.0"
-description = "A Tauri App"
+description = "现代化文献管理工具"
 authors = ["you"]
 edition = "2021"
 
@@ -20,7 +20,23 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2.2.5", features = [] }
 tauri-plugin-opener = "2.2.5"
+tauri-plugin-os = "2.2.0"
+
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread", "process"] }
+
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri-plugin-os = "2.2.0"
+sea-orm = {version = "1.1.5",features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros" ,"debug-print" ] }
+
+thiserror = "2.0.11"
+anyhow = "1.0.96"
+
+
+tracing-appender = "0.2.3"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["fmt", "time", "std", "chrono", "env-filter", "registry"] }
+time = { version = "0.3.37", features = ["macros"] }
+log = "0.4.26"
+#chrono = "0.4.39"
+
 

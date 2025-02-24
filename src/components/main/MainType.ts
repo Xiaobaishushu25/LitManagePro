@@ -6,11 +6,12 @@ interface Tag {
     groupId: number;
     id: number;
     value: string;
-    color: string;
+    bg_color: string;
+    text_color: string;
 }
 // 定义 Tags 接口
 interface Tags {
     tag_group: TagGroup;
     tags: Tag[];
 }
-export type {TagGroup,Tags};
+export type {TagGroup,Tag,Tags};

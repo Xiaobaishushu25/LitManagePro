@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import {onMounted, ref} from "vue";
+import {nextTick, onMounted, ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
 import {TagGroup, Tags} from "./MainType.ts";
 import {message} from "../../message.ts";
+
+const inputRef = ref(null)
 
 const show = ref(false)
 const showModal = ref(false)
@@ -33,6 +35,9 @@ function showNewTagModal(id: number, name: string){
   }
   // currentTagGroup.value = name;
   showModal.value = true;
+  nextTick(() => {
+    inputRef?.value.focus()
+  })
 }
 function createNewTag(){
   let value = currentTagGroup.value;
@@ -68,7 +73,7 @@ function createNewTag(){
     </template>
     <n-flex vertical>
       <n-tag class="w-fit" :color="{color: newTagColor, textColor: newTagTextColor}">{{ newTagValue }}</n-tag>
-      <n-input v-model:value="newTagValue" placeholder="请输入标签名" />
+      <n-input v-model:value="newTagValue" placeholder="请输入标签名" ref="inputRef"  />
       <n-color-picker
           v-model:value="newTagColor"
           :swatches="[

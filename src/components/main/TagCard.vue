@@ -3,11 +3,14 @@ import {nextTick, onMounted, ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
 import {TagGroup, Tags} from "./MainType.ts";
 import {message} from "../../message.ts";
+import CustomModal from "../../util/CustomModal.vue";
 
-const inputRef = ref(null)
+const inputRef = ref<HTMLInputElement | null>(null)
+const groupInputRef = ref<HTMLInputElement | null>(null)
 
 const show = ref(false)
 const showModal = ref(false)
+const showGroupModal = ref(false)
 
 const showColorPicker = ref(false)
 const selectedColor = ref('#000000')
@@ -36,10 +39,17 @@ function showNewTagModal(id: number, name: string){
   // currentTagGroup.value = name;
   showModal.value = true;
   nextTick(() => {
-    inputRef?.value.focus()
+    inputRef.value!.focus()
+  })
+}
+function showNewGroupModal(){
+  showGroupModal.value = true;
+  nextTick(() => {
+    groupInputRef.value!.focus()
   })
 }
 function createNewTag(){
+  showModal.value = false;
   let value = currentTagGroup.value;
   if (!value){
     message.error(`创建标签失败，请检查当前标签组信息。`)
@@ -55,9 +65,52 @@ function createNewTag(){
     message.error(`创建标签失败${e}`)
   })
 }
+function createNewTagGroup(){
+  showGroupModal.value = false;
+  invoke('create_tag_group', {
+    tag_group_name: "sd",
+  }).then(data => {
+    console.log(data)
+    message.success(`创建标签组成功`)
+  }).catch(e => {
+    message.error(`创建标签组失败${e}`)
+  })
+}
 </script>
 
 <template>
+  <custom-modal
+      v-model:show="showGroupModal"
+      title="新建标签2组"
+      :onConfirm="createNewTagGroup"
+  >
+<!--    <template #header>-->
+<!--      <div>自定内容</div>-->
+<!--      <div class="text-red-800">自定义标题内容</div>-->
+<!--    </template>-->
+    <n-flex vertical>
+          <n-input  placeholder="请输入标签组名" ref="groupInputRef"  />
+    </n-flex>
+  </custom-modal>
+<!--  <n-modal v-model:show="showGroupModal"-->
+<!--           preset="card"-->
+<!--           class="w-80"-->
+<!--           :mask-closable="false"-->
+<!--           :draggable="true"-->
+<!--  >-->
+<!--    <template #header>-->
+<!--      <div>新建标签组</div>-->
+<!--    </template>-->
+<!--    <n-flex vertical>-->
+<!--      <n-input  placeholder="请输入标签组名" ref="groupInputRef"  />-->
+<!--    </n-flex>-->
+<!--    <template #action>-->
+<!--      <n-space>-->
+<!--        <n-button @click="showModal = false">取消</n-button>-->
+<!--        <n-button @click="createNewTag">确认</n-button>-->
+<!--      </n-space>-->
+<!--    </template>-->
+<!--  </n-modal>-->
   <n-modal v-model:show="showModal"
            preset="card"
            class="w-80"
@@ -115,7 +168,7 @@ function createNewTag(){
       <n-grid-item>
         <n-space>
           <n-input placeholder="请输入标签名" />
-          <n-button>+</n-button>
+          <n-button @click="showNewGroupModal">+</n-button>
         </n-space>
       </n-grid-item>
       <n-grid-item>

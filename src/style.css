@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+.n-message-wrapper{
+    @apply mb-10;/*每个消息提示距离底部48px*/
+}
 .n-message .n-message__content {
     @apply text-justify;
 }

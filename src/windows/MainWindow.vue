@@ -12,7 +12,9 @@ import Footer from "../layouts/Footer.vue";
     <WindowTitlebar class="flex-shrink-0  window-titlebar">LitManagePro</WindowTitlebar>
     <div class="flex-grow flex flex-col">
       <!-- 中间内容区域 -->
-      <div class="flex flex-grow"> <!-- flex-grow 让中间区域填充剩余空间 -->
+<!--      用h-[calc(100vh-10rem)]来强制设置主内容的高度，避免被撑开导致软件出现滚动条，注意，这里这个高度可以设小，
+，即使很小内容不会被挤压的，应该是flex-grow 让中间区域填充剩余空间，如果设置的高度过大话，还是会出现滚动条-->
+      <div class="flex flex-grow h-[calc(100vh-10rem)]"> <!-- flex-grow 让中间区域填充剩余空间 -->
         <!-- 主内容区 -->
         <MainContent class="flex-grow"/> <!-- flex-grow 让 MainContent 填充剩余空间 -->
         <!-- 右侧边栏（固定宽度且禁止收缩） -->
@@ -22,7 +24,6 @@ import Footer from "../layouts/Footer.vue";
       <Footer class="h-7 flex-shrink-0 w-full"/> <!-- h-7 = 30px, flex-shrink-0 禁止收缩, w-full 宽度100% -->
     </div>
   </div>
-
 </template>
 
 <style scoped>

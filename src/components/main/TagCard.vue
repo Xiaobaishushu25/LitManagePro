@@ -106,10 +106,6 @@ function createNewTagGroup(){
       title="新建标签组"
       :onConfirm="createNewTagGroup"
   >
-<!--    <template #header>-->
-<!--      <div>自定内容</div>-->
-<!--      <div class="text-red-800">自定义标题内容</div>-->
-<!--    </template>-->
     <n-flex vertical>
           <n-input placeholder="请输入标签组名" v-model:value="newGroupName" ref="groupInputRef" @keydown.enter.prevent="createNewTagGroup" />
     </n-flex>
@@ -161,53 +157,55 @@ function createNewTagGroup(){
       </n-color-picker>
     </n-flex>
   </custom-modal>
-  <div>
-    <n-grid :x-gap="0" :y-gap="5" :cols="1">
-      <n-grid-item>
-        <n-space>
-          <n-input placeholder="请输入标签名" />
-          <n-button @click="showNewGroupModal">+</n-button>
-        </n-space>
-      </n-grid-item>
-      <n-grid-item>
-        <div class="light-green" />
-      </n-grid-item>
-      <n-grid-item>
-<!--        <n-card v-for="tags in tagsData" :key="tags.tag_group.id" :title="tags.tag_group.name">-->
-        <n-card
-            header-style="padding:5px 5px 5px 25px;font-size:17px;font-weight:bold;"
-            content-style="padding:5px 5px 5px 15px;font-weight:bold;"
-            v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name"
-        >
-          <template #header-extra>
-            <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>
-          </template>
-          <n-collapse-transition :show="configStore.getTagGroupState(tags.tag_group.id).value">
-            <div class="flex flex-wrap gap-1 flex-row items-center">
-              <n-tag
-                  v-for="tag in tags.tags" :key="tag.id"
-                  :color="{ color: tag.bg_color, textColor: tag.text_color }"
-                  :disabled="store.currentSelectTags.some(selectedTag => selectedTag.id === tag.id)"
-                  @click="clickTag(tag.id, tag.value)"
-                  class="cursor-pointer"
-              >
-                {{ tag.value }}
-              </n-tag>
-              <n-button
-                  @click="toShowNewTagModal(tags.tag_group.index,tags.tag_group.id, tags.tag_group.name)"
-                  :focusable="false"
-                  :strong="true"
-                  class="w-6 h-6"
-              >
-                <template #icon>
-                  <inline-svg src="../assets/svg/Add24Filled.svg"></inline-svg>
-                </template>
-              </n-button>
-            </div>
-          </n-collapse-transition>
-        </n-card>
-      </n-grid-item>
-    </n-grid>
+  <div class="h-full">
+    <n-scrollbar trigger="none">
+      <n-grid :x-gap="0" :y-gap="5" :cols="1">
+        <n-grid-item>
+          <n-space>
+            <n-input placeholder="请输入标签名" />
+            <n-button @click="showNewGroupModal">+</n-button>
+          </n-space>
+        </n-grid-item>
+        <n-grid-item>
+          <div class="light-green" />
+        </n-grid-item>
+        <n-grid-item>
+          <!--        <n-card v-for="tags in tagsData" :key="tags.tag_group.id" :title="tags.tag_group.name">-->
+          <n-card
+              header-style="padding:5px 5px 5px 25px;font-size:17px;font-weight:bold;"
+              content-style="padding:5px 5px 5px 15px;font-weight:bold;"
+              v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name"
+          >
+            <template #header-extra>
+              <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>
+            </template>
+            <n-collapse-transition :show="configStore.getTagGroupState(tags.tag_group.id).value">
+              <div class="flex flex-wrap gap-1 flex-row items-center">
+                <n-tag
+                    v-for="tag in tags.tags" :key="tag.id"
+                    :color="{ color: tag.bg_color, textColor: tag.text_color }"
+                    :disabled="store.currentSelectTags.some(selectedTag => selectedTag.id === tag.id)"
+                    @click="clickTag(tag.id, tag.value)"
+                    class="cursor-pointer"
+                >
+                  {{ tag.value }}
+                </n-tag>
+                <n-button
+                    @click="toShowNewTagModal(tags.tag_group.index,tags.tag_group.id, tags.tag_group.name)"
+                    :focusable="false"
+                    :strong="true"
+                    class="w-6 h-6"
+                >
+                  <template #icon>
+                    <inline-svg src="../assets/svg/Add24Filled.svg"></inline-svg>
+                  </template>
+                </n-button>
+              </div>
+            </n-collapse-transition>
+          </n-card>
+        </n-grid-item>
+      </n-grid>
+    </n-scrollbar>
   </div>
 </template>
 

@@ -5,18 +5,17 @@ import {TagGroup, TagAndGroups,Tag} from "./main-type.ts";
 import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
+import useConfigStore from "../../stroe/config.ts";
 
 const store = useTagGroupsStore()
+const configStore = useConfigStore()
 
 const inputRef = ref<HTMLInputElement | null>(null)
 const groupInputRef = ref<HTMLInputElement | null>(null)
 
-const show = ref(false)
 const showNewTagModal = ref(false)
 const showGroupModal = ref(false)
 
-const showColorPicker = ref(false)
-const selectedColor = ref('#000000')
 
 const currentTagGroup = ref<TagGroup|null>(null)
 const newGroupName = ref('')
@@ -24,7 +23,6 @@ const newTagBgColor = ref('#c89f9f')
 const newTagTextColor = ref('#000000')
 const newTagValue = ref('')
 
-const open = ref<Record<number, boolean>>({});
 
 const tagsData = ref<TagAndGroups[] | null>(null);
 onMounted(async ()=>{
@@ -43,6 +41,7 @@ function toShowNewTagModal(index:number, id: number, name: string){
     name: name
   }
   // currentTagGroup.value = name;
+  console.log("toShowNewTagModal");
   showNewTagModal.value = true;
   nextTick(() => {
     inputRef.value!.focus()
@@ -54,19 +53,21 @@ function showNewGroupModal(){
     groupInputRef.value!.focus()
   })
 }
+function clickTag(id: number, _value: string){
+  store.addTagToCurrentSelectTags(id);
+}
 function createNewTag(){
   let value = newTagValue.value;
   if(value.length === 0){
     message.error(`标签名不能为空`)
     return;
   }
-  showNewTagModal.value = false;
   if (!value){
     message.error(`创建标签失败，请检查当前标签组信息。`)
   }
-  let tag = {
+  let tag:Tag = {
     index: 0,
-    groupId: currentTagGroup.value!.id,
+    group_id: currentTagGroup.value!.id,
     id: 0,
     value: value,
     bg_color: newTagBgColor.value,
@@ -74,17 +75,14 @@ function createNewTag(){
   }
   invoke<Tag>('create_tag', {
     tag: tag,
-    // tagGroupId: value!.id,
-    // tagValue: newTagValue.value,
-    // bgColor: newTagBgColor.value,
-    // textColor: newTagTextColor.value
   }).then(data => {//回来的data是一个Tag结构体
-    console.log(data)
     store.addNewTag(data)
+    newTagValue.value = '';
     message.success(`创建标签成功`)
   }).catch(e => {
     message.error(`创建标签失败${e}`)
-  })
+  });
+  showNewTagModal.value = false;
 }
 function createNewTagGroup(){
   showGroupModal.value = false;
@@ -113,15 +111,14 @@ function createNewTagGroup(){
 <!--      <div class="text-red-800">自定义标题内容</div>-->
 <!--    </template>-->
     <n-flex vertical>
-          <n-input placeholder="请输入标签组名" v-model:value="newGroupName" ref="groupInputRef" />
+          <n-input placeholder="请输入标签组名" v-model:value="newGroupName" ref="groupInputRef" @keydown.enter.prevent="createNewTagGroup" />
     </n-flex>
   </custom-modal>
-  <n-modal v-model:show="showNewTagModal"
-           preset="card"
-           class="w-80"
-           :mask-closable="false"
-           :draggable="true"
-           >
+  <custom-modal
+      v-model:show="showNewTagModal"
+      title="新建标签"
+      :onConfirm="createNewTag"
+  >
     <template #header>
       <n-flex :size="0" class="text-base">
         <div>为</div>
@@ -131,7 +128,7 @@ function createNewTagGroup(){
     </template>
     <n-flex vertical>
       <n-tag class="w-fit" :color="{color: newTagBgColor, textColor: newTagTextColor}">{{ newTagValue }}</n-tag>
-      <n-input v-model:value="newTagValue" placeholder="请输入标签名" ref="inputRef"  />
+      <n-input v-model:value="newTagValue" placeholder="请输入标签名" ref="inputRef" @keydown.enter.prevent="createNewTag"  />
       <n-color-picker
           v-model:value="newTagBgColor"
           :swatches="[
@@ -163,13 +160,7 @@ function createNewTagGroup(){
         </template>
       </n-color-picker>
     </n-flex>
-    <template #action>
-      <n-space>
-        <n-button @click="showNewTagModal = false">取消</n-button>
-        <n-button @click="createNewTag">确认</n-button>
-      </n-space>
-    </template>
-  </n-modal>
+  </custom-modal>
   <div>
     <n-grid :x-gap="0" :y-gap="5" :cols="1">
       <n-grid-item>
@@ -183,120 +174,35 @@ function createNewTagGroup(){
       </n-grid-item>
       <n-grid-item>
 <!--        <n-card v-for="tags in tagsData" :key="tags.tag_group.id" :title="tags.tag_group.name">-->
-        <n-card v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name">
-          <template #header-extra>
-<!--            <n-switch v-model:value="show[tags.tagGroup.id]">-->
-            <n-switch v-model:value="show">
-              <template #checked>
-                展开
-              </template>
-              <template #unchecked>
-                折叠
-              </template>
-            </n-switch>
-          </template>
-          <n-collapse-transition :show="show">
-            <div class="flex flex-wrap gap-1">
-              <n-tag v-for="tag in tags.tags" :key="tag.id" :color="{ color: tag.bg_color, textColor: tag.text_color }">
-                {{ tag.value }}
-              </n-tag>
-              <n-button @click="toShowNewTagModal(tags.tag_group.index,tags.tag_group.id, tags.tag_group.name)">+</n-button>
-            </div>
-          </n-collapse-transition>
-        </n-card>
-      </n-grid-item>
-      <n-grid-item>
         <n-card
-            header-style="padding:5px 5px 5px 15px;font-size:17px;font-weight:bold;"
+            header-style="padding:5px 5px 5px 25px;font-size:17px;font-weight:bold;"
             content-style="padding:5px 5px 5px 15px;font-weight:bold;"
-            title="深度学习"
+            v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name"
         >
           <template #header-extra>
-            <n-switch v-model:value="show">
-              <template #checked>
-                展开
-              </template>
-              <template #unchecked>
-                折叠
-              </template>
-            </n-switch>
+            <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>
           </template>
-          <n-collapse-transition :show="show">
-            <div class="flex flex-wrap gap-1">
+          <n-collapse-transition :show="configStore.getTagGroupState(tags.tag_group.id).value">
+            <div class="flex flex-wrap gap-1 flex-row items-center">
               <n-tag
-                  class="text-xs"
-                  type="success"
-                  :bordered="false"
-                  @click="showColorPicker = true"
-                  :style="{ color: selectedColor }"
+                  v-for="tag in tags.tags" :key="tag.id"
+                  :color="{ color: tag.bg_color, textColor: tag.text_color }"
+                  :disabled="store.currentSelectTags.some(selectedTag => selectedTag.id === tag.id)"
+                  @click="clickTag(tag.id, tag.value)"
+                  class="cursor-pointer"
               >
-                扩散模型
+                {{ tag.value }}
               </n-tag>
-              <n-tag
-                  class="text-xl"
-                  type="warning"
-                  :color="{color: '#00E5EE50',textColor: '#00E5EE'}"
-                  @click="showColorPicker = true"
-                  :style="{ color: selectedColor }"
+              <n-button
+                  @click="toShowNewTagModal(tags.tag_group.index,tags.tag_group.id, tags.tag_group.name)"
+                  :focusable="false"
+                  :strong="true"
+                  class="w-6 h-6"
               >
-                深度神经网络！！
-              </n-tag>
-              <n-tag
-                  type="error"
-                  @click="showColorPicker = true"
-                  :style="{ color: selectedColor }"
-              >
-                LSTM
-              </n-tag>
-              <n-tag
-                  type="info"
-                  @click="showColorPicker = true"
-                  :style="{ color: selectedColor }"
-              >
-                GAN
-              </n-tag>
-
-              <n-color-picker
-                  v-if="showColorPicker"
-                  :swatches="[
-        '#FFFFFF',
-        '#18A058',
-        '#2080F0',
-        '#F0A020',
-        'rgba(208, 48, 80, 1)',
-      ]"
-                  @close="showColorPicker = false"
-              />
-            </div>
-          </n-collapse-transition>
-        </n-card>
-      </n-grid-item>
-      <n-grid-item>
-        <n-card title="卡片2">
-          <template #header-extra>
-            <n-switch v-model:value="show">
-              <template #checked>
-                展开
-              </template>
-              <template #unchecked>
-                折叠
-              </template>
-            </n-switch>
-          </template>
-          <n-collapse-transition :show="show">
-            <div class="flex flex-wrap gap-1">
-              <n-tag type="success" >
-                成功
-              </n-tag>
-              <n-tag type="warning" >
-                我真的警告！！
-              </n-tag>
-              <n-tag type="error" >
-                错误
-              </n-tag>
-              <n-tag type="info" >
-                信息
-              </n-tag>
+                <template #icon>
+                  <inline-svg src="../assets/svg/Add24Filled.svg"></inline-svg>
+                </template>
+              </n-button>
             </div>
           </n-collapse-transition>
         </n-card>

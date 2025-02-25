@@ -1,31 +1,39 @@
 <script setup lang="ts">
-import {onMounted, ref} from "vue";
+import {onMounted, onUnmounted} from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import {WindowTitlebar} from "@tauri-controls/vue";
 
-// import { WindowTitlebar } from "tauri-controls"
-
-
-
-const greetMsg = ref("");
-const name = ref("");
-
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  greetMsg.value = await invoke("greet", { name: name.value });
-}
 import { getCurrentWindow } from "@tauri-apps/api/window";
+
+const store = useConfigStore()
+
+
+let unlisten: () => void;
 onMounted(async () => {
-  // const unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
-  //   console.log("close requested");
-  //   event.preventDefault();
-  // });
+  unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
+    console.log("close requested");
+    event.preventDefault();
+    await invoke('save_config',{config: store.config}).then(_ => {}).catch(e => {
+      message.error(`保存配置出错${e}`);
+    })
+    await invoke('exit_app', {})
+  });
+
+  await invoke<Config>('get_config',{}).then(data => {
+    console.log(data);
+    store.config = data;
+  }).catch(e => {
+    console.log(e);
+  })
 })
-//
-// // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted
-// unlisten();
+onUnmounted(async ()=>{
+  unlisten();
+})
+
 
 import {message, showMessage} from './message.ts';
+import {Config} from "./config-type.ts";
+import useTagGroupsStore from "./stroe/tag.ts";
+import useConfigStore from "./stroe/config.ts";
 function mess(){
   showMessage('Hello World');
   message.error('Hello World，Hello World，Hello World，Hello World，Hello WorldHello WorldHello WorldHello WorldHello World');

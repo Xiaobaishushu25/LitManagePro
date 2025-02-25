@@ -2,31 +2,15 @@
 import AutoCompleteTag from "../../util/AutoCompleteTag.vue";
 import {ref} from "vue";
 import {Tag} from "./main-type.ts";
+import useTagGroupsStore from "../../stroe/tag.ts";
 
-// const selectedTags = ref([]);
-// const options = ref([
-//   { label: '标签1', value: 'tag1' },
-//   { label: '标签2', value: 'tag2' },
-//   { label: '标签3', value: 'tag3' }
-// ]);
-//
-// const fetchSuggestions = async (query) => {
-//   return options.value.filter(option =>
-//       option.label.includes(query)
-//   );
-// };
-const selectedTags = ref<Tag[]>([])
-const options = ref<Tag[]>([
-  { groupId: 1, id: 1, value: '标签1', bg_color: '#f00', text_color: '#fff' },
-  { groupId: 1, id: 2, value: '标签2', bg_color: '#0f0', text_color: '#000' },
-  { groupId: 1, id: 3, value: '标签3', bg_color: '#00f', text_color: '#fff' }
-])
+const store = useTagGroupsStore()
 
 const fetchSuggestions = async (query: string) => {
   if (query===" "){ //如果输入一个空格，则返回所有标签
-    return options.value
+    return store.allTags
   }
-  return options.value.filter(option =>
+  return store.allTags.filter(option =>
       option.value.includes(query)
   )
 }
@@ -35,22 +19,13 @@ const fetchSuggestions = async (query: string) => {
 <template>
   <div>
     <n-space vertical>
-      {{selectedTags}}
+      {{store.currentSelectTags}}
       <auto-complete-tag
-          v-model:modelValue="selectedTags"
-          placeholder="请输入标签"
-          :options="options"
+          v-model:modelValue="store.currentSelectTags"
+          placeholder="按空格提示所有标签"
+          :options="store.allTags"
           :fetchSuggestions="fetchSuggestions"
       />
-      <n-tag
-          class="text-xs tag"
-          type="success"
-          :closable="true"
-          :color="{color: '#d2666650',textColor: '#101010'}"
-          :bordered="false"
-      >
-        扩散模型
-      </n-tag>
     </n-space>
   </div>
 

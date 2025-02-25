@@ -5,7 +5,7 @@ interface TagGroup {
 }
 interface Tag {
     index: number;
-    groupId: number;
+    group_id: number;
     id: number;
     value: string;
     bg_color: string;

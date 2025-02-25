@@ -32,6 +32,9 @@ dependencies:
   vue:
     specifier: ^3.5.13
     version: 3.5.13(typescript@5.6.3)
+  vue-inline-svg:
+    specifier: ^4.0.0
+    version: 4.0.0(vue@3.5.13)
   vue-router:
     specifier: '4'
     version: 4.5.0(vue@3.5.13)
@@ -2019,6 +2022,14 @@ packages:
     peerDependenciesMeta:
       '@vue/composition-api':
         optional: true
+    dependencies:
+      vue: 3.5.13(typescript@5.6.3)
+    dev: false
+
+  /vue-inline-svg@4.0.0(vue@3.5.13):
+    resolution: {integrity: sha512-6kFnPZXQ5jPgumqhDGyJbpqtR5/hlkF4euXxMPai2tcnd6n7zYrEUhZPjE49blf3dDjdoslCu1oyk4EqX/KwgA==}
+    peerDependencies:
+      vue: ^3
     dependencies:
       vue: 3.5.13(typescript@5.6.3)
     dev: false

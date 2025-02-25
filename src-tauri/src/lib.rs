@@ -1,7 +1,9 @@
+use std::process::exit;
 use std::sync::Mutex;
-use log::{info};
+use tracing::info;
 use crate::init::init_app;
-use crate::services::commands::tag::{query_tag_groups, create_tag_group, update_tag_group_name, create_tag};
+use crate::services::commands::tag::{query_tag_groups, create_tag_group, update_tag_group_name, create_tag,};
+use crate::services::commands::config::{get_config,save_config};
 
 mod init;
 mod services;
@@ -24,7 +26,16 @@ pub async fn run() {
             create_tag,
             create_tag_group,
             update_tag_group_name,
+            get_config,
+            save_config,
+            exit_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+#[tauri::command]
+async fn exit_app()->Result<(),()> {
+    info!("退出程序");
+    // sleep(Duration::from_secs(1)).await;
+    exit(0)
 }

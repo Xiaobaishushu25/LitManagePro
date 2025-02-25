@@ -72,7 +72,7 @@ impl Default for Config{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UiConfig{
     //tag组是否打开，key为tag_group_name，value为bool
-    tag_group_state:HashMap<String,bool>
+    tag_group_state:HashMap<i32,bool>
 }
 impl Default for UiConfig{
     fn default() -> Self {
@@ -148,8 +148,8 @@ pub fn init_logger() -> WorkerGuard {
         .with_level(true)
         .with_thread_names(true)
         .with_timer(local_time)
-        .with_filter(EnvFilter::new("info")) // 控制台显示 info 级别及以上的日志
-        .with_filter(EnvFilter::new("tao::platform_impl::platform::event_loop::runner=error")); // 过滤 tao 的警告日志
+        .with_filter(EnvFilter::new("info,tao::platform_impl::platform::event_loop::runner=error"));
+        // .with_filter(EnvFilter::new("info")); // 控制台显示 info 级别及以上的日志
 
     // 配置日志订阅器
     Registry::default()

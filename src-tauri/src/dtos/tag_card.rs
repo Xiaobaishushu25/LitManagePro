@@ -1,8 +1,9 @@
-use sea_orm::Related;
+use log::info;
+use sea_orm::{ModelTrait, Related};
 use serde::{Deserialize, Serialize};
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
-use crate::entities::prelude::{Tag, TagGroup, TagGroups};
+use crate::entities::prelude::{Tag, TagGroup, TagGroups, Tags};
 use crate::services::curd::tag_group::TagGroupCurd;
 #[derive(Debug, Clone, Serialize)]
 pub struct TagAndGroups {
@@ -16,9 +17,7 @@ pub async fn get_tag_and_groups() -> AppResult<Vec<TagAndGroups>> {
     let tag_groups = TagGroupCurd::query_tag_groups().await?;
     let mut result: Vec<TagAndGroups> = Vec::new();
     for tag_group in tag_groups {
-        let tags = TagGroups::find_related()
-            .all(db)
-            .await?;
+        let tags = tag_group.find_related(Tags).all(db).await?;
         result.push(TagAndGroups {
             tag_group,
             tags,

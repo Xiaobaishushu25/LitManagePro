@@ -1,2 +1,2 @@
 pub mod tag;
-mod config;
+pub(crate) mod config;

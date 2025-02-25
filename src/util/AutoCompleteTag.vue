@@ -7,6 +7,7 @@ interface Props {
   modelValue: Tag[]
   options?: Tag[]
   labelKey?: string
+  placeholder?: string
   triggerOnFocus?: boolean
   fetchSuggestions?: (query: string) => Promise<Tag[]>
 }
@@ -54,23 +55,6 @@ const handleCloseTag = (index: number) => {
 }
 // let keyArrow = false;
 const handleKeydown = (e: KeyboardEvent) => {
-  console.log('handleKeydown', e.key);
-  // if (e.key === 'Enter' && suggestions.value.length > 0) {
-  //   if (selectedIndex.value !== -1) {
-  //     handleSelect(suggestions.value[selectedIndex.value]); // 选择当前选中的匹配项
-  //   } else {
-  //     handleSelect(suggestions.value[0]); // 默认选择第一个匹配项
-  //   }
-  // }
-  // if (e.key=== 'ArrowUp'|| e.key === 'ArrowDown'){
-  //   keyArrow = true;
-  // }
-  // if (e.key === 'ArrowUp' && selectedIndex.value > 0) {
-  //   selectedIndex.value--; // 上移选中项
-  // }
-  // if (e.key === 'ArrowDown' && selectedIndex.value < suggestions.value.length - 1) {
-  //   selectedIndex.value++; // 下移选中项
-  // }
   if (e.key === 'Backspace' && !inputValue.value) {
     const newValue = [...props.modelValue];
     newValue.pop();
@@ -138,6 +122,7 @@ const handleSearch = async (query: string) => {
           <input
               ref="inputRef"
               v-model="inputValue"
+              :placeholder="props.placeholder"
               class="input"
               type="text"
               @blur="handleBlur"

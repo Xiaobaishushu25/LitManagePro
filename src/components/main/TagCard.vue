@@ -1,65 +1,86 @@
 <script setup lang="ts">
 import {nextTick, onMounted, ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
-import {TagGroup, Tags} from "./MainType.ts";
+import {TagGroup, TagAndGroups,Tag} from "./main-type.ts";
 import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
+import useTagGroupsStore from "../../stroe/tag.ts";
+
+const store = useTagGroupsStore()
 
 const inputRef = ref<HTMLInputElement | null>(null)
 const groupInputRef = ref<HTMLInputElement | null>(null)
 
 const show = ref(false)
-const showModal = ref(false)
+const showNewTagModal = ref(false)
 const showGroupModal = ref(false)
 
 const showColorPicker = ref(false)
 const selectedColor = ref('#000000')
 
 const currentTagGroup = ref<TagGroup|null>(null)
-const newTagColor = ref('#c89f9f')
+const newGroupName = ref('')
+const newTagBgColor = ref('#c89f9f')
 const newTagTextColor = ref('#000000')
 const newTagValue = ref('')
 
 const open = ref<Record<number, boolean>>({});
 
-const tagsData = ref<Tags[] | null>(null);
+const tagsData = ref<TagAndGroups[] | null>(null);
 onMounted(async ()=>{
-  invoke<Tags[]>('query_tags',{}).then(data =>{
+  invoke<TagAndGroups[]>('query_tag_groups',{}).then(data =>{
     console.log(data)
+    store.tagGroups = data;
     tagsData.value = data;
   }).catch(e => {message.error(`查询标签数据出错${e}`)})
 })
 
-function showNewTagModal(id: number, name: string){
+function toShowNewTagModal(index:number, id: number, name: string){
   console.log(`Tag Group ID: ${id}, Name: ${name}`);
   currentTagGroup.value={
+    index: index,
     id: id,
     name: name
   }
   // currentTagGroup.value = name;
-  showModal.value = true;
+  showNewTagModal.value = true;
   nextTick(() => {
     inputRef.value!.focus()
   })
 }
 function showNewGroupModal(){
   showGroupModal.value = true;
-  nextTick(() => {
+  nextTick(() => {//去掉后不会有焦点
     groupInputRef.value!.focus()
   })
 }
 function createNewTag(){
-  showModal.value = false;
-  let value = currentTagGroup.value;
+  let value = newTagValue.value;
+  if(value.length === 0){
+    message.error(`标签名不能为空`)
+    return;
+  }
+  showNewTagModal.value = false;
   if (!value){
     message.error(`创建标签失败，请检查当前标签组信息。`)
   }
-  invoke('create_tag', {
-    tag_group_id: value!.id,
-    tag_value: newTagValue.value,
-    tag_color: newTagColor.value
-  }).then(data => {
+  let tag = {
+    index: 0,
+    groupId: currentTagGroup.value!.id,
+    id: 0,
+    value: value,
+    bg_color: newTagBgColor.value,
+    text_color: newTagTextColor.value
+  }
+  invoke<Tag>('create_tag', {
+    tag: tag,
+    // tagGroupId: value!.id,
+    // tagValue: newTagValue.value,
+    // bgColor: newTagBgColor.value,
+    // textColor: newTagTextColor.value
+  }).then(data => {//回来的data是一个Tag结构体
     console.log(data)
+    store.addNewTag(data)
     message.success(`创建标签成功`)
   }).catch(e => {
     message.error(`创建标签失败${e}`)
@@ -67,21 +88,24 @@ function createNewTag(){
 }
 function createNewTagGroup(){
   showGroupModal.value = false;
-  invoke('create_tag_group', {
-    tag_group_name: "sd",
+  let tagGroupName = newGroupName.value;
+  invoke<TagGroup>('create_tag_group', {
+    groupName: tagGroupName,
   }).then(data => {
     console.log(data)
-    message.success(`创建标签组成功`)
+    store.addNewTagGroup(data)
+    message.success(`创建标签组${tagGroupName}成功`)
   }).catch(e => {
     message.error(`创建标签组失败${e}`)
-  })
+  });
+  newGroupName.value = '';
 }
 </script>
 
 <template>
   <custom-modal
       v-model:show="showGroupModal"
-      title="新建标签2组"
+      title="新建标签组"
       :onConfirm="createNewTagGroup"
   >
 <!--    <template #header>-->
@@ -89,29 +113,10 @@ function createNewTagGroup(){
 <!--      <div class="text-red-800">自定义标题内容</div>-->
 <!--    </template>-->
     <n-flex vertical>
-          <n-input  placeholder="请输入标签组名" ref="groupInputRef"  />
+          <n-input placeholder="请输入标签组名" v-model:value="newGroupName" ref="groupInputRef" />
     </n-flex>
   </custom-modal>
-<!--  <n-modal v-model:show="showGroupModal"-->
-<!--           preset="card"-->
-<!--           class="w-80"-->
-<!--           :mask-closable="false"-->
-<!--           :draggable="true"-->
-<!--  >-->
-<!--    <template #header>-->
-<!--      <div>新建标签组</div>-->
-<!--    </template>-->
-<!--    <n-flex vertical>-->
-<!--      <n-input  placeholder="请输入标签组名" ref="groupInputRef"  />-->
-<!--    </n-flex>-->
-<!--    <template #action>-->
-<!--      <n-space>-->
-<!--        <n-button @click="showModal = false">取消</n-button>-->
-<!--        <n-button @click="createNewTag">确认</n-button>-->
-<!--      </n-space>-->
-<!--    </template>-->
-<!--  </n-modal>-->
-  <n-modal v-model:show="showModal"
+  <n-modal v-model:show="showNewTagModal"
            preset="card"
            class="w-80"
            :mask-closable="false"
@@ -125,15 +130,16 @@ function createNewTagGroup(){
       </n-flex>
     </template>
     <n-flex vertical>
-      <n-tag class="w-fit" :color="{color: newTagColor, textColor: newTagTextColor}">{{ newTagValue }}</n-tag>
+      <n-tag class="w-fit" :color="{color: newTagBgColor, textColor: newTagTextColor}">{{ newTagValue }}</n-tag>
       <n-input v-model:value="newTagValue" placeholder="请输入标签名" ref="inputRef"  />
       <n-color-picker
-          v-model:value="newTagColor"
+          v-model:value="newTagBgColor"
           :swatches="[
       '#FFFFFF',
       '#18A058',
       '#2080F0',
       '#F0A020',
+      '#ba6d93',
     ]"
       >
         <template #label>
@@ -144,6 +150,7 @@ function createNewTagGroup(){
           v-model:value="newTagTextColor"
           :show-alpha="false"
           :swatches="[
+      '#000000',
       '#FFFFFF',
       '#18A058',
       '#2080F0',
@@ -158,7 +165,7 @@ function createNewTagGroup(){
     </n-flex>
     <template #action>
       <n-space>
-        <n-button @click="showModal = false">取消</n-button>
+        <n-button @click="showNewTagModal = false">取消</n-button>
         <n-button @click="createNewTag">确认</n-button>
       </n-space>
     </template>
@@ -175,7 +182,8 @@ function createNewTagGroup(){
         <div class="light-green" />
       </n-grid-item>
       <n-grid-item>
-        <n-card v-for="tags in tagsData" :key="tags.tag_group.id" :title="tags.tag_group.name">
+<!--        <n-card v-for="tags in tagsData" :key="tags.tag_group.id" :title="tags.tag_group.name">-->
+        <n-card v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name">
           <template #header-extra>
 <!--            <n-switch v-model:value="show[tags.tagGroup.id]">-->
             <n-switch v-model:value="show">
@@ -189,10 +197,10 @@ function createNewTagGroup(){
           </template>
           <n-collapse-transition :show="show">
             <div class="flex flex-wrap gap-1">
-              <n-tag v-for="tag in tags.tags" :key="tag.id" :color="{ color: `${tag.color}30`, textColor: tag.color }">
+              <n-tag v-for="tag in tags.tags" :key="tag.id" :color="{ color: tag.bg_color, textColor: tag.text_color }">
                 {{ tag.value }}
               </n-tag>
-              <n-button @click="showNewTagModal(tags.tag_group.id, tags.tag_group.name)">+</n-button>
+              <n-button @click="toShowNewTagModal(tags.tag_group.index,tags.tag_group.id, tags.tag_group.name)">+</n-button>
             </div>
           </n-collapse-transition>
         </n-card>

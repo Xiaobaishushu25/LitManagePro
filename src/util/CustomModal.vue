@@ -1,6 +1,18 @@
 <script lang="ts" setup>
-import { ref, nextTick, watch } from 'vue';
-
+/// @author xbss
+/// @description 自定义模态窗口，用于一些简单的提示和交互操作
+/// @param {Boolean} show - 模态窗口是否显示
+/// @param {String} title - 模态窗口标题，如果使用header插槽时，则默认渲染插槽内容
+/// @param {Function} onConfirm - 确认按钮点击事件
+/// @solt {#header} - 头部插槽
+/// @solt {#default} - 内容插槽
+/// @example
+/// <CustomModal v-model:show="show" title="提示" @onConfirm="handleConfirm">
+///   <template#header>my title</template#header>
+///   <div>
+///     <n-input v-model:value="inputValue" :placeholder="placeholder" ref="inputRef" />
+///   </div>
+/// </CustomModal>
 const props = defineProps({
   show: {
     type: Boolean,
@@ -59,10 +71,7 @@ const confirmAction = () => {
         {{ title }}
       </div>
     </template>
-<!--    <n-flex vertical>-->
-<!--      <n-input v-model:value="inputValue" :placeholder="placeholder" ref="inputRef" />-->
       <slot></slot>
-<!--    </n-flex>-->
     <template #action>
       <n-space>
         <n-button @click="closeModal">取消</n-button>

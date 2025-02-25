@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {nextTick, ref, watch} from 'vue';
-import {Tag} from "../components/main/MainType.ts";
+import {Tag} from "../components/main/main-type.ts";
 
 
 interface Props {

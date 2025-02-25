@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AutoCompleteTag from "../../util/AutoCompleteTag.vue";
 import {ref} from "vue";
-import {Tag} from "./MainType.ts";
+import {Tag} from "./main-type.ts";
 
 // const selectedTags = ref([]);
 // const options = ref([

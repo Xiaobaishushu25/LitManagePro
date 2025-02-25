@@ -1,7 +1,7 @@
 use std::sync::Mutex;
-use log::{error, info};
+use log::{info};
 use crate::init::init_app;
-use crate::services::commands::tag::{query_tags,create_tag_group,update_tag_group_name,insert_tag};
+use crate::services::commands::tag::{query_tag_groups, create_tag_group, update_tag_group_name, create_tag};
 
 mod init;
 mod services;
@@ -20,10 +20,10 @@ pub async fn run() {
         .plugin(tauri_plugin_os::init())
         .manage(Mutex::new(config))
         .invoke_handler(tauri::generate_handler![
-            query_tags,
-            insert_tag,
+            query_tag_groups,
+            create_tag,
             create_tag_group,
-            update_tag_group_name
+            update_tag_group_name,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

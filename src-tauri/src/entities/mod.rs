@@ -15,6 +15,9 @@ pub mod tag_group;
 pub mod tag;
 pub mod prelude;
 
+
+///实体类，对应数据库中的行数据
+
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::const_new();
 pub async fn init_db_coon() {
     let current_dir = CURRENT_DIR.clone();

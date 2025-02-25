@@ -1,25 +1,52 @@
-use sea_orm::{EntityTrait, IntoActiveModel, ModelTrait, NotSet};
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
 use sea_orm::ActiveValue::Set;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
-use crate::entities::prelude::{ActiveTag, Tag, Tags};
+use crate::entities::prelude::{Tag, Tags};
+use crate::entities::tag::Column;
 
 pub struct TagCurd;
 impl TagCurd {
-    pub async fn insert(tag:Tag) -> AppResult<i32> {
+    ///参数中的tag的index字段和id字段是自动生成的，所以需要重新设置。
+    /// 异步插入标签，并返回插入后的完整Tag（有索引和id数据）。
+    ///
+    /// 此函数首先检查数据库是否已初始化，然后找到当前最大的索引值，
+    /// 并将新标签的索引值设置为最大索引值加一，以确保标签的顺序。
+    /// 最后，将标签插入数据库，并返回插入标签。
+    ///
+    /// # 参数
+    ///
+    /// * `tag` - 要插入的标签数据模型。
+    ///
+    /// # 返回值
+    ///
+    /// * `AppResult<i32>` - 插入成功后返回一个包含标签结构体的结果类型。
+    ///
+    /// # 错误处理
+    ///
+    /// * 如果数据库未初始化，将返回一个自定义错误提示。
+    /// * 如果数据库查询或插入操作失败，将传播相应的错误。
+    pub async fn insert(tag:Tag) -> AppResult<Tag> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
-        let mut active_tag = tag.into_active_model();
+        let max_index = Tags::find()
+            .select_only()
+            .expr(Column::Index.max())
+            .into_tuple::<Option<i32>>()
+            .one(db)
+            .await?
+            .unwrap()
+            .unwrap_or(0);
+        let mut active_tag = tag.clone().into_active_model();
+        active_tag.index = Set(max_index + 1);
         active_tag.id = NotSet;
-        // let active_tag = ActiveTag{
-        //     group_id: Set(tag_group_id),
-        //     id: NotSet,
-        //     value: Set(tag_value),
-        //     color: Set(color),
-        // };
         let insert_result = Tags::insert(active_tag).exec(db).await?;
-        Ok(insert_result.last_insert_id)
+        Ok(Tag{
+            index: max_index+1,
+            id: insert_result.last_insert_id,
+            ..tag
+        })
     }
     // pub async fn insert(tag_group_id: i32, tag_value: String, color: String) -> AppResult<()> {
     pub async fn insert_many(tags:Vec<Tag>) -> AppResult<()> {

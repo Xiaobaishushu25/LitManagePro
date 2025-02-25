@@ -1,9 +1,10 @@
 use sea_orm::entity::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, DeriveEntityModel, Serialize)]
+#[derive(Clone, Debug, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "tag_group")]
 pub struct Model {
+    pub index: i32,
     #[sea_orm(primary_key, auto_increment = true)]
     pub id: i32,
     pub name: String,

@@ -1,8 +1,10 @@
 interface TagGroup {
+    index: number;
     id: number;
     name: string;
 }
 interface Tag {
+    index: number;
     groupId: number;
     id: number;
     value: string;
@@ -10,8 +12,8 @@ interface Tag {
     text_color: string;
 }
 // 定义 Tags 接口
-interface Tags {
+interface TagAndGroups {
     tag_group: TagGroup;
     tags: Tag[];
 }
-export type {TagGroup,Tag,Tags};
+export type {TagGroup,Tag,TagAndGroups};

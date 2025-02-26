@@ -23,10 +23,17 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
         })
     }
     //遍历tagGroups.value 数组，保留所有 tag_group.id 不等于 tagGroup.id 的元素。
-    function deleteTagGroup(tagGroup:TagGroup){
+    function deleteTagGroup(group_id:number){
         tagGroups.value = tagGroups.value.filter((group)=>{
-            return group.tag_group.id !== tagGroup.id
+            return group.tag_group.id !== group_id
         })
+    }
+    function renameTagGroup(group_id:number,new_name:string){
+        const groupIndex = tagGroups.value.findIndex((group) => group.tag_group.id === group_id);
+        if (groupIndex !== -1) {
+            // 更新找到的标签组的名称
+            tagGroups.value[groupIndex].tag_group.name = new_name;
+        }
     }
     function addNewTag(tag:Tag){
         // 找到第一个 tag_group.id 等于 tag.groupId 的元素，并添加 tag 到它的 tags 数组中
@@ -44,11 +51,17 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
     }
     function addTagToAndTags(id:number){
         let tag = allTags.value.find(tag => tag.id === id);
-        andTags.value.push(tag);
+        if (tag) {
+            andTags.value.push(tag);
+        }
+        // andTags.value.push(tag);
     }
     function addTagToOrTags(id:number){
         let tag = allTags.value.find(tag => tag.id === id);
-        orTags.value.push(tag);
+        if (tag) {
+            andTags.value.push(tag);
+        }
+        // orTags.value.push(tag);
     }
     return {
         tagGroups,
@@ -62,6 +75,7 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
         deleteTag,
         addTagToAndTags,
         addTagToOrTags,
+        renameTagGroup
     }
 })
 export default useTagGroupsStore

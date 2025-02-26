@@ -29,6 +29,19 @@ pub async fn create_tag(tag:Tag) -> Result<Tag, String> {
         }
     }
 }
+/// 插入标签（传入的index和id是无效值，将会被覆盖）
+/// 由于标签的索引和id是自动生成的，所以会返回一个完整有效的Tag结构体。
+#[tauri::command]
+pub async fn delete_tag(id:i32) -> Result<(), String> {
+    match TagCurd::delete(id).await{
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let err_msg = format!("删除标签失败:{:?}", e);
+            error!("{}", err_msg);
+            Err(err_msg)
+        }
+    }
+}
 /// 插入标签组（传入的index和id是无效值，将会被覆盖）
 /// 由于标签组的索引和id是自动生成的，所以会返回一个完整有效的TagGroup结构体。
 #[tauri::command]
@@ -43,11 +56,22 @@ pub async fn create_tag_group(group_name:String)->Result<TagGroup,String>{
     }
 }
 #[tauri::command]
-pub async fn update_tag_group_name(group_id:i32, group_name:String)->Result<(),String>{
-    match TagGroupCurd::update_name(group_id, &group_name).await{
+pub async fn delete_group(id:i32) ->Result<(),String>{
+    match TagGroupCurd::delete(id).await{
         Ok(_) => Ok(()),
         Err(e) => {
-            let err_msg = format!("修改标签组名{group_name}失败：{:?}", e);
+            let err_msg = format!("删除标签组失败：{:?}", e);
+            error!("{}", err_msg);
+            Err(err_msg)
+        }
+    }
+}
+#[tauri::command]
+pub async fn rename_tag_group(id:i32, name:String) ->Result<(),String>{
+    match TagGroupCurd::update_name(id, &name).await{
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let err_msg = format!("修改标签组名为{name}失败：{:?}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }

@@ -2,7 +2,7 @@ use std::process::exit;
 use std::sync::Mutex;
 use tracing::info;
 use crate::init::init_app;
-use crate::services::commands::tag::{query_tag_groups, create_tag_group, update_tag_group_name, create_tag,};
+use crate::services::commands::tag::{query_tag_groups, create_tag_group, rename_tag_group, create_tag,delete_tag,delete_group};
 use crate::services::commands::config::{get_config,save_config};
 
 mod init;
@@ -24,8 +24,10 @@ pub async fn run() {
         .invoke_handler(tauri::generate_handler![
             query_tag_groups,
             create_tag,
+            delete_tag,
             create_tag_group,
-            update_tag_group_name,
+            rename_tag_group,
+            delete_group,
             get_config,
             save_config,
             exit_app

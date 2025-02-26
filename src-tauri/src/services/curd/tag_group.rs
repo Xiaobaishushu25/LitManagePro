@@ -52,7 +52,7 @@ impl TagGroupCurd {
         if let Some(tag_group) = tag_group {
             let mut active_model = tag_group.into_active_model();
             active_model.name=Set(new_name.to_string());
-            TagGroups::insert(active_model).exec(db).await?;
+            TagGroups::update(active_model).exec(db).await?;
         }else {
             //这里正常来说不会出错，也没必要panic，记录一下就行了
             error!("未找到group id为{group_id}的标签组");

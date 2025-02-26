@@ -13,7 +13,6 @@ onMounted(async () => {
     event.preventDefault();
   });
   unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
-    console.log("close requested");
     event.preventDefault();
     await invoke('save_config',{config: store.config}).then(_ => {}).catch(e => {
       message.error(`保存配置出错${e}`);
@@ -22,7 +21,6 @@ onMounted(async () => {
   });
 
   await invoke<Config>('get_config',{}).then(data => {
-    console.log(data);
     store.config = data;
   }).catch(e => {
     console.log(e);

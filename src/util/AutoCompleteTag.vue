@@ -140,13 +140,13 @@ const handleSearch = async (query: string) => {
   position: relative;
   border: 1px solid #ddd;
   border-radius: 3px;
-  padding: 4px;
   min-height: 36px;
 }
 
 .input-container {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
 }
 

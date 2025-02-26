@@ -19,9 +19,14 @@ const fetchSuggestions = async (query: string) => {
 <template>
   <div>
     <n-space vertical>
-      {{store.currentSelectTags}}
       <auto-complete-tag
-          v-model:modelValue="store.currentSelectTags"
+          v-model:modelValue="store.andTags"
+          placeholder="按空格提示所有标签"
+          :options="store.allTags"
+          :fetchSuggestions="fetchSuggestions"
+      />
+      <auto-complete-tag
+          v-model:modelValue="store.orTags"
           placeholder="按空格提示所有标签"
           :options="store.allTags"
           :fetchSuggestions="fetchSuggestions"

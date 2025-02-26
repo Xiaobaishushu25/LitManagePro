@@ -1,10 +1,15 @@
 import {defineStore} from "pinia";
 import {TagAndGroups, Tag, TagGroup} from "../components/main/main-type.ts";
-import {ref, watch} from "vue";
+import {computed, ref, watch} from "vue";
 
 const useTagGroupsStore = defineStore('tagGroups', ()=>{
     const tagGroups = ref<TagAndGroups[]>([])
-    const currentSelectTags = ref<Tag[]>([])
+    const andTags = ref<Tag[]>([])
+    const orTags = ref<Tag[]>([])
+    // 定义一个 computed 属性，自动合并 andTags 和 orTags
+    const currentSelectTags = computed<Tag[]>(() => {
+        return andTags.value.concat(orTags.value); // 或者使用 [...andTags.value, ...orTags.value]
+    });
     const allTags = ref<Tag[]>([])
     // 监听 tagGroups 的变化
     watch(tagGroups, (newTagGroups) => {
@@ -30,26 +35,33 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
             tagGroup.tags.push(tag);
         }
     }
-    function deleteTag(tag:Tag){
+    function deleteTag(groupId:number,tagId:number){
         // 找到第一个 tag_group.id 等于 tag.groupId 的元素，并删除 tag 对应的元素
-        const tagGroup = tagGroups.value.find((group) => group.tag_group.id === tag.group_id);
+        const tagGroup = tagGroups.value.find((group) => group.tag_group.id === groupId);
         if (tagGroup) {
-            tagGroup.tags = tagGroup.tags.filter((t) => t.id !== tag.id);
+            tagGroup.tags = tagGroup.tags.filter((t) => t.id !== tagId);
         }
     }
-    function addTagToCurrentSelectTags(id:number){
+    function addTagToAndTags(id:number){
         let tag = allTags.value.find(tag => tag.id === id);
-        currentSelectTags.value.push(tag);
+        andTags.value.push(tag);
+    }
+    function addTagToOrTags(id:number){
+        let tag = allTags.value.find(tag => tag.id === id);
+        orTags.value.push(tag);
     }
     return {
         tagGroups,
         currentSelectTags,
+        andTags,
+        orTags,
         allTags,
         addNewTagGroup,
         deleteTagGroup,
         addNewTag,
         deleteTag,
-        addTagToCurrentSelectTags,
+        addTagToAndTags,
+        addTagToOrTags,
     }
 })
 export default useTagGroupsStore

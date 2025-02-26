@@ -53,8 +53,23 @@ function showNewGroupModal(){
     groupInputRef.value!.focus()
   })
 }
-function clickTag(id: number, _value: string){
-  store.addTagToCurrentSelectTags(id);
+// 计算当前标签是否禁用
+const isTagDisabled = (tagId: number) => {
+  return store.currentSelectTags.some(selectedTag => selectedTag.id === tagId)
+}
+function clickTag(event:MouseEvent, id: number, _value: string){
+  if (isTagDisabled(id)) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+  // 0 表示鼠标左键，2 表示鼠标右键
+  console.log(event)
+  if (event.button === 0) {
+    store.addTagToAndTags(id)
+  } else if (event.button === 2) {
+    store.addTagToOrTags(id)
+  }
 }
 function createNewTag(){
   let value = newTagValue.value;
@@ -157,6 +172,7 @@ function createNewTagGroup(){
       </n-color-picker>
     </n-flex>
   </custom-modal>
+
   <div class="h-full">
     <n-scrollbar trigger="none">
       <n-grid :x-gap="0" :y-gap="5" :cols="1">
@@ -177,15 +193,18 @@ function createNewTagGroup(){
               v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name"
           >
             <template #header-extra>
-              <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>
+              <n-flex class="flex items-center">
+                <inline-svg src="../assets/svg/Delete24Regular.svg" class="svg-button" ></inline-svg>
+                <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>
+              </n-flex>
             </template>
             <n-collapse-transition :show="configStore.getTagGroupState(tags.tag_group.id).value">
               <div class="flex flex-wrap gap-1 flex-row items-center">
                 <n-tag
                     v-for="tag in tags.tags" :key="tag.id"
                     :color="{ color: tag.bg_color, textColor: tag.text_color }"
-                    :disabled="store.currentSelectTags.some(selectedTag => selectedTag.id === tag.id)"
-                    @click="clickTag(tag.id, tag.value)"
+                    :disabled="isTagDisabled(tag.id)"
+                    @mousedown="clickTag($event,tag.id, tag.value)"
                     class="cursor-pointer"
                 >
                   {{ tag.value }}

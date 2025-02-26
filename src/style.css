@@ -8,3 +8,6 @@
 .n-message .n-message__content {
     @apply text-justify;
 }
+.svg-button{
+    @apply cursor-pointer w-4 h-4 fill-current hover:text-green-600;
+}

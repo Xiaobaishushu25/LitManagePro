@@ -9,6 +9,9 @@ const store = useConfigStore()
 
 let unlisten: () => void;
 onMounted(async () => {
+  document.addEventListener('contextmenu', function(event) {
+    event.preventDefault();
+  });
   unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
     console.log("close requested");
     event.preventDefault();

@@ -11,6 +11,7 @@ import TagCard from "../components/main/TagCard.vue";
 <!--      <Tree/>-->
       <TagCard></TagCard>
     </template>
+
     <template #2>
       <Table/>
     </template>

@@ -189,14 +189,19 @@ function createNewTagGroup(){
           <!--        <n-card v-for="tags in tagsData" :key="tags.tag_group.id" :title="tags.tag_group.name">-->
           <n-card
               header-style="padding:5px 5px 5px 25px;font-size:17px;font-weight:bold;"
-              content-style="padding:5px 5px 5px 15px;font-weight:bold;"
+              content-style="padding:5px 5px 5px 15px;"
               v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name"
+              class="cursor-pointer group"
+              @click=""
           >
             <template #header-extra>
-              <n-flex class="flex items-center">
-                <inline-svg src="../assets/svg/Delete24Regular.svg" class="svg-button" ></inline-svg>
-                <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>
-              </n-flex>
+              <div class="hidden group-hover:visible">
+                <n-flex class="flex items-center">
+                  <inline-svg src="../assets/svg/Rename24Regular.svg" class="svg-button" ></inline-svg>
+                  <inline-svg src="../assets/svg/Delete24Regular.svg" class="svg-button hover:text-red-600" ></inline-svg>
+                  <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>
+                </n-flex>
+              </div>
             </template>
             <n-collapse-transition :show="configStore.getTagGroupState(tags.tag_group.id).value">
               <div class="flex flex-wrap gap-1 flex-row items-center">

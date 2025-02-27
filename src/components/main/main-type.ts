@@ -16,4 +16,18 @@ interface TagAndGroups {
     tag_group: TagGroup;
     tags: Tag[];
 }
-export type {TagGroup,Tag,TagAndGroups};
+interface DocumentTags {
+    index: number;
+    id: number;
+    title: string;
+    author?: string | null;
+    abstract?: string | null;
+    year?: string | null;
+    journal?: string | null;
+    contributions?: string | null;
+    remark?: string | null;
+    path: string;
+    tags: Tag[];
+}
+
+export type {TagGroup,Tag,TagAndGroups,DocumentTags};

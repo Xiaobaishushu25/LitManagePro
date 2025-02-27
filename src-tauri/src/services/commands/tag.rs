@@ -2,6 +2,7 @@ use log::{error, info};
 use crate::app_errors::AppResult;
 use crate::dtos::tag_card::{get_tag_and_groups, TagAndGroups};
 use crate::entities::prelude::{Tag, TagGroup};
+use crate::services::curd::doc_and_tag::DocAndTagCurd;
 use crate::services::curd::tag::TagCurd;
 use crate::services::curd::tag_group::TagGroupCurd;
 
@@ -72,6 +73,28 @@ pub async fn rename_tag_group(id:i32, name:String) ->Result<(),String>{
         Ok(_) => Ok(()),
         Err(e) => {
             let err_msg = format!("修改标签组名为{name}失败：{:?}", e);
+            error!("{}", err_msg);
+            Err(err_msg)
+        }
+    }
+}
+#[tauri::command]
+pub async fn insert_doc_and_tag(doc_id:i32, tag_id:i32) -> Result<(), String> {
+    match DocAndTagCurd::insert(doc_id, tag_id).await {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let err_msg = format!("保存文档标签失败：{:?}", e);
+            error!("{}", err_msg);
+            Err(err_msg)
+        }
+    }
+}
+#[tauri::command]
+pub async fn delete_doc_and_tag(doc_id:i32, tag_id:i32) -> Result<(), String> {
+    match DocAndTagCurd::delete(doc_id, tag_id).await {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let err_msg = format!("删除文档标签失败：{:?}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }

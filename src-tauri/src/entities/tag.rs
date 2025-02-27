@@ -16,6 +16,11 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(belongs_to = "super::tag_group::Entity", from = "Column::GroupId", to = "super::tag_group::Column::Id")]
     TagGroup,
+    // #[sea_orm(belongs_to = "super::document::Entity", from = "Column::Id", to = "super::document::Column::Id")]
+    // Document,
+    // Define the relation to doc_and_tag
+    #[sea_orm(has_many = "super::doc_and_tag::Entity")]
+    DocAndTag,
 }
 
 impl Related<super::tag_group::Entity> for Entity {
@@ -23,5 +28,9 @@ impl Related<super::tag_group::Entity> for Entity {
         Relation::TagGroup.def()
     }
 }
-
+impl Related<super::doc_and_tag::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DocAndTag.def()
+    }
+}
 impl ActiveModelBehavior for ActiveModel {}

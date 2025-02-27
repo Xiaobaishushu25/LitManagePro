@@ -1,6 +1,8 @@
 use log::{error, info};
 use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Schema};
-use crate::entities::prelude::{TagGroups, Tags};
+use crate::entities::{init_db_coon, DB};
+use crate::entities::prelude::{DocAndTags, Documents, TagGroups, Tags};
+use crate::entities::tag::Relation::DocAndTag;
 
 async fn create_table<E>(db_connection: &sea_orm::DatabaseConnection, entity: E)
 where
@@ -20,9 +22,17 @@ where
 pub async fn create_all_need_table(db: &DatabaseConnection) {
     create_table(db, Tags).await;
     create_table(db, TagGroups).await;
+    create_table(db, Documents).await;
+    create_table(db, DocAndTags).await;
     // let _ = create_table(db, StockGroups).await;
     // let _ = create_table(db, GroupStockRs).await;
     // let _ = create_table(db, TransactionRecords).await;
     // let _ = create_table(db, Positions).await;
     // StockGroupCurd::insert_init(db).await.unwrap();
+}
+#[tokio::test]
+async fn test_create_table() {
+    init_db_coon().await;
+    let db = DB.get().unwrap();
+    create_table(db, DocAndTags).await;
 }

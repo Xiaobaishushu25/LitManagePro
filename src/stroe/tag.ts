@@ -59,7 +59,7 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
     function addTagToOrTags(id:number){
         let tag = allTags.value.find(tag => tag.id === id);
         if (tag) {
-            andTags.value.push(tag);
+            orTags.value.push(tag);
         }
         // orTags.value.push(tag);
     }

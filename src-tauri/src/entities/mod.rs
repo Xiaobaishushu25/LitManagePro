@@ -14,7 +14,8 @@ pub mod table;
 pub mod tag_group;
 pub mod tag;
 pub mod prelude;
-
+pub mod document;
+pub mod doc_and_tag;
 
 ///实体类，对应数据库中的行数据
 

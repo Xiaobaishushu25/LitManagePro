@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import {computed, reactive, ref, watch} from "vue";
-import {Config} from "tailwindcss";
+import {Config} from "../config-type.ts";
 
 const useConfigStore = defineStore('config', ()=>{
     const config = ref<Config>();
@@ -19,7 +19,7 @@ const useConfigStore = defineStore('config', ()=>{
         if (newConfig?.ui_config?.tag_group_state) {
             for (const [key, value] of Object.entries(newConfig.ui_config.tag_group_state)) {
                 const numericKey = Number(key);
-                if (!isNaN(numericKey) && typeof value === 'boolean') {
+                if (!isNaN(numericKey)) {
                     tagGroupStates[numericKey] = value;
                 }
             }

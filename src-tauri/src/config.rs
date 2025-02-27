@@ -146,7 +146,7 @@ pub fn init_logger() -> WorkerGuard {
         .with_target(true)
         // .with_thread_ids(true)
         .with_level(true)
-        .with_thread_names(true)
+        // .with_thread_names(true)
         .with_timer(local_time)
         .with_filter(EnvFilter::new("info,tao::platform_impl::platform::event_loop::runner=error"));
         // .with_filter(EnvFilter::new("info")); // 控制台显示 info 级别及以上的日志

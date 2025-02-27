@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted} from "vue";
 import { invoke } from "@tauri-apps/api/core";
-
 import { getCurrentWindow } from "@tauri-apps/api/window";
+
 
 const store = useConfigStore()
 
-
 let unlisten: () => void;
+
 onMounted(async () => {
   document.addEventListener('contextmenu', function(event) {
     event.preventDefault();
@@ -23,7 +23,7 @@ onMounted(async () => {
   await invoke<Config>('get_config',{}).then(data => {
     store.config = data;
   }).catch(e => {
-    console.log(e);
+    message.error(e);
   })
 })
 onUnmounted(async ()=>{

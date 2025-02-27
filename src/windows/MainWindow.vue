@@ -4,6 +4,20 @@ import {WindowTitlebar} from "@tauri-controls/vue";
 import RightBar from "../layouts/RightBar.vue";
 import MainContent from "../layouts/MainContent.vue";
 import Footer from "../layouts/Footer.vue";
+import {onMounted, onUnmounted} from "vue";
+import {listen} from "@tauri-apps/api/event";
+import {message} from "../message.ts";
+
+let unlistenMsg: () => void;
+onMounted(async ()=>{
+  unlistenMsg = await listen('backend_message', (event:{payload:string}) => {
+    message.error(event.payload);
+  })
+})
+
+onUnmounted(async ()=>{
+  unlistenMsg();
+})
 </script>
 
 <template>

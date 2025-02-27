@@ -8,10 +8,8 @@ import TagCard from "../components/main/TagCard.vue";
 <div>
   <n-split direction="horizontal" class="h-full" :max="0.85" :min="0.1" :default-size="0.2">
     <template #1>
-<!--      <Tree/>-->
       <TagCard></TagCard>
     </template>
-
     <template #2>
       <Table/>
     </template>

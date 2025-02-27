@@ -2,7 +2,7 @@ use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, Que
 use sea_orm::ActiveValue::Set;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
-use crate::entities::prelude::{Tag, Tags};
+use crate::entities::prelude::{DocAndTag, DocAndTags, Tag, Tags};
 use crate::entities::tag::Column;
 
 pub struct TagCurd;
@@ -48,25 +48,18 @@ impl TagCurd {
             ..tag
         })
     }
-    // pub async fn insert(tag_group_id: i32, tag_value: String, color: String) -> AppResult<()> {
-    pub async fn insert_many(tags:Vec<Tag>) -> AppResult<()> {
-        let db = crate::entities::DB
-            .get()
-            .ok_or(Tip("数据库未初始化".into()))?;
-        let active_tags = tags.into_iter().map(|tag| {
-            let mut active_model = tag.into_active_model();
-            active_model.id = NotSet;
-            active_model
-        }).collect::<Vec<_>>();
-        Tags::insert_many(active_tags).exec(db).await?;
-        Ok(())
-    }
+    /// 删除标签，根据给定的标签ID。
+    /// 需要同时删除该标签和文档之间的关联关系。
     pub async fn delete(tag_id: i32) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
         let tag = Tags::find_by_id(tag_id).one(db).await?;
         if let Some(tag) = tag {
+            let vec = tag.find_related(DocAndTags).all(db).await?;
+            for doc_and_tag in vec {
+                doc_and_tag.delete(db).await?;
+            }
             tag.delete(db).await?;
         }
         Ok(())

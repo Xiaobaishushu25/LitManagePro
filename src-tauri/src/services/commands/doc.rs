@@ -52,6 +52,7 @@ mod doc_util {
                 let _ = app_handle.emit("backend_message", err_msg);
                 continue;
             }
+            // path.file_stem()
             if let Some(file_name) = path.file_name() {
                 if let Some(file_name_str) = file_name.to_str() {
                     info!("File name: {}", file_name_str);

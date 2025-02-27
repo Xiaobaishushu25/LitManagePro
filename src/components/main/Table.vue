@@ -53,40 +53,33 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
       return h('div', { style: 'white-space: normal;' }, rowData.remark || '无备注')
     }
   },
-  {
-    title: '序号',
-    key: 'index',
-    render: (_, index) => h('span', index + 1)
-  },
-  { title: '标题', key: 'title' },
-  { title: '作者', key: 'author' },
-  { title: '摘要', key: 'abstract' },
+  { title: '标题', key: 'title' , resizable:true, width:'60%'},
+  // { title: '作者', key: 'author' },
   { title: '年份', key: 'year' },
-  { title: '期刊', key: 'journal' },
-  { title: '贡献', key: 'contributions' },
-  {
-    title: '标签',
-    key: 'tags',
-    render(row: DocumentTags) {
-      return h(
-          'div',
-          row.tags.map(tag =>
-              h(
-                  NTag,
-                  {
-                    style: {
-                      marginRight: '6px',
-                      backgroundColor: tag.bg_color,
-                      color: tag.text_color
-                    },
-                    bordered: false
-                  },
-                  { default: () => tag.value }
-              )
-          )
-      )
-    }
-  },
+  { title: '刊物', key: 'journal' },
+  // {
+  //   title: '标签',
+  //   key: 'tags',
+  //   render(row: DocumentTags) {
+  //     return h(
+  //         'div',
+  //         row.tags.map(tag =>
+  //             h(
+  //                 NTag,
+  //                 {
+  //                   style: {
+  //                     marginRight: '5px',
+  //                     backgroundColor: tag.bg_color,
+  //                     color: tag.text_color
+  //                   },
+  //                   bordered: false
+  //                 },
+  //                 { default: () => tag.value }
+  //             )
+  //         )
+  //     )
+  //   }
+  // },
   {
     title: '操作',
     key: 'actions',
@@ -105,15 +98,14 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
 
 const columns = createColumns()
 
-// const data = createData()
-// const columns = createColumns({
-//   sendMail(rowData) {
-//     message.info(`send mail to ${rowData.name}`)
-//   }
-// })
 const pagination = {
   pageSize: 10
 }
+// 行点击事件
+const onRowClick = (row: DocumentTags) => {
+  message.info(`点击了行：${row.id}`);
+  console.log('Clicked row:', row);
+};
 
 const fetchSuggestions = async (query: string) => {
   if (query===" "){ //如果输入一个空格，则返回所有标签
@@ -122,6 +114,18 @@ const fetchSuggestions = async (query: string) => {
   return tagStore.allTags.filter(option =>
       option.value.includes(query)
   )
+}
+const currentSelectDoc = ref<DocumentTags>()
+function setRowProps(row: DocumentTags) {
+  return {
+    style: {
+      cursor: 'pointer'
+    },
+    onClick: () => {
+      currentSelectDoc.value = row
+      onRowClick(row);
+    }
+  };
 }
 </script>
 
@@ -143,18 +147,47 @@ const fetchSuggestions = async (query: string) => {
       <div>
         <n-split direction="horizontal" class="size-full" :max="1" :min="0" :default-size="0.7">
           <template #1>
-            <n-data-table
-                :columns="columns"
-                :data="docsStore.docs"
-                :pagination="pagination"
-                :min-height="800"
-                class="size-full"
-                default-expand-all
-            />
+            <n-scrollbar style="max-height: 800px">
+              <n-data-table
+                  :columns="columns"
+                  :data="docsStore.docs"
+                  :pagination="pagination"
+                  :header-height="50"
+                  :flex-height="true"
+                  :min-height="500"
+                  :row-props="setRowProps"
+                  default-expand-all
+              />
+            </n-scrollbar>
           </template>
           <template #2>
             <div>
-              {{docsStore.docs}}
+              <n-card title="文档详细信息">
+                <n-flex align="center" justify="space-between" style="margin-bottom: 20px;">
+                  <div class="title-container">
+                    <n-text tag="h2" class="text-green-700" >标题: {{ currentSelectDoc?.title }}</n-text>
+                    <n-button type="info" size="tiny" style="margin-left: 10px;">
+                      编辑标题
+                    </n-button>
+                  </div>
+                </n-flex>
+              </n-card>
+              <n-card title="文档标签信息">
+                <n-flex style="margin-top: 20px;">
+                  <n-button type="success" size="small">添加标签</n-button>
+                </n-flex>
+                <div style="margin-top: 10px;">
+                  <n-tag
+                      v-for="tag in currentSelectDoc?.tags"
+                      :key="tag.id"
+                      :style="{ backgroundColor: tag.bg_color, color: tag.text_color }"
+                      size="medium"
+                      class="tag-item"
+                  >
+                    {{ tag.value }}
+                  </n-tag>
+                </div>
+              </n-card>
             </div>
           </template>
         </n-split>

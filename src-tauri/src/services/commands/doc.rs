@@ -95,10 +95,10 @@ mod doc_util {
     pub async fn handle_query_docs_by_tags(and_tags_id:Vec<i32>,or_tags_id:Vec<i32>)->AppResult<Vec<DocumentTags>>{
         //这个是包含所有必须标签的文档
         let and_docs = DocAndTagCurd::find_documents_with_tags(and_tags_id, true).await?;
-        info!("查询到并集{:?}文档", and_docs);
+        // info!("查询到并集{:?}文档", and_docs);
         //这个是包含至少一个标签的文档，一般数量会大于and_docs
         let or_docs = DocAndTagCurd::find_documents_with_tags(or_tags_id, false).await?;
-        info!("查询到或集{:?}文档", or_docs);
+        // info!("查询到或集{:?}文档", or_docs);
         // 计算交集
         let common_docs = and_docs
             .into_iter()
@@ -106,12 +106,12 @@ mod doc_util {
             .intersection(&or_docs.into_iter().collect::<HashSet<_>>())
             .cloned()
             .collect::<Vec<_>>();
-        info!("查询到交集{:?}文档", common_docs);
+        // info!("查询到交集{:?}文档", common_docs);
         let mut doc_tags = vec![];
         for doc in common_docs {
             match DocumentCurd::find_by_id(doc).await?{
                 Some(doc) => {
-                    info!("查询到文档: {:?}", doc);
+                    // info!("查询到文档: {:?}", doc);
                     let document_tags = DocumentTags::from_doc(doc).await;
                     doc_tags.push(document_tags);
                 },

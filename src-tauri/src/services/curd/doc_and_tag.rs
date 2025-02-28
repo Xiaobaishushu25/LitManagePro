@@ -36,6 +36,18 @@ impl DocAndTagCurd {
         DocAndTags::insert_many(models).exec(db).await?;
         Ok(())
     }
+    pub async fn update_many(doc_id: i32, tag_ids: Vec<i32>) -> AppResult<()> {
+        let db = crate::entities::DB
+            .get()
+            .ok_or(Tip("数据库未初始化".into()))?;
+        //查询所有doc_id等于doc_id的记录，并删除
+        DocAndTags::delete_many()
+            .filter(Column::DocId.eq(doc_id))
+            .exec(db)
+            .await?;
+        Self::insert_many(doc_id, tag_ids).await?;
+        Ok(())
+    }
     #[instrument]
     pub async fn delete(doc_id: i32, tag_id: i32) -> AppResult<()> {
         let db = crate::entities::DB

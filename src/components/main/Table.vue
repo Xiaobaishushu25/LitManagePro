@@ -33,7 +33,6 @@ onMounted(async ()=>{
     docsStore.addNewDoc(event.payload)
   })
   unlistenDocUp = await listen('doc_update', (event: {payload:DocumentTags}) => {
-    console.log(event.payload)
     docsStore.updateDoc(event.payload)
   })
 })
@@ -140,13 +139,15 @@ function setRowProps(row: DocumentTags) {
 }
 
 const fetchSuggestions = async (query: string) => {
-  if (query===" "){ //如果输入一个空格，则返回所有标签
-    return tagStore.allTags
+  if (query === " ") { // 如果输入一个空格，则返回所有标签
+    return tagStore.allTags;
   }
+  // 将查询字符串和标签值都转换为小写，以便进行大小写不敏感的匹配
+  const queryLower = query.toLowerCase();
   return tagStore.allTags.filter(option =>
-      option.value.includes(query)
-  )
-}
+      option.value.toLowerCase().includes(queryLower)
+  );
+};
 </script>
 
 <template>
@@ -173,6 +174,7 @@ const fetchSuggestions = async (query: string) => {
               :data="docsStore.docs"
               :row-props="setRowProps"
               :row-class-name="getRowClassName"
+              :row-key="(row) => row.id"
               class="h-[calc(100vh-20rem)]"
               :default-expand-all="configStore.config?.ui_config.table_expand ?? true"
               striped

@@ -1,5 +1,7 @@
 use log::{error, info};
+use tauri::Emitter;
 use crate::app_errors::AppResult;
+use crate::dtos::doc_tags::DocumentTags;
 use crate::dtos::tag_card::{get_tag_and_groups, TagAndGroups};
 use crate::entities::prelude::{Tag, TagGroup};
 use crate::services::curd::doc_and_tag::DocAndTagCurd;
@@ -78,8 +80,9 @@ pub async fn rename_tag_group(id:i32, name:String) ->Result<(),String>{
         }
     }
 }
+//todo 这个函数好像没用到
 #[tauri::command]
-pub async fn insert_doc_and_tag(doc_id:i32, tag_id:i32) -> Result<(), String> {
+pub async fn insert_doc_tag(doc_id:i32, tag_id:i32) -> Result<(), String> {
     match DocAndTagCurd::insert(doc_id, tag_id).await {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -90,15 +93,31 @@ pub async fn insert_doc_and_tag(doc_id:i32, tag_id:i32) -> Result<(), String> {
     }
 }
 #[tauri::command]
-pub async fn delete_doc_and_tag(doc_id:i32, tag_id:i32) -> Result<(), String> {
-    match DocAndTagCurd::delete(doc_id, tag_id).await {
-        Ok(_) => Ok(()),
+pub async fn delete_doc_tag(app_handle: tauri::AppHandle,doc_id:i32,tag_id:i32) -> Result<(), String> {
+    match DocAndTagCurd::delete(doc_id,tag_id).await{
+        Ok(_) => {
+            let document_tags = DocumentTags::from_doc_id(doc_id).await;
+            let _ = app_handle.emit("doc_update",document_tags);
+            Ok(())
+        },
         Err(e) => {
-            let err_msg = format!("删除文档标签失败：{:?}", e);
-            error!("{}", err_msg);
-            Err(err_msg)
+            error!("删除文档的标签失败：{:?}", e);
+            Err("删除文档的标签失败".to_string())
         }
     }
 }
-
+#[tauri::command]
+pub async fn update_doc_tags(app_handle: tauri::AppHandle,doc_id:i32,tag_ids:Vec<i32>) -> Result<(), String> {
+    match DocAndTagCurd::update_many(doc_id,tag_ids).await{
+        Ok(_) => {
+            let document_tags = DocumentTags::from_doc_id(doc_id).await;
+            let _ = app_handle.emit("doc_update",document_tags);
+            Ok(())
+        },
+        Err(e) => {
+            error!("更新文档的标签失败：{:?}", e);
+            Err("更新文档的标签失败".to_string())
+        }
+    }
+}
 

@@ -1,43 +1,180 @@
 <script setup lang="ts">
-import {NTag} from "naive-ui";
+import {
+  NTag,
+  NTree,
+  TransferRenderSourceList,
+  TreeOption,
+} from "naive-ui";
 import useDocStore from "../../stroe/doc.ts";
-import {ref} from "vue";
+import {h, ref, watchEffect} from "vue";
 import {invoke} from "@tauri-apps/api/core";
 import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
+import useTagGroupsStore from "../../stroe/tag.ts";
+import doc from "../../stroe/doc.ts";
 
 const docsStore = useDocStore()
+const tagStore = useTagGroupsStore()
 
 const showTagModal = ref(false)
 
 const canTagDelete = ref(false)
 
+// 选中的标签
+// const selectedTags = ref<Array<number>>([]);
+// const treeData = computed(() => {
+//   return tagStore.tagGroups.map((group) => ({
+//     id: group.tag_group.id,
+//     label: group.tag_group.name,
+//     // selectable: false, // 第一级节点不可选中
+//     children: group.tags.map((tag) => ({
+//       id: tag.id,
+//       label: tag.value,
+//       groupId: group.tag_group.id,
+//       value: tag.id,
+//     })),
+//   }));
+// });
+// // 转换为 Transfer 的选项
+// const tagOptions = computed(() => {
+//   return treeData.value.flatMap((group) => {
+//     return group.children.map((tag) => ({
+//       key: tag.id,
+//       label: tag.label,
+//       value: tag.id,
+//       disabled: false,
+//       selectable: true,
+//       group: {
+//         key: group.id,
+//         label: group.label,
+//       },
+//     }));
+//   });
+// });
+// // 自定义源列表渲染
+// const renderSourceList: TransferRenderSourceList = ({ onCheck, pattern }) => {
+//   return h(NTree, {
+//     style: "margin: 0 4px;",
+//     keyField: "id",
+//     checkable: true,
+//     blockLine: true,
+//     checkOnClick: true,
+//     data: treeData.value as TreeOption[],
+//     pattern,
+//     checkedKeys: selectedTags.value,
+//     defaultExpandAll: true, // 默认展开所有节点
+//     defaultExpandedKeys: treeData.value.map((group) => group.id), // 默认展开所有组别
+//     onSelect: (keys) => {
+//       onCheck(keys);
+//     },
+//   });
+// };
+
+const selectedTags = ref<(string | number)[]>()
+
+watchEffect(() => {
+  selectedTags.value = docsStore.currentSelectDoc?.tags.map(tag => tag.id)
+})
+
+// 转换树形数据结构
+const treeData = ref<TreeOption[]>([])
+const flatTags = ref<TreeOption[]>([])
+
+// 监听tagGroups变化生成数据结构
+watchEffect(() => {
+  treeData.value = tagStore.tagGroups.map(group => ({
+    label: group.tag_group.name,
+    key: `group-${group.tag_group.id}`,
+    disabled: true, // 禁用一级节点
+    checkable: false,
+    children: group.tags.map(tag => ({
+      label: tag.value,
+      key: tag.id,
+      style: {
+        color: tag.text_color,
+        backgroundColor: tag.bg_color
+      }
+    }))
+  }))
+
+  flatTags.value = tagStore.tagGroups.flatMap(group =>
+      group.tags.map(tag => ({
+        label: tag.value,
+        value: tag.id,
+        style: {
+          color: tag.text_color,
+          backgroundColor: tag.bg_color
+        }
+      }))
+  )
+})
+
+// 默认展开所有分组
+const defaultExpandedKeys = ref<string[]>(
+    tagStore.tagGroups.map(g => `group-${g.tag_group.id}`)
+)
+
+// 处理穿梭框源列表渲染
+const renderSourceList: TransferRenderSourceList = ({ onCheck, pattern }) => {
+  return h(NTree, {
+    style: 'margin: 0 4px;',
+    keyField: 'key',
+    checkable: true,
+    selectable: false,
+    blockLine: true,
+    checkOnClick: true,
+    data: treeData.value,
+    pattern,
+    defaultExpandedKeys: defaultExpandedKeys.value,
+    checkedKeys: selectedTags.value,
+    onUpdateCheckedKeys: (keys) => {
+      // 过滤掉分组节点的key
+      const validKeys = keys.filter(k =>
+          !k.toString().startsWith('group-')
+      )
+      onCheck(validKeys)
+      selectedTags.value = validKeys
+    },
+  })
+}
+
 function deleteTag(tagId: number){
   console.log("delete tag")
   invoke('delete_doc_tag', {docId: docsStore.currentSelectDoc?.id, tagId: tagId})
-      .then(_ => {
-      })
+      .then(_ => {})
       .catch(e => {message.error(e)})
 }
-function updateTag(tagId: number){
+function updateTags(){
   showTagModal.value = false
-  // invoke('update_doc_tag', {docId: docsStore.currentSelectDoc?.id, tagId: tagId})
-  //     .then(_ => {
-  //     })
-  //     .catch(e => {message.error(e)})
+  invoke('update_doc_tags', {docId: docsStore.currentSelectDoc?.id, tagIds: selectedTags.value})
+      .then(_ => {})
+      .catch(e => {message.error(e)})
   console.log("update tag")
 }
 
 </script>
 
 <template>
-  <custom-modal title="修改标签"  v-model:show="showTagModal" :on-confirm="updateTag" class="w-96">
+  <custom-modal title="修改标签"  v-model:show="showTagModal" :on-confirm="updateTags">
+<!--    <n-transfer-->
+<!--        v-model:value="selectedTags"-->
+<!--        :options="flatTags"-->
+<!--        :render-source-list="renderSourceList"-->
+<!--        source-filterable-->
+<!--        size='large'-->
+<!--        style="min-width: 400px;width: 400px"-->
+<!--    />-->
     <n-transfer
-        v-model:value="value"
-        :options="options"
+        v-if="docsStore.currentSelectDoc"
+        v-model:value="selectedTags"
+        :options="flatTags"
         :render-source-list="renderSourceList"
         source-filterable
+        size="large"
+        style="min-width: 400px; width: 400px"
     />
+    <!-- 没有数据时显示提示信息 -->
+    <div v-else>请选择一个文档。</div>
   </custom-modal>
   <div>
     <n-card title="文档详细信息">
@@ -80,7 +217,7 @@ function updateTag(tagId: number){
             size="medium"
             :closable="canTagDelete"
             @close="deleteTag(tag.id)"
-            class="mx-1"
+            class="mx-1 mt-1"
         >
           {{ tag.value }}
         </n-tag>
@@ -93,7 +230,6 @@ function updateTag(tagId: number){
     </n-card>
   </div>
 </template>
-
 <style scoped>
 
 </style>

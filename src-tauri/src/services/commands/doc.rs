@@ -24,20 +24,7 @@ pub async fn query_docs_by_tags(and_tags_id:Vec<i32>,or_tags_id:Vec<i32>) -> Res
         },
     }
 }
-#[tauri::command]
-pub async fn delete_doc_tag(app_handle: tauri::AppHandle,doc_id:i32,tag_id:i32) -> Result<(), String> {
-    match DocAndTagCurd::delete(doc_id,tag_id).await{
-        Ok(_) => {
-            let document_tags = DocumentTags::from_doc_id(doc_id).await;
-            let _ = app_handle.emit("doc_update",document_tags);
-            Ok(())
-        },
-        Err(e) => {
-            error!("删除文档的标签失败：{:?}", e);
-            Err("删除文档的标签失败".to_string())
-        }
-    }
-}
+
 #[allow(dead_code)]
 mod doc_util {
     use std::collections::HashSet;

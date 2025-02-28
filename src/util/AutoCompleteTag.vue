@@ -34,9 +34,12 @@ const getTagLabel = (tag: Tag) => {
 }
 
 const handleSelect = (value: Tag) => {
-  console.log('handleSelect', value)
-  const newValue = [...props.modelValue, value]
-  emit('update:modelValue', newValue)
+  if (!props.modelValue.some(tag => tag.id === value.id)){
+    const newValue = [...props.modelValue, value]
+    emit('update:modelValue', newValue)
+  }
+  // const newValue = [...props.modelValue, value]
+  // emit('update:modelValue', newValue)
   nextTick(() => {
     inputValue.value = ''
     showMenu.value = false

@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import AutoCompleteTag from "../../util/AutoCompleteTag.vue";
-import {computed, onMounted, onUnmounted, ref, watch} from "vue";
+import {computed, onMounted, onUnmounted, watch} from "vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
 import {DocumentTags} from "./main-type.ts";
 import { h } from 'vue'
-import {DataTableColumns, NButton, NTag} from "naive-ui";
+import {DataTableColumns, NButton} from "naive-ui";
 import {message} from "../../message.ts";
 import { listen } from '@tauri-apps/api/event'
 import {invoke} from "@tauri-apps/api/core";
 import useDocStore from "../../stroe/doc.ts";
+import Detail from "./Detail.vue";
+import useConfigStore from "../../stroe/config.ts";
 
 const tagStore = useTagGroupsStore()
 const docsStore = useDocStore()
+const configStore = useConfigStore()
 
 //不知道为什么直接监听tagStore.两个Tags不可以，只有添加的时候可以监听到，删除一次后执行任何操作不会触发监听，
 const watchAndTags = computed(() => tagStore.andTags)
@@ -19,44 +22,61 @@ const watchOrTags = computed(() => tagStore.orTags)
 
 let unlistenFile: () => void;
 let unlistenDoc: () => void;
+let unlistenDocUp: () => void;
 
 onMounted(async ()=>{
   unlistenFile = await listen('tauri://drag-drop', async (event:{ payload:{paths: string[]}})=>{
-    console.log(event.payload.paths)
     let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
     await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
   })
   unlistenDoc = await listen('insert_doc', (event: {payload:DocumentTags}) => {
     docsStore.addNewDoc(event.payload)
+  })
+  unlistenDocUp = await listen('doc_update', (event: {payload:DocumentTags}) => {
     console.log(event.payload)
+    docsStore.updateDoc(event.payload)
   })
 })
 onUnmounted(()=>{
   unlistenFile()
   unlistenDoc()
+  unlistenDocUp()
 })
 watch([watchAndTags, watchOrTags], (_, _oldValue) => {
-  console.log('doubleValue changed to:')
   invoke<DocumentTags[]>('query_docs_by_tags',
       {andTagsId: tagStore.andTags.map(tag => tag.id), orTagsId: tagStore.orTags.map(tag => tag.id)}
   ).then(data => {
+    docsStore.setAllDocs(data)
     console.log(data)
-    docsStore.docs = data
+    // docsStore.docs = data
   }).catch(e=>{message.error(e)})
 },{immediate:true,deep:true})
 
 const createColumns = (): DataTableColumns<DocumentTags> => [
   {
     type: 'expand',
+    width: 20,
     expandable: (rowData: DocumentTags) => rowData.remark !== null,
     renderExpand: (rowData: DocumentTags) => {
-      return h('div', { style: 'white-space: normal;' }, rowData.remark || '无备注')
+      return h('div', { style: 'white-space: normal;color:orange;margin-left:50px' }, rowData.remark || '无备注')
     }
   },
-  { title: '标题', key: 'title' , resizable:true, width:'60%'},
-  // { title: '作者', key: 'author' },
-  { title: '年份', key: 'year' },
-  { title: '刊物', key: 'journal' },
+  { title: '标题', key: 'title' , resizable:true},
+  {
+    title: '年份',
+    key: 'year',
+    resizable:true,
+    sorter: (rowA: DocumentTags, rowB: DocumentTags) => {
+      if (rowA.year === null||rowA.year==undefined) {
+        return -1
+      }
+      if (rowB.year === null||rowB.year==undefined) {
+        return 1
+      }
+      return rowA.year!.localeCompare(rowB.year)
+    }
+  },
+  { title: '刊物', key: 'journal',resizable:true},
   // {
   //   title: '标签',
   //   key: 'tags',
@@ -83,6 +103,7 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
   {
     title: '操作',
     key: 'actions',
+    resizable:true,
     render(row: DocumentTags) {
       return h(
           NButton,
@@ -98,14 +119,25 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
 
 const columns = createColumns()
 
-const pagination = {
-  pageSize: 10
-}
-// 行点击事件
-const onRowClick = (row: DocumentTags) => {
-  message.info(`点击了行：${row.id}`);
-  console.log('Clicked row:', row);
+// 定义当前选中的行
+const getRowClassName = (row: DocumentTags) => {
+  if (row === docsStore.currentSelectDoc) {
+    return 'highlighted-row';
+  }
 };
+
+// 行点击事件
+// const currentSelectDoc = ref<DocumentTags>()
+function setRowProps(row: DocumentTags) {
+  return {
+    style: {
+      cursor: 'pointer'
+    },
+    onClick: () => {
+      docsStore.setCurrentSelectDoc(row)
+    }
+  };
+}
 
 const fetchSuggestions = async (query: string) => {
   if (query===" "){ //如果输入一个空格，则返回所有标签
@@ -115,93 +147,60 @@ const fetchSuggestions = async (query: string) => {
       option.value.includes(query)
   )
 }
-const currentSelectDoc = ref<DocumentTags>()
-function setRowProps(row: DocumentTags) {
-  return {
-    style: {
-      cursor: 'pointer'
-    },
-    onClick: () => {
-      currentSelectDoc.value = row
-      onRowClick(row);
-    }
-  };
-}
 </script>
 
 <template>
-  <div>
-    <n-flex vertical class="size-full">
-      <auto-complete-tag
-          v-model:modelValue="tagStore.andTags"
-          placeholder="按空格提示所有标签"
-          :options="tagStore.allTags"
-          :fetchSuggestions="fetchSuggestions"
-      />
-      <auto-complete-tag
-          v-model:modelValue="tagStore.orTags"
-          placeholder="按空格提示所有标签"
-          :options="tagStore.allTags"
-          :fetchSuggestions="fetchSuggestions"
-      />
-      <div>
-        <n-split direction="horizontal" class="size-full" :max="1" :min="0" :default-size="0.7">
-          <template #1>
-            <n-scrollbar style="max-height: 800px">
-              <n-data-table
-                  :columns="columns"
-                  :data="docsStore.docs"
-                  :pagination="pagination"
-                  :header-height="50"
-                  :flex-height="true"
-                  :min-height="500"
-                  :row-props="setRowProps"
-                  default-expand-all
-              />
-            </n-scrollbar>
-          </template>
-          <template #2>
-            <div>
-              <n-card title="文档详细信息">
-                <n-flex align="center" justify="space-between" style="margin-bottom: 20px;">
-                  <div class="title-container">
-                    <n-text tag="h2" class="text-green-700" >标题: {{ currentSelectDoc?.title }}</n-text>
-                    <n-button type="info" size="tiny" style="margin-left: 10px;">
-                      编辑标题
-                    </n-button>
-                  </div>
-                </n-flex>
-              </n-card>
-              <n-card title="文档标签信息">
-                <n-flex style="margin-top: 20px;">
-                  <n-button type="success" size="small">添加标签</n-button>
-                </n-flex>
-                <div style="margin-top: 10px;">
-                  <n-tag
-                      v-for="tag in currentSelectDoc?.tags"
-                      :key="tag.id"
-                      :style="{ backgroundColor: tag.bg_color, color: tag.text_color }"
-                      size="medium"
-                      class="tag-item"
-                  >
-                    {{ tag.value }}
-                  </n-tag>
-                </div>
-              </n-card>
-            </div>
-          </template>
-        </n-split>
-      </div>
-    </n-flex>
+  <div class="flex flex-col h-full">
+    <auto-complete-tag
+        v-model:modelValue="tagStore.andTags"
+        placeholder="按空格提示所有标签"
+        :options="tagStore.allTags"
+        :fetchSuggestions="fetchSuggestions"
+    />
+    <auto-complete-tag
+        v-model:modelValue="tagStore.orTags"
+        placeholder="按空格提示所有标签"
+        :options="tagStore.allTags"
+        :fetchSuggestions="fetchSuggestions"
+    />
+    <div >
+<!--      :default-expand-all="configStore.config?.ui_config.table_expand ?? true"-->
+      <n-split direction="horizontal" v-if="docsStore.docs!==null" class="h-full mt-2" :max="1" :min="0" :default-size="0.8" >
+        <template #1>
+          <n-data-table
+              size="small"
+              :columns="columns"
+              :data="docsStore.docs"
+              :row-props="setRowProps"
+              :row-class-name="getRowClassName"
+              class="h-[calc(100vh-20rem)]"
+              :default-expand-all="configStore.config?.ui_config.table_expand ?? true"
+              striped
+          >
+            <template #empty>
+              没有数据
+            </template>
+          </n-data-table>
+        </template>
+        <template #2>
+          <detail />
+        </template>
+      </n-split>
+    </div>
   </div>
-
 </template>
+<style>
+.n-data-table-td{
+  padding: 3px!important;
+}
+.n-data-table-th{
+  padding: 3px!important;
+}
+/* 定义高亮行的样式 */
+.highlighted-row td {
+  background-color: #88917450 !important;
+}
+</style>
 
 <style scoped>
-/*.tag :deep(g) {
-  @apply  fill-black;
-}
-.tag :deep(button) {
-  @apply  hover:border-red-600 shadow-none active:border-transparent;
-}*/
 </style>

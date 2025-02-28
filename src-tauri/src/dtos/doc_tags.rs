@@ -1,8 +1,8 @@
-use sea_orm::{Linked, ModelTrait};
+use sea_orm::{EntityTrait, Linked, ModelTrait};
 use serde::{Deserialize, Serialize};
 use crate::entities::DB;
 use crate::entities::doc_and_tag::DocToTag;
-use crate::entities::prelude::{Document, Tag};
+use crate::entities::prelude::{Document, Documents, Tag};
 
 #[derive(Debug, Clone,Serialize,Deserialize)]
 pub struct DocumentTags{
@@ -35,5 +35,10 @@ impl DocumentTags {
             path:document.path,
             tags,
         }
+    }
+    pub async fn from_doc_id(document_id: i32)->Self{
+        let db = DB.get().unwrap();
+        let document = Documents::find_by_id(document_id).one(db).await.expect("查询文档失败").expect("文档不存在");
+        Self::from_doc(document).await
     }
 }

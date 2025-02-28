@@ -2,7 +2,9 @@
 import {onMounted, onUnmounted} from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-
+import {message, } from './message.ts';
+import {Config} from "./config-type.ts";
+import useConfigStore from "./stroe/config.ts";
 
 const store = useConfigStore()
 
@@ -30,15 +32,6 @@ onUnmounted(async ()=>{
   unlisten();
 })
 
-
-import {message, showMessage} from './message.ts';
-import {Config} from "./config-type.ts";
-import useTagGroupsStore from "./stroe/tag.ts";
-import useConfigStore from "./stroe/config.ts";
-function mess(){
-  showMessage('Hello World');
-  message.error('Hello World，Hello World，Hello World，Hello World，Hello WorldHello WorldHello WorldHello WorldHello World');
-}
 </script>
 
 <template>

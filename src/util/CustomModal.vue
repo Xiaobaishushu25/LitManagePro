@@ -58,9 +58,10 @@ const confirmAction = () => {
   <n-modal
       :show="show"
       preset="card"
-      class="w-80"
+      class="w-fit"
       :mask-closable="false"
       :draggable="true"
+      transform-origin="center"
       @close="closeModal"
   >
     <template #header>

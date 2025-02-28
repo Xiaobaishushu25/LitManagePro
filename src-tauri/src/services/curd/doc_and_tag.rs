@@ -1,6 +1,7 @@
 use sea_orm::QueryFilter;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QuerySelect};
 use sea_orm::prelude::Expr;
+use tracing::instrument;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::doc_and_tag::Column;
@@ -35,6 +36,7 @@ impl DocAndTagCurd {
         DocAndTags::insert_many(models).exec(db).await?;
         Ok(())
     }
+    #[instrument]
     pub async fn delete(doc_id: i32, tag_id: i32) -> AppResult<()> {
         let db = crate::entities::DB
             .get()

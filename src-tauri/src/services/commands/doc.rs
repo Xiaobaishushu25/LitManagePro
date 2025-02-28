@@ -1,6 +1,8 @@
 use log::{error, info};
+use tauri::Emitter;
 use crate::dtos::doc_tags::DocumentTags;
 use crate::services::commands::doc::doc_util::{handle_many_paths, handle_query_docs_by_tags};
+use crate::services::curd::doc_and_tag::DocAndTagCurd;
 
 #[tauri::command]
 pub async fn insert_docs(app_handle: tauri::AppHandle,paths:Vec<String>,tags_id:Vec<i32>) -> Result<(), String> {
@@ -22,6 +24,20 @@ pub async fn query_docs_by_tags(and_tags_id:Vec<i32>,or_tags_id:Vec<i32>) -> Res
         },
     }
 }
+#[tauri::command]
+pub async fn delete_doc_tag(app_handle: tauri::AppHandle,doc_id:i32,tag_id:i32) -> Result<(), String> {
+    match DocAndTagCurd::delete(doc_id,tag_id).await{
+        Ok(_) => {
+            let document_tags = DocumentTags::from_doc_id(doc_id).await;
+            let _ = app_handle.emit("doc_update",document_tags);
+            Ok(())
+        },
+        Err(e) => {
+            error!("删除文档的标签失败：{:?}", e);
+            Err("删除文档的标签失败".to_string())
+        }
+    }
+}
 #[allow(dead_code)]
 mod doc_util {
     use std::collections::HashSet;
@@ -34,7 +50,6 @@ mod doc_util {
     use crate::entities::prelude::Document;
     use crate::services::curd::doc_and_tag::DocAndTagCurd;
     use crate::services::curd::document::DocumentCurd;
-
     pub(crate) async  fn handle_many_paths(app_handle: tauri::AppHandle,paths: Vec<String>,tags_id:Vec<i32>) -> AppResult<()> {
         for path_s in paths {
             //根据path获取文件信息

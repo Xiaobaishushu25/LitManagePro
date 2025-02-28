@@ -4,7 +4,7 @@ use tracing::info;
 use crate::init::init_app;
 use crate::services::commands::tag::{query_tag_groups, create_tag_group, rename_tag_group, create_tag, delete_tag, delete_group, insert_doc_and_tag, delete_doc_and_tag};
 use crate::services::commands::config::{get_config,save_config};
-use crate::services::commands::doc::{insert_docs,query_docs_by_tags};
+use crate::services::commands::doc::{insert_docs,query_docs_by_tags,delete_doc_tag};
 
 mod init;
 mod services;
@@ -35,6 +35,7 @@ pub async fn run() {
             delete_doc_and_tag,
             insert_docs,
             query_docs_by_tags,
+            delete_doc_tag,
             exit_app
         ])
         .run(tauri::generate_context!())

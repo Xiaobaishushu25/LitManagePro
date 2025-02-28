@@ -52,16 +52,22 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
     function addTagToAndTags(id:number){
         let tag = allTags.value.find(tag => tag.id === id);
         if (tag) {
-            andTags.value.push(tag);
+            const existingTag = andTags.value.find(t => t.id === tag.id);
+            if (!existingTag) {
+                andTags.value.push(tag);
+            }
         }
-        // andTags.value.push(tag);
     }
     function addTagToOrTags(id:number){
+        // let tag = allTags.value.find(tag => tag.id === id);
         let tag = allTags.value.find(tag => tag.id === id);
         if (tag) {
-            orTags.value.push(tag);
+            // 检查或标签中是否已存在该标签
+            const existingTag = orTags.value.find(t => t.id === tag.id);
+            if (!existingTag) {
+                orTags.value.push(tag);
+            }
         }
-        // orTags.value.push(tag);
     }
     return {
         tagGroups,

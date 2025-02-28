@@ -72,12 +72,15 @@ impl Default for Config{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UiConfig{
     //tag组是否打开，key为tag_group_name，value为bool
-    tag_group_state:HashMap<i32,bool>
+    tag_group_state:HashMap<i32,bool>,
+    //表格是否展开总结行(在有总结的情况时)
+    table_expand:bool
 }
 impl Default for UiConfig{
     fn default() -> Self {
         UiConfig{
-            tag_group_state:HashMap::new()
+            tag_group_state:HashMap::new(),
+            table_expand:true
         }
     }
 }

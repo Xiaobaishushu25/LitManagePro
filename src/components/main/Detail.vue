@@ -171,7 +171,7 @@ function updateTags(){
         :render-source-list="renderSourceList"
         source-filterable
         size="large"
-        style="min-width: 400px; width: 400px"
+        class="h-[66.666vh] min-h-[66.666vh] min-w-[500px] w-[500px]"
     />
     <!-- 没有数据时显示提示信息 -->
     <div v-else>请选择一个文档。</div>

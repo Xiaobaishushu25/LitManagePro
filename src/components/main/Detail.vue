@@ -156,14 +156,6 @@ function updateTags(){
 
 <template>
   <custom-modal title="修改标签"  v-model:show="showTagModal" :on-confirm="updateTags">
-<!--    <n-transfer-->
-<!--        v-model:value="selectedTags"-->
-<!--        :options="flatTags"-->
-<!--        :render-source-list="renderSourceList"-->
-<!--        source-filterable-->
-<!--        size='large'-->
-<!--        style="min-width: 400px;width: 400px"-->
-<!--    />-->
     <n-transfer
         v-if="docsStore.currentSelectDoc"
         v-model:value="selectedTags"
@@ -177,57 +169,66 @@ function updateTags(){
     <div v-else>请选择一个文档。</div>
   </custom-modal>
   <div>
-    <n-card title="文档详细信息">
-      <n-flex align="center" justify="space-between" style="margin-bottom: 20px;">
-        <div class="title-container">
+    <n-scrollbar class="h-[86vh]">
+      <n-card class="font-cn-title" title="文档详细信息">
+        <n-flex vertical justify="space-between" style="margin-bottom: 20px;">
           <n-text  class="text-base text-green-700" >标题: {{ docsStore.currentSelectDoc?.title }}</n-text>
-        </div>
-      </n-flex>
-    </n-card>
-    <n-card title="文档标签信息">
-      <template #header-extra>
-        <n-flex>
-          <n-tooltip trigger="hover" class="text-xs p-0">
-            <template #trigger>
-              <inline-svg
-                  src="../assets/svg/Delete24Regular.svg"
-                  class="svg-button hover:text-red-600"
-                  @click.stop="canTagDelete = !canTagDelete"
-              ></inline-svg>
-            </template>
-            删除标签
-          </n-tooltip>
-          <n-tooltip trigger="hover" class="text-xs p-0">
-            <template #trigger>
-              <inline-svg
-                  src="../assets/svg/Edit24Regular.svg"
-                  class="svg-button"
-                  @click.stop="showTagModal=true"
-              ></inline-svg>
-            </template>
-            编辑标签
-          </n-tooltip>
+          <n-text  class="text-base text-green-700" >作者: {{ docsStore.currentSelectDoc?.author }}</n-text>
+          <n-text  class="text-base text-green-700" >刊物: {{ docsStore.currentSelectDoc?.journal }}</n-text>
+          <n-text  class="text-base text-green-700" >年份: {{ docsStore.currentSelectDoc?.year}}</n-text>
         </n-flex>
-      </template >
-      <div>
-        <n-tag
-            v-for="tag in docsStore.currentSelectDoc?.tags"
-            :key="tag.id"
-            :style="{ backgroundColor: tag.bg_color, color: tag.text_color }"
-            size="medium"
-            :closable="canTagDelete"
-            @close="deleteTag(tag.id)"
-            class="mx-1 mt-1"
-        >
-          {{ tag.value }}
-        </n-tag>
-      </div>
-    </n-card>
-    <n-card title="文档核心思想">
-      <div style="margin-top: 10px;">
-        {{docsStore.currentSelectDoc?.remark}}
-      </div>
-    </n-card>
+      </n-card>
+      <n-card class="font-heiti" title="文档标签信息">
+        <template #header-extra>
+          <n-flex>
+            <n-tooltip trigger="hover" class="text-xs p-0">
+              <template #trigger>
+                <inline-svg
+                    src="../assets/svg/Delete24Regular.svg"
+                    class="svg-button hover:text-red-600"
+                    @click.stop="canTagDelete = !canTagDelete"
+                ></inline-svg>
+              </template>
+              删除标签
+            </n-tooltip>
+            <n-tooltip trigger="hover" class="text-xs p-0">
+              <template #trigger>
+                <inline-svg
+                    src="../assets/svg/Edit24Regular.svg"
+                    class="svg-button"
+                    @click.stop="showTagModal=true"
+                ></inline-svg>
+              </template>
+              编辑标签
+            </n-tooltip>
+          </n-flex>
+        </template >
+        <div>
+          <n-tag
+              v-for="tag in docsStore.currentSelectDoc?.tags"
+              :key="tag.id"
+              :style="{ backgroundColor: tag.bg_color, color: tag.text_color }"
+              size="medium"
+              :closable="canTagDelete"
+              @close="deleteTag(tag.id)"
+              class="mx-1 mt-1"
+          >
+            {{ tag.value }}
+          </n-tag>
+        </div>
+      </n-card>
+      <n-card title="文档核心思想">
+        <div class="font-ying">
+          {{docsStore.currentSelectDoc?.remark}}
+        </div>
+      </n-card>
+      <n-card title="文档总结">
+        <n-flex vertical justify="space-between" style="margin-bottom: 10px;">
+          <n-text  class="font-ying font-medium text-base text-green-700" >摘要: {{ docsStore.currentSelectDoc?.abstract}}</n-text>
+          <n-text  class="text-base text-green-700" >创新点: {{ docsStore.currentSelectDoc?.contributions }}</n-text>
+        </n-flex>
+      </n-card>
+    </n-scrollbar>
   </div>
 </template>
 <style scoped>

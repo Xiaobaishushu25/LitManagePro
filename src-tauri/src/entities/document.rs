@@ -17,20 +17,17 @@ pub struct Model {
     pub path: String,
 }
 impl Model {
-    pub fn new(
-        title: String,
-        path: String,
-    ) -> Self {
+    pub fn new(title: String, path: String) -> Self {
         Self {
-            index:0,
+            index: 0,
             id: 0,
             title,
-            author:None,
-            r#abstract:None,
-            year:None,
-            journal:None,
-            contributions:None,
-            remark:None,
+            author: None,
+            r#abstract: None,
+            year: None,
+            journal: None,
+            contributions: None,
+            remark: None,
             path,
         }
     }

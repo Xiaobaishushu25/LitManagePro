@@ -1,11 +1,11 @@
-use sea_orm::QueryFilter;
-use log::error;
-use sea_orm::ActiveValue::Set;
-use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::prelude::{ActiveTagGroup, TagGroup, TagGroups};
 use crate::entities::tag_group::Column;
+use log::error;
+use sea_orm::ActiveValue::Set;
+use sea_orm::QueryFilter;
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
 
 pub struct TagGroupCurd;
 impl TagGroupCurd {
@@ -22,14 +22,14 @@ impl TagGroupCurd {
             .await?
             .unwrap()
             .unwrap_or(0);
-        let tag_group = ActiveTagGroup{
+        let tag_group = ActiveTagGroup {
             index: Set(max_index + 1),
             id: NotSet,
             name: Set(tag_group_name.into()),
         };
         let insert_result = TagGroups::insert(tag_group).exec(db).await?;
-        Ok(TagGroup{
-            index: max_index+1,
+        Ok(TagGroup {
+            index: max_index + 1,
             id: insert_result.last_insert_id,
             name: tag_group_name.into(),
         })
@@ -44,16 +44,16 @@ impl TagGroupCurd {
         }
         Ok(())
     }
-    pub async fn update_name(group_id:i32, new_name:&str) -> AppResult<()> {
+    pub async fn update_name(group_id: i32, new_name: &str) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
         let tag_group = TagGroups::find_by_id(group_id).one(db).await?;
         if let Some(tag_group) = tag_group {
             let mut active_model = tag_group.into_active_model();
-            active_model.name=Set(new_name.to_string());
+            active_model.name = Set(new_name.to_string());
             TagGroups::update(active_model).exec(db).await?;
-        }else {
+        } else {
             //这里正常来说不会出错，也没必要panic，记录一下就行了
             error!("未找到group id为{group_id}的标签组");
         }

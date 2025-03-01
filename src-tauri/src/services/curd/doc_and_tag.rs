@@ -1,12 +1,12 @@
-use sea_orm::QueryFilter;
-use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QuerySelect};
-use sea_orm::prelude::Expr;
-use tracing::instrument;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::doc_and_tag::Column;
-use crate::entities::{document, init_db_coon};
 use crate::entities::prelude::{DocAndTag, DocAndTags, Document, Documents};
+use crate::entities::{document, init_db_coon};
+use sea_orm::QueryFilter;
+use sea_orm::prelude::Expr;
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QuerySelect};
+use tracing::instrument;
 
 pub struct DocAndTagCurd;
 impl DocAndTagCurd {
@@ -14,24 +14,26 @@ impl DocAndTagCurd {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
-        let model = DocAndTag {
-            tag_id,
-            doc_id,
-        };
-        DocAndTags::insert(model.into_active_model()).exec(db).await?;
+        let model = DocAndTag { tag_id, doc_id };
+        DocAndTags::insert(model.into_active_model())
+            .exec(db)
+            .await?;
         Ok(())
     }
     pub async fn insert_many(doc_id: i32, tag_ids: Vec<i32>) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
-        let models = tag_ids.iter().map(|tag_id| {
-            let model = DocAndTag {
-                tag_id: *tag_id,
-                doc_id,
-            };
-            model.into_active_model()
-        }).collect::<Vec<_>>();
+        let models = tag_ids
+            .iter()
+            .map(|tag_id| {
+                let model = DocAndTag {
+                    tag_id: *tag_id,
+                    doc_id,
+                };
+                model.into_active_model()
+            })
+            .collect::<Vec<_>>();
         // DocAndTags::insert(model.into_active_model()).exec(db).await?;
         DocAndTags::insert_many(models).exec(db).await?;
         Ok(())
@@ -53,11 +55,10 @@ impl DocAndTagCurd {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
-        let model = DocAndTag {
-            tag_id,
-            doc_id,
-        };
-        DocAndTags::delete(model.into_active_model()).exec(db).await?;
+        let model = DocAndTag { tag_id, doc_id };
+        DocAndTags::delete(model.into_active_model())
+            .exec(db)
+            .await?;
         Ok(())
     }
     /// 根据标签 ID组 查询文档。
@@ -94,7 +95,7 @@ impl DocAndTagCurd {
     ///       Err(err) => eprintln!("Error: {}", err),
     ///   }
     ///   ```
-    pub async fn find_documents_with_tags(tag_ids: Vec<i32>,and: bool) ->AppResult<Vec<i32>>{
+    pub async fn find_documents_with_tags(tag_ids: Vec<i32>, and: bool) -> AppResult<Vec<i32>> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
@@ -107,7 +108,7 @@ impl DocAndTagCurd {
                 .into_tuple::<i32>()
                 .all(db)
                 .await?
-        }else {
+        } else {
             let len = tag_ids.len() as u64;
             let select = DocAndTags::find()
                 .select_only()
@@ -115,24 +116,28 @@ impl DocAndTagCurd {
                 .filter(Column::TagId.is_in(tag_ids))
                 .group_by(Column::DocId);
             // 根据 and 参数决定是否添加 HAVING 条件
-            let select = if and{
-                select.having(Expr::col(Column::DocId).count().eq(len))//对查询结果按 doc_id 进行分组。过滤出那些分组后的 doc_id 的记录数等于 len 的分组。
-            }else { select };
+            let select = if and {
+                select.having(Expr::col(Column::DocId).count().eq(len)) //对查询结果按 doc_id 进行分组。过滤出那些分组后的 doc_id 的记录数等于 len 的分组。
+            } else {
+                select
+            };
             select
                 .all(db)
                 .await?
                 .into_iter()
-                .map(|x|x.doc_id)
+                .map(|x| x.doc_id)
                 .collect::<Vec<_>>()
         };
         Ok(doc_ids)
     }
 }
 #[tokio::test]
-async fn test_find_documents_with_all_tags(){
+async fn test_find_documents_with_all_tags() {
     init_db_coon().await;
-    let tags = DocAndTagCurd::find_documents_with_tags(vec![], false).await.unwrap();
-    for i in tags{
-        println!("{}",i);
+    let tags = DocAndTagCurd::find_documents_with_tags(vec![], false)
+        .await
+        .unwrap();
+    for i in tags {
+        println!("{}", i);
     }
 }

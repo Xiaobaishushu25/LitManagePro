@@ -1,9 +1,9 @@
-use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
-use sea_orm::ActiveValue::Set;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::prelude::{DocAndTag, DocAndTags, Tag, Tags};
 use crate::entities::tag::Column;
+use sea_orm::ActiveValue::Set;
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
 
 pub struct TagCurd;
 impl TagCurd {
@@ -26,7 +26,7 @@ impl TagCurd {
     ///
     /// * 如果数据库未初始化，将返回一个自定义错误提示。
     /// * 如果数据库查询或插入操作失败，将传播相应的错误。
-    pub async fn insert(tag:Tag) -> AppResult<Tag> {
+    pub async fn insert(tag: Tag) -> AppResult<Tag> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
@@ -42,8 +42,8 @@ impl TagCurd {
         active_tag.index = Set(max_index + 1);
         active_tag.id = NotSet;
         let insert_result = Tags::insert(active_tag).exec(db).await?;
-        Ok(Tag{
-            index: max_index+1,
+        Ok(Tag {
+            index: max_index + 1,
             id: insert_result.last_insert_id,
             ..tag
         })

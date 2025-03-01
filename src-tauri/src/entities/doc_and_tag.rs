@@ -1,9 +1,9 @@
+use crate::entities::prelude::{DocAndTag, DocAndTags, Document, Documents, Tag, Tags};
+use crate::entities::{DB, doc_and_tag, init_db_coon};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::entities::{doc_and_tag, init_db_coon, DB};
-use crate::entities::prelude::{DocAndTag, DocAndTags, Document, Documents, Tag, Tags};
 
-#[derive(Clone, Debug, DeriveEntityModel, Serialize,Deserialize)]
+#[derive(Clone, Debug, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "doc_and_tag")]
 pub struct Model {
     #[sea_orm(primary_key)]
@@ -65,7 +65,7 @@ impl Linked for TagToDoc {
 async fn test_table() {
     init_db_coon().await;
     let db = DB.get().unwrap();
-    let doc= Documents::find_by_id(1).one(db).await.unwrap().unwrap();
+    let doc = Documents::find_by_id(1).one(db).await.unwrap().unwrap();
     let select = doc.find_linked(DocToTag).all(db).await.unwrap();
     for tag in select {
         println!("{:?}", tag);

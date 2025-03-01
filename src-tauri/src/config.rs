@@ -1,20 +1,20 @@
+use crate::app_errors::AppResult;
+use log::{error, info};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::{env, fs, io};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::LazyLock;
-use log::{error, info};
-use serde::{Deserialize, Serialize};
-use time::macros::format_description;
+use std::{env, fs, io};
 use time::UtcOffset;
+use time::macros::format_description;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::RollingFileAppender;
-use tracing_subscriber::{fmt, EnvFilter, Layer, Registry};
 use tracing_subscriber::fmt::time::OffsetTime;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use crate::app_errors::AppResult;
+use tracing_subscriber::{EnvFilter, Layer, Registry, fmt};
 
 pub static CURRENT_DIR: LazyLock<String> = LazyLock::new(|| {
     let current_dir = &env::current_dir().expect("无法获取当前目录");
@@ -23,7 +23,8 @@ pub static CURRENT_DIR: LazyLock<String> = LazyLock::new(|| {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    ui_config: UiConfig
+    ui_config: UiConfig,
+    pub ai_config: AiConfig,
 }
 
 impl Config {
@@ -32,8 +33,6 @@ impl Config {
      */
     pub async fn load() -> Self {
         info!("load config...");
-        // let current_dir = &env::current_dir().unwrap();
-        // let current_dir = current_dir.to_string_lossy();
         let path = format!("{}/data/config", CURRENT_DIR.clone());
         match check_config_file(&path, &CURRENT_DIR.clone()) {
             Ok(config) => {
@@ -49,8 +48,8 @@ impl Config {
         *self = config;
     }
     /**
-    * 保存配置文件
-    */
+     * 保存配置文件
+     */
     pub async fn save_to_file(&self) -> AppResult<()> {
         let path = format!("{}/data/config", CURRENT_DIR.clone());
         let mut config_file = OpenOptions::new()
@@ -61,26 +60,56 @@ impl Config {
         Ok(())
     }
 }
-impl Default for Config{
+impl Default for Config {
     fn default() -> Self {
-        Config{
-            ui_config:UiConfig::default()
+        Config {
+            ui_config: UiConfig::default(),
+            ai_config: AiConfig::default(),
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UiConfig{
+pub struct UiConfig {
     //tag组是否打开，key为tag_group_name，value为bool
-    tag_group_state:HashMap<i32,bool>,
+    tag_group_state: HashMap<i32, bool>,
     //表格是否展开总结行(在有总结的情况时)
-    table_expand:bool
+    table_expand: bool,
 }
-impl Default for UiConfig{
+impl Default for UiConfig {
     fn default() -> Self {
-        UiConfig{
-            tag_group_state:HashMap::new(),
-            table_expand:true
+        UiConfig {
+            tag_group_state: HashMap::new(),
+            table_expand: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiConfig {
+    pub(crate) use_ai: bool,
+    //默认使用的ai，分别为：kimi,deepseek
+    pub default_ai: String,
+    //模型，key为ai名称，value为模型名称集合
+    pub default_model: String,
+    pub models: HashMap<String, Vec<String>>,
+    //key为ai名称，value为ai的key
+    pub keys: HashMap<String, String>,
+    pub online: bool,
+}
+impl Default for AiConfig {
+    fn default() -> Self {
+        AiConfig {
+            use_ai: true,
+            default_ai: "kimi".to_string(),
+            default_model: "moonshot-v1-8k".to_string(),
+            models: HashMap::from([("kimi".to_string(), vec!["moonshot-v1-8k".to_string()])]),
+            keys: HashMap::from([(
+                "kimi".to_string(),
+                "sk-MP4teGNgdOkqHvEH9qLMnEeVJ8D6FMVtBDfvwI1GbU82cni6".into(),
+            )]),
+            // keys:HashMap::new(),
+            online: false,
         }
     }
 }
@@ -124,22 +153,22 @@ pub fn init_logger() -> WorkerGuard {
     );
 
     let file_appender = RollingFileAppender::builder()
-        .filename_prefix("litManagePro")//意味着生成的日志文件名会以 "litManagePro" 开头。
-        .filename_suffix("log")//生成的日志文件名会以 .log 结尾
+        .filename_prefix("litManagePro") //意味着生成的日志文件名会以 "litManagePro" 开头。
+        .filename_suffix("log") //生成的日志文件名会以 .log 结尾
         .build(log_path)
         .expect("无法初始化滚动文件追加器");
 
     let (non_blocking_file, worker_guard) = tracing_appender::non_blocking(file_appender);
     let file_layer = fmt::layer()
         .with_writer(non_blocking_file)
-        .with_ansi(false)//表示不使用 ANSI 转义码。这通常用于文件日志，因为文件通常不支持 ANSI 转义码（如颜色、样式等）。
-        .with_line_number(true)//表示在日志中包含行号。这有助于调试时快速定位日志的来源。
-        .with_target(true)//表示在日志中包含目标。目标通常是一个字符串，用于标识日志的来源，例如模块名或函数名。
+        .with_ansi(false) //表示不使用 ANSI 转义码。这通常用于文件日志，因为文件通常不支持 ANSI 转义码（如颜色、样式等）。
+        .with_line_number(true) //表示在日志中包含行号。这有助于调试时快速定位日志的来源。
+        .with_target(true) //表示在日志中包含目标。目标通常是一个字符串，用于标识日志的来源，例如模块名或函数名。
         // .with_thread_ids(true)//表示在日志中包含线程 ID。这有助于区分不同线程的日志，特别是在多线程环境中。
-        .with_level(true)//表示在日志中包含日志级别（如 INFO、ERROR 等）。这有助于快速识别日志的严重性。
+        .with_level(true) //表示在日志中包含日志级别（如 INFO、ERROR 等）。这有助于快速识别日志的严重性。
         .with_thread_names(true)
         .with_timer(local_time.clone())
-        .with_filter(EnvFilter::new("error"));//文件只显示错误级别的日志
+        .with_filter(EnvFilter::new("error")); //文件只显示错误级别的日志
 
     // 配置控制台日志
     let console_layer = fmt::layer()
@@ -151,8 +180,10 @@ pub fn init_logger() -> WorkerGuard {
         .with_level(true)
         // .with_thread_names(true)
         .with_timer(local_time)
-        .with_filter(EnvFilter::new("info,tao::platform_impl::platform::event_loop::runner=error"));
-        // .with_filter(EnvFilter::new("info")); // 控制台显示 info 级别及以上的日志
+        .with_filter(EnvFilter::new(
+            "info,tao::platform_impl::platform::event_loop::runner=error",
+        ));
+    // .with_filter(EnvFilter::new("info")); // 控制台显示 info 级别及以上的日志
 
     // 配置日志订阅器
     Registry::default()

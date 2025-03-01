@@ -1,13 +1,14 @@
-use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
-use sea_orm::ActiveValue::Set;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
-use crate::entities::prelude::{DocAndTags, Document, Documents};
 use crate::entities::document::Column;
+use crate::entities::prelude::{DocAndTags, Document, Documents};
+use crate::services::commands::doc::PartDoc;
+use sea_orm::ActiveValue::Set;
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
 
 pub struct DocumentCurd;
 impl DocumentCurd {
-    pub async fn insert(mut doc:Document) -> AppResult<Document> {
+    pub async fn insert(mut doc: Document) -> AppResult<Document> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
@@ -23,7 +24,7 @@ impl DocumentCurd {
         active_doc.index = Set(max_index + 1);
         active_doc.id = NotSet;
         let insert_result = Documents::insert(active_doc).exec(db).await?;
-        doc.index = max_index+1;
+        doc.index = max_index + 1;
         doc.id = insert_result.last_insert_id;
         Ok(doc)
     }
@@ -55,13 +56,20 @@ impl DocumentCurd {
         }
         Ok(())
     }
-    pub async fn update_document(doc: Document) -> AppResult<()> {
+    pub async fn update_document(part_doc: PartDoc) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
-        let doc = Documents::find_by_id(doc.id).one(db).await?;
+        let doc = Documents::find_by_id(part_doc.id).one(db).await?;
         if let Some(doc) = doc {
-            let doc = doc.into_active_model();
+            let mut doc = doc.into_active_model();
+            doc.r#abstract = Set(part_doc.r#abstract);
+            doc.title = Set(part_doc.title);
+            doc.author = Set(part_doc.author);
+            doc.year = Set(part_doc.year);
+            doc.journal = Set(part_doc.journal);
+            doc.contributions = Set(part_doc.contributions);
+            doc.remark = Set(part_doc.remark);
             Documents::update(doc).exec(db).await?;
         }
         Ok(())

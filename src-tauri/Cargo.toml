@@ -24,6 +24,8 @@ tauri-plugin-os = "2.2.0"
 
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread", "process"] }
 
+reqwest = { version = "0.11", features = ["json", "multipart"] }
+
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sea-orm = {version = "1.1.5",features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros" ,"debug-print" ] }
@@ -38,5 +40,11 @@ tracing-subscriber = { version = "0.3.19", features = ["fmt", "time", "std", "ch
 time = { version = "0.3.37", features = ["macros"] }
 log = "0.4.26"
 #chrono = "0.4.39"
+
+lopdf = "0.35.0"
+pdf-extract = "0.8.2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-window-state = "2"
 
 

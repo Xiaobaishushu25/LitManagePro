@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    html,
+    body {
+        font-family: 'SimSun','Arial', sans-serif;
+    }
+}
+
 .n-message-wrapper{
     @apply mb-10;/*每个消息提示距离底部48px*/
 }

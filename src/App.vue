@@ -5,6 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import {message, } from './message.ts';
 import {Config} from "./config-type.ts";
 import useConfigStore from "./stroe/config.ts";
+import { saveWindowState, StateFlags } from '@tauri-apps/plugin-window-state';
 
 const store = useConfigStore()
 
@@ -16,6 +17,7 @@ onMounted(async () => {
   });
   unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
     event.preventDefault();
+    await saveWindowState(StateFlags.ALL);
     await invoke('save_config',{config: store.config}).then(_ => {}).catch(e => {
       message.error(`保存配置出错${e}`);
     })

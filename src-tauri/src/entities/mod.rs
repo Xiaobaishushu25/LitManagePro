@@ -1,21 +1,21 @@
+use log::{error, info};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::fs;
 use std::fs::File;
 use std::path::PathBuf;
 use std::time::Duration;
-use log::{error, info};
-use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use tokio::sync::OnceCell;
 
 use crate::app_errors::AppResult;
 use crate::config::CURRENT_DIR;
 use crate::entities::table::create_all_need_table;
 
-pub mod table;
-pub mod tag_group;
-pub mod tag;
-pub mod prelude;
-pub mod document;
 pub mod doc_and_tag;
+pub mod document;
+pub mod prelude;
+pub mod table;
+pub mod tag;
+pub mod tag_group;
 
 ///实体类，对应数据库中的行数据
 
@@ -26,16 +26,8 @@ pub async fn init_db_coon() {
     let exist = match check_db_file(&db_path, &current_dir) {
         Ok(flag) => flag,
         Err(e) => {
-            error!(
-                "数据库文件不存在，创建数据库文件{}失败:{:?}",
-                db_path,
-                e
-            );
-            panic!(
-                "数据库文件不存在，创建数据库文件{}失败:{:?}",
-                db_path,
-                e
-            )
+            error!("数据库文件不存在，创建数据库文件{}失败:{:?}", db_path, e);
+            panic!("数据库文件不存在，创建数据库文件{}失败:{:?}", db_path, e)
         }
     };
     DB.get_or_init(|| async {
@@ -54,7 +46,7 @@ pub async fn init_db_coon() {
         };
         db
     })
-        .await;
+    .await;
 }
 ///打开数据库的日志
 pub async fn open_db_log() {

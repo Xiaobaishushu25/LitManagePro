@@ -165,24 +165,27 @@ const fetchSuggestions = async (query: string) => {
         :fetchSuggestions="fetchSuggestions"
     />
     <div >
-<!--      :default-expand-all="configStore.config?.ui_config.table_expand ?? true"-->
-      <n-split direction="horizontal" v-if="docsStore.docs!==null" class="h-full mt-2" :max="1" :min="0" :default-size="0.8" >
+<!--      这里的v-if是为了在data有数据时才渲染，不然default-expand-all无法作用-->
+      <n-split direction="horizontal" v-if="docsStore.docs!==null" class="h-full mt-2" :max="1" :min="0" :default-size="0.65" >
         <template #1>
-          <n-data-table
-              size="small"
-              :columns="columns"
-              :data="docsStore.docs"
-              :row-props="setRowProps"
-              :row-class-name="getRowClassName"
-              :row-key="(row) => row.id"
-              class="h-[calc(100vh-20rem)]"
-              :default-expand-all="configStore.config?.ui_config.table_expand ?? true"
-              striped
-          >
-            <template #empty>
-              没有数据
-            </template>
-          </n-data-table>
+          <n-scrollbar class="h-[86vh]" :size="5">
+            <n-data-table
+                size="small"
+                :columns="columns"
+                :data="docsStore.docs"
+                :row-props="setRowProps"
+                :row-class-name="getRowClassName"
+                :row-key="(row) => row.id"
+                class="font-ying"
+                style="font-size: 15px"
+                :default-expand-all="configStore.config?.ui_config.table_expand ?? true"
+                striped
+            >
+              <template #empty>
+                没有数据
+              </template>
+            </n-data-table>
+          </n-scrollbar>
         </template>
         <template #2>
           <detail />

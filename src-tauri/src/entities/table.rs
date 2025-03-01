@@ -1,8 +1,8 @@
-use log::{error, info};
-use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Schema};
-use crate::entities::{init_db_coon, DB};
 use crate::entities::prelude::{DocAndTags, Documents, TagGroups, Tags};
 use crate::entities::tag::Relation::DocAndTag;
+use crate::entities::{DB, init_db_coon};
+use log::{error, info};
+use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Schema};
 
 async fn create_table<E>(db_connection: &sea_orm::DatabaseConnection, entity: E)
 where

@@ -1,28 +1,40 @@
+use crate::config::Config;
+use crate::init::init_app;
+use crate::services::commands::config::{get_config, save_config};
+use crate::services::commands::doc::{insert_docs, query_docs_by_tags};
+use crate::services::commands::tag::{
+    create_tag, create_tag_group, delete_doc_tag, delete_group, delete_tag, insert_doc_tag,
+    query_tag_groups, rename_tag_group, update_doc_tags,
+};
 use std::process::exit;
 use std::sync::Mutex;
+use tauri::State;
 use tracing::info;
-use crate::init::init_app;
-use crate::services::commands::tag::{query_tag_groups, create_tag_group, rename_tag_group, create_tag, delete_tag, delete_group, insert_doc_tag, delete_doc_tag,update_doc_tags};
-use crate::services::commands::config::{get_config,save_config};
-use crate::services::commands::doc::{insert_docs,query_docs_by_tags};
 
 mod init;
 mod services;
 
 pub mod app_errors;
 pub mod config;
-mod entities;
 mod dtos;
+mod entities;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
-    let (_log_guard,config) = init_app().await;
+    //用于存储界面初始化之前的错误信息
+    let mut err_msg = vec![];
+    //_log_guard存活的周期内才能写入日志，所以需要返回给调用者。o_ai表示可能为None。
+    let (_log_guard, config, o_ai) = init_app(&mut err_msg).await;
     info!("litManagePro ui start...");
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
         .manage(Mutex::new(config))
+        .manage(err_msg)
+        .manage(tokio::sync::Mutex::new(o_ai))
         .invoke_handler(tauri::generate_handler![
+            first_run,
             query_tag_groups,
             create_tag,
             delete_tag,
@@ -43,7 +55,11 @@ pub async fn run() {
         .expect("error while running tauri application");
 }
 #[tauri::command]
-async fn exit_app()->Result<(),()> {
+async fn first_run(state: State<'_, Vec<String>>) -> Result<Vec<String>, ()> {
+    Ok(state.inner().clone())
+}
+#[tauri::command]
+async fn exit_app() -> Result<(), ()> {
     info!("退出程序");
     // sleep(Duration::from_secs(1)).await;
     exit(0)

@@ -7,11 +7,20 @@ import Footer from "../layouts/Footer.vue";
 import {onMounted, onUnmounted} from "vue";
 import {listen} from "@tauri-apps/api/event";
 import {message} from "../message.ts";
+import {invoke} from "@tauri-apps/api/core";
 
 let unlistenMsg: () => void;
 onMounted(async ()=>{
   unlistenMsg = await listen('backend_message', (event:{payload:string}) => {
     message.error(event.payload);
+  })
+
+  invoke<string[]>('first_run',{}).then(data => {
+    data.forEach(item => {
+      message.error(item);
+    })
+  }).catch(e => {
+    message.error(e);
   })
 })
 

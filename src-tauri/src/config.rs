@@ -90,8 +90,9 @@ pub struct AiConfig {
     pub(crate) use_ai: bool,
     //默认使用的ai，分别为：kimi,deepseek
     pub default_ai: String,
-    //模型，key为ai名称，value为模型名称集合
+    //默认使用的模型
     pub default_model: String,
+    //模型，key为ai名称，value为模型名称集合
     pub models: HashMap<String, Vec<String>>,
     //key为ai名称，value为ai的key
     pub keys: HashMap<String, String>,
@@ -100,14 +101,11 @@ pub struct AiConfig {
 impl Default for AiConfig {
     fn default() -> Self {
         AiConfig {
-            use_ai: true,
+            use_ai: false,
             default_ai: "kimi".to_string(),
             default_model: "moonshot-v1-8k".to_string(),
             models: HashMap::from([("kimi".to_string(), vec!["moonshot-v1-8k".to_string()])]),
-            keys: HashMap::from([(
-                "kimi".to_string(),
-                "sk-MP4teGNgdOkqHvEH9qLMnEeVJ8D6FMVtBDfvwI1GbU82cni6".into(),
-            )]),
+            keys: HashMap::new(),
             // keys:HashMap::new(),
             online: false,
         }

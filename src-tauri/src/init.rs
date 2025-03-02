@@ -1,9 +1,10 @@
+use tokio::sync::Mutex;
 use crate::config::{Config, init_logger};
 use crate::entities::init_db_coon;
-use crate::services::ai::AI;
+use crate::services::ai::{AI, ONCE_AI};
 use tracing_appender::non_blocking::WorkerGuard;
 
-pub async fn init_app(err_msg: &mut Vec<String>) -> (WorkerGuard, Config, Option<AI>) {
+pub async fn init_app(err_msg: &mut Vec<String>) -> (WorkerGuard, Config) {
     let log_guard = init_logger();
     let config = Config::load().await;
     init_db_coon().await;
@@ -33,5 +34,6 @@ pub async fn init_app(err_msg: &mut Vec<String>) -> (WorkerGuard, Config, Option
             err_msg.push("请配置ai以及默认模型".to_string());
         }
     }
-    (log_guard, config, ai)
+    ONCE_AI.set(Mutex::new(ai)).expect("ONCE_AI set error");
+    (log_guard, config)
 }

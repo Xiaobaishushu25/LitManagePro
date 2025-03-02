@@ -7,11 +7,10 @@ import {
 } from "naive-ui";
 import useDocStore from "../../stroe/doc.ts";
 import {h, ref, watchEffect} from "vue";
-import {invoke} from "@tauri-apps/api/core";
+import {convertFileSrc, invoke} from "@tauri-apps/api/core";
 import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
-import doc from "../../stroe/doc.ts";
 
 const docsStore = useDocStore()
 const tagStore = useTagGroupsStore()
@@ -19,56 +18,6 @@ const tagStore = useTagGroupsStore()
 const showTagModal = ref(false)
 
 const canTagDelete = ref(false)
-
-// 选中的标签
-// const selectedTags = ref<Array<number>>([]);
-// const treeData = computed(() => {
-//   return tagStore.tagGroups.map((group) => ({
-//     id: group.tag_group.id,
-//     label: group.tag_group.name,
-//     // selectable: false, // 第一级节点不可选中
-//     children: group.tags.map((tag) => ({
-//       id: tag.id,
-//       label: tag.value,
-//       groupId: group.tag_group.id,
-//       value: tag.id,
-//     })),
-//   }));
-// });
-// // 转换为 Transfer 的选项
-// const tagOptions = computed(() => {
-//   return treeData.value.flatMap((group) => {
-//     return group.children.map((tag) => ({
-//       key: tag.id,
-//       label: tag.label,
-//       value: tag.id,
-//       disabled: false,
-//       selectable: true,
-//       group: {
-//         key: group.id,
-//         label: group.label,
-//       },
-//     }));
-//   });
-// });
-// // 自定义源列表渲染
-// const renderSourceList: TransferRenderSourceList = ({ onCheck, pattern }) => {
-//   return h(NTree, {
-//     style: "margin: 0 4px;",
-//     keyField: "id",
-//     checkable: true,
-//     blockLine: true,
-//     checkOnClick: true,
-//     data: treeData.value as TreeOption[],
-//     pattern,
-//     checkedKeys: selectedTags.value,
-//     defaultExpandAll: true, // 默认展开所有节点
-//     defaultExpandedKeys: treeData.value.map((group) => group.id), // 默认展开所有组别
-//     onSelect: (keys) => {
-//       onCheck(keys);
-//     },
-//   });
-// };
 
 const selectedTags = ref<(string | number)[]>()
 
@@ -139,19 +88,20 @@ const renderSourceList: TransferRenderSourceList = ({ onCheck, pattern }) => {
 }
 
 function deleteTag(tagId: number){
-  console.log("delete tag")
   invoke('delete_doc_tag', {docId: docsStore.currentSelectDoc?.id, tagId: tagId})
       .then(_ => {})
       .catch(e => {message.error(e)})
 }
 function updateTags(){
   showTagModal.value = false
+  if(docsStore.currentSelectDoc===undefined){
+    return
+  }
   invoke('update_doc_tags', {docId: docsStore.currentSelectDoc?.id, tagIds: selectedTags.value})
       .then(_ => {})
       .catch(e => {message.error(e)})
   console.log("update tag")
 }
-
 </script>
 
 <template>
@@ -165,12 +115,11 @@ function updateTags(){
         size="large"
         class="h-[66.666vh] min-h-[66.666vh] min-w-[500px] w-[500px]"
     />
-    <!-- 没有数据时显示提示信息 -->
     <div v-else>请选择一个文档。</div>
   </custom-modal>
   <div>
     <n-scrollbar class="h-[86vh]">
-      <n-card class="font-cn-title" title="文档详细信息">
+      <n-card  title="详细信息">
         <n-flex vertical justify="space-between" style="margin-bottom: 20px;">
           <n-text  class="text-base text-green-700" >标题: {{ docsStore.currentSelectDoc?.title }}</n-text>
           <n-text  class="text-base text-green-700" >作者: {{ docsStore.currentSelectDoc?.author }}</n-text>
@@ -178,7 +127,7 @@ function updateTags(){
           <n-text  class="text-base text-green-700" >年份: {{ docsStore.currentSelectDoc?.year}}</n-text>
         </n-flex>
       </n-card>
-      <n-card class="font-heiti" title="文档标签信息">
+      <n-card title="标签信息">
         <template #header-extra>
           <n-flex>
             <n-tooltip trigger="hover" class="text-xs p-0">
@@ -217,14 +166,14 @@ function updateTags(){
           </n-tag>
         </div>
       </n-card>
-      <n-card title="文档核心思想">
-        <div class="font-ying">
+      <n-card title="核心思想">
+        <div >
           {{docsStore.currentSelectDoc?.remark}}
         </div>
       </n-card>
-      <n-card title="文档总结">
+      <n-card title="要点总结">
         <n-flex vertical justify="space-between" style="margin-bottom: 10px;">
-          <n-text  class="font-ying font-medium text-base text-green-700" >摘要: {{ docsStore.currentSelectDoc?.abstract}}</n-text>
+          <n-text  class="font-medium text-base text-green-700" >摘要: {{ docsStore.currentSelectDoc?.abstract}}</n-text>
           <n-text  class="text-base text-green-700" >创新点: {{ docsStore.currentSelectDoc?.contributions }}</n-text>
         </n-flex>
       </n-card>

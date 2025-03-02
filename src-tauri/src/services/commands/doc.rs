@@ -1,25 +1,27 @@
+use std::path::PathBuf;
 use crate::config::Config;
-use crate::dtos::doc_tags::DocumentTags;
-use crate::services::ai::AI;
+pub(crate) use crate::dtos::doc::{DocumentTags, PartDoc};
 use crate::services::commands::doc::doc_util::{handle_many_paths, handle_query_docs_by_tags};
-use crate::services::curd::doc_and_tag::DocAndTagCurd;
-use log::{error, info};
-use serde::{Deserialize, Serialize};
+use log::{error};
 use std::sync::Mutex;
-use tauri::{Emitter, State};
+use tauri::{State};
+use crate::services::curd::document::DocumentCurd;
 
 #[tauri::command]
-// pub async fn insert_docs(config: State<'_, Mutex<Config>>, o_ai:State<'_, Mutex<Option<AI>>>,app_handle: tauri::AppHandle,paths:Vec<String>,tags_id:Vec<i32>) -> Result<(), String> {
 pub async fn insert_docs(
     config: State<'_, Mutex<Config>>,
-    o_ai: State<'_, tokio::sync::Mutex<Option<AI>>>,
+    //我如果把ai放在State中，会报错，因为只有引用，但是我需要发到协程里面使用，活的不够长，改成'static也有错误。
+    //用Option再take的话没有意义了，因为后面还要用，不如直接用OnceLock装起来。
+    // o_ai: State<'_, tokio::sync::Mutex<Option<AI>>>,
+    // o_ai: State<'static, tokio::sync::Mutex<Option<AI>>>,
     app_handle: tauri::AppHandle,
     paths: Vec<String>,
     tags_id: Vec<i32>,
 ) -> Result<(), String> {
     let flag = { config.lock().unwrap().ai_config.use_ai };
-    let o_ai = o_ai.lock().await;
-    match handle_many_paths(flag, &o_ai, app_handle, paths, tags_id).await {
+    // let o_ai = o_ai.lock().await;
+    match handle_many_paths(flag, app_handle, paths, tags_id).await {
+    // match handle_many_paths(flag, o_ai, app_handle, paths, tags_id).await {
         Ok(_) => Ok(()),
         Err(e) => {
             error!("插入文档失败：{:?}", e);
@@ -40,42 +42,84 @@ pub async fn query_docs_by_tags(
         }
     }
 }
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PartDoc {
-    pub id: i32,
-    pub title: String,
-    pub author: Option<String>,
-    pub r#abstract: Option<String>,
-    pub year: Option<String>,
-    pub journal: Option<String>,
-    pub contributions: Option<String>,
-    pub remark: Option<String>,
+#[tauri::command]
+pub async fn delete_doc(id: i32) -> Result<(), String> {
+    match DocumentCurd::delete(id).await {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            error!("删除文档失败：{:?}", e);
+            Err("删除文档失败".to_string())
+        }
+    }
+}
+#[tauri::command]
+pub async fn open_doc_default(path: String) -> Result<(), String> {
+    match open::that(path) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            error!("打开文档失败：{:?}", e);
+            Err("打开文档失败".to_string())
+        }
+    }
+}
+#[tauri::command]
+pub async fn open_dir(path: String) -> Result<(), String> {
+    match open::that(PathBuf::from(path).parent().unwrap()) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            error!("打开文档所在目录失败：{:?}", e);
+            Err("打开文档所在目录失败".to_string())
+        }
+    }
+}
+#[tauri::command]
+pub async fn open_with_exe(exe_path: String,file_path: String) -> Result<(), String> {
+    // 使用指定的可执行文件打开文件
+    match open::with(file_path, exe_path){
+        Ok(()) => Ok(()),
+        Err(err) => {
+            error!("使用指定的可执行文件打开文件失败：{:?}", err);
+            Err("使用指定的可执行文件打开文件失败".to_string())
+        },
+    }
 }
 #[allow(dead_code)]
 mod doc_util {
+    use crate::app_errors::AppError::Tip;
     use crate::app_errors::AppResult;
-    use crate::dtos::doc_tags::DocumentTags;
+    use crate::dtos::doc::{DocumentTags, PartDoc};
     use crate::entities::prelude::Document;
-    use crate::services::ai::AI;
-    use crate::services::commands::doc::PartDoc;
+    use crate::services::ai::{ONCE_AI};
     use crate::services::curd::doc_and_tag::DocAndTagCurd;
     use crate::services::curd::document::DocumentCurd;
-    use crate::services::util::pdf::extract_limit_pages;
+    use crate::services::util::file::extract_limit_pages;
     use log::{error, info};
     use std::collections::HashSet;
     use std::path::Path;
-    use std::sync::Mutex;
-    use tauri::{Emitter, State};
+    use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::{Arc};
+    use rand::{rng, Rng};
+    use tauri::{Emitter};
     use tracing::instrument;
+    use crate::dtos::Progress;
 
     pub(crate) async fn handle_many_paths(
         use_ai: bool,
-        o_ai: &Option<AI>,
+        // o_ai: &Option<AI>,
+        // o_ai: &'static Option<AI>,
+        // o_ai: Option<AI>,
+        // o_ai: MutexGuard<Option<AI>>,
         app_handle: tauri::AppHandle,
         paths: Vec<String>,
         tags_id: Vec<i32>,
     ) -> AppResult<()> {
-        // pub(crate) async fn handle_many_paths(use_ai:bool, o_ai:State<'_, Mutex<Option<AI>>>, app_handle: tauri::AppHandle,paths: Vec<String>,tags_id:Vec<i32>) -> AppResult<()> {
+        let progress_id= rng().random_range(1000..=9999);
+        let count = Arc::new(AtomicI32::new(0));
+        let total = paths.len();
+        // let o_ai = Arc::new(o_ai);
+        let app_handle = Arc::new(app_handle);
+        let count = count.clone();
+        let _r = app_handle.emit("progress_event", Progress::new(progress_id,true, "正在插入文档".to_string(), 0f64, total as f64));
         for path_s in paths {
             //根据path获取文件信息
             // Convert the string path to a Path
@@ -112,72 +156,107 @@ mod doc_util {
                             let id = document_tags.id;
                             let _ = app_handle.emit("insert_doc", document_tags);
                             if let Some(ext) = path.extension() {
-                                if ext.to_str().unwrap() == "pdf" {
-                                    //todo 处理PDF文件,提取作者名、标题、摘要等信息
-                                    if use_ai {
-                                        // let o_ai = o_ai.lock().unwrap();
-                                        match o_ai {
-                                            Some(ai) => {
-                                                match extract_limit_pages(&path_s, id).await {
-                                                    Ok(content) => {
-                                                        match ai.analyse_paper(content, id).await {
-                                                            Ok(string) => {
-                                                                info!("AI分析结果{}", string);
-                                                                match serde_json::from_str::<PartDoc>(
-                                                                    &string,
-                                                                ) {
-                                                                    Ok(part_doc) => {
-                                                                        info!(
-                                                                            "AI分析成功: {:?}",
-                                                                            part_doc
-                                                                        );
-                                                                        if let Err(e) = DocumentCurd::update_document(part_doc).await{
-                                                                            error!("更新文档失败: {:?}", e);
-                                                                            let _ = app_handle.emit("backend_message", format!("更新文档失败: {:?}", e));
-                                                                        }else {
-                                                                            let document_tags = DocumentTags::from_doc_id(id).await;
-                                                                            let _ = app_handle.emit("doc_update", document_tags);
-                                                                        }
-                                                                        // let _ = app_handle.emit("insert_doc", document_tags);
-                                                                    }
-                                                                    Err(e) => {
-                                                                        let err_msg = format!(
-                                                                            "AI分析失败: {:?}",
-                                                                            e
-                                                                        );
-                                                                        error!("{}", err_msg);
-                                                                    }
-                                                                }
-                                                            }
-                                                            Err(e) => {
-                                                                let err_msg =
-                                                                    format!("AI分析失败: {:?}", e);
-                                                                error!("{}", err_msg);
-                                                                let _ = app_handle.emit(
-                                                                    "backend_message",
-                                                                    err_msg,
-                                                                );
-                                                            }
+                                match ext.to_str().unwrap() {
+                                    "pdf" => { // 处理PDF文件,提取作者名、标题、摘要等信息
+                                        if use_ai {
+                                            // let o_ai = o_ai.clone();
+                                            let app_handle = app_handle.clone();
+                                            let count = count.clone();
+                                            tokio::spawn(async move {
+                                                update_progress(progress_id,app_handle.clone(), "正在解析文档",0, count.clone(), total).await;
+                                                // match handle_new_paper(o_ai, &path_s, id).await {
+                                                match handle_new_paper(&path_s, id).await {
+                                                    Ok(part_doc) => {
+                                                        if let Err(e) = DocumentCurd::update_document_by_partdoc(part_doc).await {
+                                                            error!("更新文档失败: {:?}", e);
+                                                            let _ = app_handle.emit("backend_message", format!("更新文档失败: {:?}", e), );
+                                                        } else {
+                                                            let document_tags = DocumentTags::from_doc_id(id).await;
+                                                            let _ = app_handle.emit("doc_update", document_tags);
+                                                            update_progress(progress_id,app_handle, "解析文档完成",1, count, total).await;
                                                         }
                                                     }
                                                     Err(e) => {
-                                                        let err_msg =
-                                                            format!("提取PDF内容失败: {:?}", e);
-                                                        error!("{}", err_msg);
+                                                        error!("{}", e);
                                                         let _ = app_handle
-                                                            .emit("backend_message", err_msg);
+                                                            .emit("backend_message", e.to_string());
                                                     }
                                                 }
-                                            }
-                                            None => {
-                                                let err_msg =
-                                                    "请正确配置AI来解析文档。".to_string();
-                                                error!("{}", err_msg);
-                                                let _ = app_handle.emit("backend_message", err_msg);
-                                            }
+                                            });
+                                            // match o_ai {
+                                            //     Some(ai) => {
+                                            //         match extract_limit_pages(&path_s, id).await {
+                                            //             Ok(content) => {
+                                            //                 match ai.analyse_paper(content, id).await {
+                                            //                     Ok(string) => {
+                                            //                         info!("AI分析结果{}", string);
+                                            //                         match serde_json::from_str::<PartDoc>(
+                                            //                             &string,
+                                            //                         ) {
+                                            //                             Ok(part_doc) => {
+                                            //                                 info!(
+                                            //                                     "AI分析成功: {:?}",
+                                            //                                     part_doc
+                                            //                                 );
+                                            //                                 if let Err(e) = DocumentCurd::update_document_by_partdoc(part_doc).await{
+                                            //                                     error!("更新文档失败: {:?}", e);
+                                            //                                     let _ = app_handle.emit("backend_message", format!("更新文档失败: {:?}", e));
+                                            //                                 }else {
+                                            //                                     let document_tags = DocumentTags::from_doc_id(id).await;
+                                            //                                     let _ = app_handle.emit("doc_update", document_tags);
+                                            //                                 }
+                                            //                                 // let _ = app_handle.emit("insert_doc", document_tags);
+                                            //                             }
+                                            //                             Err(e) => {
+                                            //                                 let err_msg = format!(
+                                            //                                     "AI分析失败: {:?}",
+                                            //                                     e
+                                            //                                 );
+                                            //                                 error!("{}", err_msg);
+                                            //                             }
+                                            //                         }
+                                            //                     }
+                                            //                     Err(e) => {
+                                            //                         let err_msg =
+                                            //                             format!("AI分析失败: {:?}", e);
+                                            //                         error!("{}", err_msg);
+                                            //                         let _ = app_handle.emit(
+                                            //                             "backend_message",
+                                            //                             err_msg,
+                                            //                         );
+                                            //                     }
+                                            //                 }
+                                            //             }
+                                            //             Err(e) => {
+                                            //                 let err_msg =
+                                            //                     format!("提取PDF内容失败: {:?}", e);
+                                            //                 error!("{}", err_msg);
+                                            //                 let _ = app_handle
+                                            //                     .emit("backend_message", err_msg);
+                                            //             }
+                                            //         }
+                                            //     }
+                                            //     None => {
+                                            //         let err_msg =
+                                            //             "请正确配置AI来解析文档。".to_string();
+                                            //         error!("{}", err_msg);
+                                            //         let _ = app_handle.emit("backend_message", err_msg);
+                                            //     }
+                                            // }
                                         }
                                     }
+                                    _ => {
+                                        update_progress(progress_id,app_handle.clone(), "插入文档完成",1, count.clone(), total).await;
+                                        // let _old = count.clone().fetch_add(1, Ordering::SeqCst);
+                                        // let new_value = count.load(Ordering::SeqCst);
+                                        // let _r = app_handle.emit("progress_event", Progress::new(true, "插入文档完成".to_string(), new_value as f64, total as f64));
+                                    }
                                 }
+                            }else {
+                                update_progress(progress_id,app_handle.clone(), "插入文档完成",1, count.clone(), total).await;
+                                // let _old = count.clone().fetch_add(1, Ordering::SeqCst);
+                                // let new_value = count.load(Ordering::SeqCst);
+                                // let _r = app_handle.emit("progress_event", Progress::new(true, "插入文档完成".to_string(), new_value as f64, total as f64));
                             }
                         }
                         Err(e) => {
@@ -233,6 +312,31 @@ mod doc_util {
             }
         }
         Ok(doc_tags)
+    }
+    async fn handle_new_paper(
+        // o_ai: Arc<&Option<AI>>,
+        path_s: &str,
+        doc_id: i32,
+    ) -> AppResult<PartDoc> {
+        let o_ai = ONCE_AI.get().unwrap().lock().await;
+        let ai = o_ai
+            .as_ref()
+            .ok_or(Tip("请正确配置AI来解析文档。".into()))?;
+        let content = extract_limit_pages(path_s, doc_id)
+            .await
+            .map_err(|e| Tip(format!("提取PDF内容失败: {:?}", e)))?;
+        let json_data = ai
+            .analyse_paper(content, doc_id)
+            .await
+            .map_err(|e| Tip(format!("AI分析失败: {:?}", e)))?;
+        let part_doc = serde_json::from_str::<PartDoc>(&json_data)
+            .map_err(|e| Tip(format!("解析JSON失败: {:?}", e)))?;
+        Ok(part_doc)
+    }
+    async fn update_progress(progress_id:i32,app_handle: Arc<tauri::AppHandle>, msg: &str,add:i32, now:Arc<AtomicI32>, max: usize){
+        let _ = now.fetch_add(add, Ordering::SeqCst);
+        let now = now.load(Ordering::SeqCst) as f64;
+        let _r = app_handle.emit("progress_event", Progress::new(progress_id,true, msg.into(), now, max as f64));
     }
 }
 #[test]

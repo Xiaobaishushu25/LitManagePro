@@ -1,6 +1,6 @@
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
-use crate::entities::prelude::{DocAndTag, DocAndTags, Tag, Tags};
+use crate::entities::prelude::{DocAndTags, Tag, Tags};
 use crate::entities::tag::Column;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
@@ -64,11 +64,11 @@ impl TagCurd {
         }
         Ok(())
     }
-    pub async fn query_tags() -> AppResult<Vec<Tag>> {
-        let db = crate::entities::DB
-            .get()
-            .ok_or(Tip("数据库未初始化".into()))?;
-        let tags = Tags::find().all(db).await?;
-        Ok(tags)
-    }
+    // pub async fn query_tags() -> AppResult<Vec<Tag>> {
+    //     let db = crate::entities::DB
+    //         .get()
+    //         .ok_or(Tip("数据库未初始化".into()))?;
+    //     let tags = Tags::find().all(db).await?;
+    //     Ok(tags)
+    // }
 }

@@ -30,8 +30,6 @@ const props = defineProps({
 
 const emit = defineEmits(['update:show']);
 
-// const inputRef = ref<HTMLInputElement | null>(null);
-
 const closeModal = () => {
   emit('update:show', false);
 };
@@ -41,17 +39,6 @@ const confirmAction = () => {
   closeModal();
 };
 
-// const focusInput = () => {
-//   nextTick(() => {
-//     inputRef.value?.focus();
-//   });
-// };
-
-// watch(() => props.show, (newVal) => {
-//   if (newVal) {
-//     focusInput();
-//   }
-// }, { immediate: true });
 </script>
 
 <template>
@@ -63,6 +50,12 @@ const confirmAction = () => {
       :draggable="true"
       transform-origin="center"
       @close="closeModal"
+      :segmented="{
+        content: true,
+        footer: 'soft',
+      }"
+      action-class="action"
+      action-style="padding: 0 !important"
   >
     <template #header>
       <div v-if="$slots.header">
@@ -74,14 +67,21 @@ const confirmAction = () => {
     </template>
       <slot></slot>
     <template #action>
-      <n-space>
-        <n-button @click="closeModal">取消</n-button>
-        <n-button @click="confirmAction">确认</n-button>
-      </n-space>
+      <n-flex justify="end">
+        <n-button size="small" @click="closeModal">取消</n-button>
+        <n-button size="small" type="success" class="text-black" @click="confirmAction">确认</n-button>
+      </n-flex>
     </template>
   </n-modal>
 </template>
 
+<style>
+.n-card-header{
+  padding: 15px 20px 10px 20px !important;
+}
+.n-card__action{
+  padding: 5px 20px 10px 0 !important;
+}
+</style>
 <style scoped>
-
 </style>

@@ -1,11 +1,10 @@
-use crate::app_errors::AppResult;
-use crate::dtos::doc_tags::DocumentTags;
-use crate::dtos::tag_card::{TagAndGroups, get_tag_and_groups};
+use crate::dtos::doc::DocumentTags;
+use crate::dtos::tag::{TagAndGroups, get_tag_and_groups};
 use crate::entities::prelude::{Tag, TagGroup};
 use crate::services::curd::doc_and_tag::DocAndTagCurd;
 use crate::services::curd::tag::TagCurd;
 use crate::services::curd::tag_group::TagGroupCurd;
-use log::{error, info};
+use log::{error};
 use tauri::Emitter;
 
 #[tauri::command]

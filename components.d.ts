@@ -15,6 +15,7 @@ declare module 'vue' {
     NCollapseTransition: typeof import('naive-ui')['NCollapseTransition']
     NColorPicker: typeof import('naive-ui')['NColorPicker']
     NDataTable: typeof import('naive-ui')['NDataTable']
+    NDropdown: typeof import('naive-ui')['NDropdown']
     NFlex: typeof import('naive-ui')['NFlex']
     NGrid: typeof import('naive-ui')['NGrid']
     NGridItem: typeof import('naive-ui')['NGridItem']
@@ -32,6 +33,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     Table: typeof import('./src/components/main/Table.vue')['default']
     TagCard: typeof import('./src/components/main/TagCard.vue')['default']
+    TagComplete: typeof import('./src/components/main/TagComplete.vue')['default']
     Tree: typeof import('./src/components/main/Tree.vue')['default']
   }
 }

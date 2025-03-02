@@ -24,13 +24,24 @@ const useDocStore = defineStore('docs', ()=>{
             currentSelectDoc.value = doc;
         }
     }
+    function deleteDoc(id: number){
+        docs.value!.forEach((item,index)=>{
+            if(item.id === id){
+                docs.value!.splice(index,1);
+            }
+        })
+        if (currentSelectDoc.value?.id === id){
+            currentSelectDoc.value = undefined;
+        }
+    }
     return {
         docs,
         currentSelectDoc,
         setAllDocs,
         setCurrentSelectDoc,
         addNewDoc,
-        updateDoc
+        updateDoc,
+        deleteDoc
     }
 })
 export default useDocStore

@@ -4,7 +4,6 @@ use crate::entities::prelude::{ActiveTagGroup, TagGroup, TagGroups};
 use crate::entities::tag_group::Column;
 use log::error;
 use sea_orm::ActiveValue::Set;
-use sea_orm::QueryFilter;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
 
 pub struct TagGroupCurd;

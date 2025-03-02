@@ -1,8 +1,8 @@
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::doc_and_tag::Column;
-use crate::entities::prelude::{DocAndTag, DocAndTags, Document, Documents};
-use crate::entities::{document, init_db_coon};
+use crate::entities::prelude::{DocAndTag, DocAndTags, Documents};
+use crate::entities::{document};
 use sea_orm::QueryFilter;
 use sea_orm::prelude::Expr;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QuerySelect};
@@ -131,13 +131,20 @@ impl DocAndTagCurd {
         Ok(doc_ids)
     }
 }
-#[tokio::test]
-async fn test_find_documents_with_all_tags() {
-    init_db_coon().await;
-    let tags = DocAndTagCurd::find_documents_with_tags(vec![], false)
-        .await
-        .unwrap();
-    for i in tags {
-        println!("{}", i);
+
+#[cfg(test)]
+mod test{
+    use crate::entities::init_db_coon;
+    use crate::services::curd::doc_and_tag::DocAndTagCurd;
+
+    #[tokio::test]
+    async fn test_find_documents_with_all_tags() {
+        init_db_coon().await;
+        let tags = DocAndTagCurd::find_documents_with_tags(vec![], false)
+            .await
+            .unwrap();
+        for i in tags {
+            println!("{}", i);
+        }
     }
 }

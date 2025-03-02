@@ -1,10 +1,9 @@
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
-use crate::entities::prelude::{Tag, TagGroup, TagGroups, Tags};
+use crate::entities::prelude::{Tag, TagGroup, Tags};
 use crate::services::curd::tag_group::TagGroupCurd;
-use log::info;
-use sea_orm::{ModelTrait, Related};
-use serde::{Deserialize, Serialize};
+use sea_orm::{ModelTrait};
+use serde::{Serialize};
 #[derive(Debug, Clone, Serialize)]
 pub struct TagAndGroups {
     tag_group: TagGroup,

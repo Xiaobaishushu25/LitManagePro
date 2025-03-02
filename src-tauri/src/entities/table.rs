@@ -1,6 +1,4 @@
 use crate::entities::prelude::{DocAndTags, Documents, TagGroups, Tags};
-use crate::entities::tag::Relation::DocAndTag;
-use crate::entities::{DB, init_db_coon};
 use log::{error, info};
 use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Schema};
 
@@ -30,9 +28,15 @@ pub async fn create_all_need_table(db: &DatabaseConnection) {
     // let _ = create_table(db, Positions).await;
     // StockGroupCurd::insert_init(db).await.unwrap();
 }
-#[tokio::test]
-async fn test_create_table() {
-    init_db_coon().await;
-    let db = DB.get().unwrap();
-    create_table(db, DocAndTags).await;
+#[cfg(test)]
+mod test {
+    use crate::entities::{init_db_coon, DB};
+    use crate::entities::prelude::DocAndTags;
+    use crate::entities::table::create_table;
+    #[tokio::test]
+    async fn test_create_table() {
+        init_db_coon().await;
+        let db = DB.get().unwrap();
+        create_table(db, DocAndTags).await;
+    }
 }

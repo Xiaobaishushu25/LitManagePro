@@ -56,7 +56,7 @@ impl DocumentCurd {
         }
         Ok(())
     }
-    pub async fn update_document(part_doc: PartDoc) -> AppResult<()> {
+    pub async fn update_document_by_partdoc(part_doc: PartDoc) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;

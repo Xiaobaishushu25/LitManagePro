@@ -1,7 +1,7 @@
 use crate::entities::DB;
 use crate::entities::doc_and_tag::DocToTag;
 use crate::entities::prelude::{Document, Documents, Tag};
-use sea_orm::{EntityTrait, Linked, ModelTrait};
+use sea_orm::{EntityTrait, ModelTrait};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,6 +18,19 @@ pub struct DocumentTags {
     pub path: String,
     pub tags: Vec<Tag>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PartDoc {
+    pub id: i32,
+    pub title: String,
+    pub author: Option<String>,
+    pub r#abstract: Option<String>,
+    pub year: Option<String>,
+    pub journal: Option<String>,
+    pub contributions: Option<String>,
+    pub remark: Option<String>,
+}
+
 impl DocumentTags {
     pub async fn from_doc(document: Document) -> Self {
         let db = DB.get().unwrap();

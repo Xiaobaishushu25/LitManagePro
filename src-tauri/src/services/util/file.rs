@@ -2,6 +2,11 @@ use crate::app_errors::AppResult;
 use crate::config::CURRENT_DIR;
 use lopdf::Document;
 use std::fs;
+use std::fs::File;
+use std::path::Path;
+use file_icon_provider::get_file_icon;
+use image::{DynamicImage, RgbaImage};
+use crate::app_errors::AppError::Tip;
 
 pub async fn extract_limit_pages(path: &str, id: i32) -> AppResult<String> {
     let new_path = segment_pdf(path, id).await?;
@@ -28,4 +33,20 @@ async fn segment_pdf(path: &str, id: i32) -> AppResult<String> {
 async fn extract_pdf(path: &str) -> AppResult<String> {
     let bytes = std::fs::read(path)?;
     Ok(pdf_extract::extract_text_from_mem(&bytes)?)
+}
+
+pub fn get_and_save_icon(path: &str, size: u16) -> AppResult<(String,String)> {
+    let path = Path::new(path);
+    let name = path.file_stem().unwrap().to_str().unwrap();
+    let icon = get_file_icon(path, size).map_err(|e| Tip(format!("获取图标失败{:#}", e)))?;
+    let icon_dir = format!("{}/data/icons", CURRENT_DIR.clone());
+    fs::create_dir_all(icon_dir.clone())?;
+    let image = RgbaImage::from_raw(icon.width, icon.height, icon.pixels)
+        .map(DynamicImage::ImageRgba8)
+        .ok_or(Tip("图表格式转换失败".to_string()))?;
+    let save_path = format!("{}/{}.png", icon_dir, name);
+    image
+        .save_with_format(save_path.clone(), image::ImageFormat::Png)
+        .map_err(|e| Tip(format!("保存图标失败{:#}", e)))?;
+    Ok((name.into(),save_path))
 }

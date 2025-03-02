@@ -4,6 +4,12 @@ interface UiConfig {
     table_expand:boolean,
 }
 
+interface ExeConfig {
+    name: string,
+    path: string,
+    icon_path: string,
+}
+
 interface AiConfig {
     use_ai:boolean,
     //默认使用的ai，分别为：kimi,deepseek
@@ -19,6 +25,7 @@ interface AiConfig {
 interface Config {
     ui_config: UiConfig;
     ai_config: AiConfig;
+    exe_configs: ExeConfig[];
 }
 
-export type { Config, UiConfig, AiConfig}
+export type { Config, UiConfig,ExeConfig, AiConfig}

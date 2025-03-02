@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{PathBuf};
 use std::sync::LazyLock;
 use std::{env, fs, io};
 use time::UtcOffset;
@@ -15,6 +15,7 @@ use tracing_subscriber::fmt::time::OffsetTime;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer, Registry, fmt};
+use crate::services::util::file::get_and_save_icon;
 
 pub static CURRENT_DIR: LazyLock<String> = LazyLock::new(|| {
     let current_dir = &env::current_dir().expect("无法获取当前目录");
@@ -25,6 +26,7 @@ pub static CURRENT_DIR: LazyLock<String> = LazyLock::new(|| {
 pub struct Config {
     ui_config: UiConfig,
     pub ai_config: AiConfig,
+    pub exe_configs: Vec<ExeConfig>,
 }
 
 impl Config {
@@ -65,6 +67,7 @@ impl Default for Config {
         Config {
             ui_config: UiConfig::default(),
             ai_config: AiConfig::default(),
+            exe_configs: vec![],
         }
     }
 }
@@ -84,6 +87,29 @@ impl Default for UiConfig {
         }
     }
 }
+
+///executable program的配置
+#[derive(Debug,Serialize,Deserialize,Clone)]
+pub struct ExeConfig{
+    pub name: String,
+    pub path: String,
+    pub icon_path: String,
+}
+
+impl ExeConfig {
+    pub fn new(_path:&str)->Self{
+        let (name,icon_path) = get_and_save_icon(_path,16).unwrap();
+        // let path = Path::new(_path);
+        // let icon_dir = format!("{}/icon", CURRENT_DIR.clone());
+        // let name = path.file_stem().unwrap().to_str().unwrap().to_string();
+        ExeConfig{
+            name,
+            path:_path.to_string(),
+            icon_path
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiConfig {
@@ -193,4 +219,15 @@ pub fn init_logger() -> WorkerGuard {
     // tracing::subscriber::set_global_default(subscriber)
     //     .expect("设置日志订阅器失败");
     worker_guard
+}
+#[cfg(test)]
+mod test{
+    use crate::config::ExeConfig;
+
+    #[test]
+    fn test_new_exe() {
+        let exe_config = ExeConfig::new("D:\\知云\\ZhiyunTranslator\\ZhiYunTranslator.exe");
+        println!("{:?}", exe_config);
+        println!("{}", serde_json::to_string(&exe_config).unwrap());
+    }
 }

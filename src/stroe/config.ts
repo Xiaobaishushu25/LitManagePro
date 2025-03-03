@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {computed, reactive, ref, watch} from "vue";
+import {computed, reactive, ref, watch, watchEffect} from "vue";
 import {Config} from "../config-type.ts";
 import {Tag} from "../components/main/main-type.ts";
 import useTagGroupsStore from "./tag.ts";
@@ -22,17 +22,18 @@ const useConfigStore = defineStore('config', ()=>{
                 }
             }
         }
-        if (newConfig?.ui_config!==undefined){
-            const result: Tag[][] = newConfig!.ui_config.save_tag_groups.map(rowIds => {
-                return rowIds.map(id => {
-                    const tag = tagStore.allTags.find(t => t.id === id)
-                    return tag // 如果找不到，返回 undefined，后续会过滤掉
-                }).filter(tag => tag !== undefined) as Tag[] // 过滤掉 undefined
-            })
-            save_tags.value = result
-        }
-        // save_tags_id.value = newConfig?.ui_config.save_tag_groups;
     }, { immediate: true,deep : true });
+
+    watchEffect(() => {//不知道为啥用watch([tagStore.allTags,config.value]不行
+        if (config.value===undefined) return
+        const result: Tag[][] = config.value.ui_config.save_tag_groups.map(rowIds => {
+            return rowIds.map(id => {
+                const tag = tagStore.allTags.find(t => t.id === id)
+                return tag // 如果找不到，返回 undefined，后续会过滤掉
+            }).filter(tag => tag !== undefined) as Tag[] // 过滤掉 undefined
+        })
+        save_tags.value = result
+    });
 
     // 监听 tagGroupStates 的变化并更新 config
     watch(tagGroupStates, (newStates, _oldStates) => {

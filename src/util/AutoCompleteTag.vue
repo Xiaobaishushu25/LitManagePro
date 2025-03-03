@@ -91,6 +91,10 @@ const handleSearch = async (query: string) => {
   isEmpty.value = suggestions.value.length === 0
   // selectedIndex.value = -1; // 重置选中索引
 }
+
+const clearAllTags = () => {
+  emit('update:modelValue', []);
+};
 </script>
 
 <template>
@@ -132,6 +136,11 @@ const handleSearch = async (query: string) => {
               @focus="handleFocus"
               @keydown="handleKeydown"
           />
+          <inline-svg
+              src="../assets/svg/Clear24Regular.svg"
+              class="svg-button w-4 h-4 mr-2 fill-gray-600 text-gray-600"
+              @click.stop="clearAllTags"
+          ></inline-svg>
         </div>
       </template>
     </n-auto-complete>

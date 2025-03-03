@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 import AutoCompleteTag from "../../util/AutoCompleteTag.vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
 import {message} from "../../message.ts";
@@ -8,7 +7,7 @@ import {Tag} from "./main-type.ts";
 import {Component, computed, h, resolveComponent} from "vue";
 import useConfigStore from "../../stroe/config.ts";
 
-// 修改后（正确）
+// 定义 TagRowOption,每行的格式
 type TagRowOption = DropdownOption & {
   rowData: Tag[]
 }
@@ -27,63 +26,23 @@ const fetchSuggestions = async (query: string) => {
   );
 };
 
-// const options: Tag[][] = [
-//   [
-//     {
-//       index: 0,
-//       group_id: 1,
-//       id: 1,
-//       value: '标签1',
-//       bg_color: 'bg-blue-100',
-//       text_color: 'text-blue-800'
-//     },
-//     {
-//       index: 1,
-//       group_id: 1,
-//       id: 2,
-//       value: '标签2',
-//       bg_color: 'bg-green-100',
-//       text_color: 'text-green-800'
-//     }
-//   ],
-//   [
-//     {
-//       index: 2,
-//       group_id: 2,
-//       id: 3,
-//       value: '标签3',
-//       bg_color: 'bg-yellow-100',
-//       text_color: 'text-yellow-800'
-//     },
-//     {
-//       index: 3,
-//       group_id: 2,
-//       id: 4,
-//       value: '标签4',
-//       bg_color: 'bg-purple-100',
-//       text_color: 'text-purple-800'
-//     }
-//   ]
-// ]
-// 处理下拉选项数据
-// const processedOptions = options.map((tagArray, index) => ({
-// const processedOptions = configStore.save_tags.map((tagArray, index) => ({
-//   key: `row-${index}`,
-//   rowData: tagArray
-// })) as TagRowOption[]
-
-// 定义 processedOptions
-// const processedOptions = computed<TagRowOption[]>(() => {
-//   return configStore.save_tags?.map((tagArray, index) => ({
-//     key: `row-${index}`,
-//     rowData: tagArray
-//   }))
-// })
 // 定义 processedOptions
 const processedOptions = computed<TagRowOption[]>(() => {
   // 检查 configStore.save_tags 是否为 undefined
-  if (!configStore.save_tags) {
-    return [] // 如果为 undefined，返回空数组
+  if (!configStore.save_tags|| configStore.save_tags.length === 0) {
+    // 如果为 undefined 或空，返回一个虚拟数据
+    //注意，由于有这个虚拟数据的可能，所有操作都要检查是否是虚拟数据。
+    return [{
+      key: 'empty-row',
+      rowData: [{
+        index: 0,       // 新增
+        group_id: 0,    // 新增
+        id: 0,
+        value: '没有标签组',
+        bg_color: 'bg-gray-200',
+        text_color: 'text-gray-800'
+      }]
+    }];
   }
   // 如果存在值，执行映射
   return configStore.save_tags.map((tagArray, index) => ({
@@ -97,19 +56,20 @@ const renderDropdownLabel: (option: TagRowOption) => Component = (option) => {
   return h(
       'div',
       {
-        class: 'flex items-center justify-between p-2 hover:bg-gray-50',
+        class: 'flex items-center justify-between h-full  min-w-[200px]',
       },
       [
         h(
             'div',
-            { class: 'flex flex-wrap gap-2 flex-1' },
+            { class: 'flex flex-wrap flex-1' },
             option.rowData.map(tag =>
                 h(NTag, {
-                  class: `${tag.bg_color} ${tag.text_color} rounded-md pb-2.5`,
+                  class: `cursor-pointer rounded-md ml-2`,
                   color: { // 使用对象形式
                     color: tag.bg_color,
                     textColor: tag.text_color
                   },
+                  bordered: false,
                   size: 'medium' as const,
                 }, {
                   default: () => tag.value
@@ -138,23 +98,36 @@ const renderDropdownLabel: (option: TagRowOption) => Component = (option) => {
 }
 function handleDeleteRow(option: TagRowOption){
   //删除时直接取出所有id加一起，然后看哪个哪组加起来一样大就删了。
-  message.info(`[删除] ${option.rowData[0].value}`)
   // 获取当前行的所有 Tag
   const tags = option.rowData
   // 提取所有 Tag 的 id 并计算总和
   const idSum = tags.reduce((sum, tag) => sum + tag.id, 0)
+  if (idSum === 0) return
   // 显示删除信息
-  message.info(`[删除] ${tags.map(tag => tag.value).join(', ')}，ID总和为 ${idSum}`)
+  // message.info(`[删除] ${tags.map(tag => tag.value).join(', ')}，ID总和为 ${idSum}`)
+  message.info("删除标签组成功")
   configStore.removeSaveTags(idSum)
 }
 function saveConfigs(){
   // 提取所有 tag 的 id
   const tagIds = tagStore.andTags.map(tag => tag.id)
+  if (tagIds.length === 0){
+    message.error("请至少添加一个标签")
+    return
+  }
   configStore.addSaveTags(tagIds)
   message.success("标签组成功保存")
 }
 const handleSelect = (_key: string | number, option: TagRowOption) => {
-  message.info(`[选择] ${option.rowData}`)
+  console.log(option.rowData)
+  //拿出所有的id，组成一个数组
+  const tagIds = option.rowData.map(tag => tag.id)
+  if (tagIds.length === 0){
+    return
+  }
+  tagStore.setAllAndTags(tagIds);
+  // console.log(tagIds)
+  // message.info(`[选择] ${option.rowData}`)
 }
 </script>
 
@@ -173,7 +146,7 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
           <template #trigger>
             <inline-svg
                 src="../assets/svg/Save24Regular.svg"
-                class="svg-button w-6 h-6 mr-3"
+                class="svg-button w-6 h-6 mr-2"
                 @click.stop="saveConfigs"
             ></inline-svg>
           </template>
@@ -185,11 +158,10 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
             :render-label="renderDropdownLabel"
             :show-arrow="true"
             @select="handleSelect"
-            class="custom-dropdown"
         >
           <inline-svg
               src="../assets/svg/DropDown24.svg"
-              class="svg-button w-6 h-6 mr-3"
+              class="svg-button w-6 h-6 mr-2"
           ></inline-svg>
         </n-dropdown>
       </n-flex>
@@ -205,12 +177,8 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
 <style>
 /*.v-binder-follower-content{
   width: 1000px;
-}这个会把tooltip也变宽*/
+}想针对针对 dropdown 的弹出层，但是这个会把tooltip也变宽*/
 </style>
 <style scoped>
-/* 仅针对 dropdown 的弹出层  没效果*/
-:deep(.custom-dropdown .v-binder-follower-content) {
-  min-width: 600px !important; /* 保持与触发器同宽 */
-  max-width: 600px; /* 可选的最大宽度限制 */
-}
+
 </style>

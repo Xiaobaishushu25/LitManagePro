@@ -58,7 +58,6 @@ export function showMessage(
         keepAliveOnHover: true,
         closable : true
     };
-
     // 调用对应的消息类型
     messageApi?.[type](content, messageOptions);
 }

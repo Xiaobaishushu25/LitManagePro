@@ -15,6 +15,7 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
     watch(tagGroups, (newTagGroups) => {
         // 将所有 tagGroups 中的 tags 提取出来，形成一个扁平化的数组
         allTags.value = newTagGroups.flatMap((group) => group.tags);
+        console.log(allTags.value)
     }, { immediate: true,deep:true });
     function addNewTagGroup(tagGroup:TagGroup){
         tagGroups.value.push({
@@ -58,6 +59,9 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
             }
         }
     }
+    function setAllAndTags(ids:number[]){
+        andTags.value = allTags.value.filter(tag => ids.includes(tag.id));
+    }
     function addTagToOrTags(id:number){
         // let tag = allTags.value.find(tag => tag.id === id);
         let tag = allTags.value.find(tag => tag.id === id);
@@ -81,7 +85,8 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
         deleteTag,
         addTagToAndTags,
         addTagToOrTags,
-        renameTagGroup
+        renameTagGroup,
+        setAllAndTags,
     }
 })
 export default useTagGroupsStore

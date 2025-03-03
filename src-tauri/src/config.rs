@@ -76,6 +76,7 @@ impl Default for Config {
 pub struct UiConfig {
     //tag组是否打开，key为tag_group_name，value为bool
     tag_group_state: HashMap<i32, bool>,
+    save_tag_groups:Vec<Vec<i32>>,
     //表格是否展开总结行(在有总结的情况时)
     table_expand: bool,
 }
@@ -83,6 +84,7 @@ impl Default for UiConfig {
     fn default() -> Self {
         UiConfig {
             tag_group_state: HashMap::new(),
+            save_tag_groups:vec![],
             table_expand: true,
         }
     }

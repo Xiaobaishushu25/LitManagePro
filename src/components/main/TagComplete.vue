@@ -5,7 +5,8 @@ import useTagGroupsStore from "../../stroe/tag.ts";
 import {message} from "../../message.ts";
 import {DropdownOption, NFlex, NTag} from "naive-ui";
 import {Tag} from "./main-type.ts";
-import {Component, h, resolveComponent} from "vue";
+import {Component, computed, h, resolveComponent} from "vue";
+import useConfigStore from "../../stroe/config.ts";
 
 // 修改后（正确）
 type TagRowOption = DropdownOption & {
@@ -13,6 +14,7 @@ type TagRowOption = DropdownOption & {
 }
 
 const tagStore = useTagGroupsStore()
+const configStore = useConfigStore()
 
 const fetchSuggestions = async (query: string) => {
   if (query === " ") { // 如果输入一个空格，则返回所有标签
@@ -25,50 +27,70 @@ const fetchSuggestions = async (query: string) => {
   );
 };
 
-// 示例数据：每个元素是一个标签数组，代表一行
-const options: Tag[][] = [
-  [
-    {
-      index: 0,
-      group_id: 1,
-      id: 1,
-      value: '标签1',
-      bg_color: 'bg-blue-100',
-      text_color: 'text-blue-800'
-    },
-    {
-      index: 1,
-      group_id: 1,
-      id: 2,
-      value: '标签2',
-      bg_color: 'bg-green-100',
-      text_color: 'text-green-800'
-    }
-  ],
-  [
-    {
-      index: 2,
-      group_id: 2,
-      id: 3,
-      value: '标签3',
-      bg_color: 'bg-yellow-100',
-      text_color: 'text-yellow-800'
-    },
-    {
-      index: 3,
-      group_id: 2,
-      id: 4,
-      value: '标签4',
-      bg_color: 'bg-purple-100',
-      text_color: 'text-purple-800'
-    }
-  ]
-]
+// const options: Tag[][] = [
+//   [
+//     {
+//       index: 0,
+//       group_id: 1,
+//       id: 1,
+//       value: '标签1',
+//       bg_color: 'bg-blue-100',
+//       text_color: 'text-blue-800'
+//     },
+//     {
+//       index: 1,
+//       group_id: 1,
+//       id: 2,
+//       value: '标签2',
+//       bg_color: 'bg-green-100',
+//       text_color: 'text-green-800'
+//     }
+//   ],
+//   [
+//     {
+//       index: 2,
+//       group_id: 2,
+//       id: 3,
+//       value: '标签3',
+//       bg_color: 'bg-yellow-100',
+//       text_color: 'text-yellow-800'
+//     },
+//     {
+//       index: 3,
+//       group_id: 2,
+//       id: 4,
+//       value: '标签4',
+//       bg_color: 'bg-purple-100',
+//       text_color: 'text-purple-800'
+//     }
+//   ]
+// ]
 // 处理下拉选项数据
-const processedOptions = options.map((tagArray, index) => ({
-  key: `row-${index}`,
-  rowData: tagArray
-})) as TagRowOption[]
+// const processedOptions = options.map((tagArray, index) => ({
+// const processedOptions = configStore.save_tags.map((tagArray, index) => ({
+//   key: `row-${index}`,
+//   rowData: tagArray
+// })) as TagRowOption[]
+
+// 定义 processedOptions
+// const processedOptions = computed<TagRowOption[]>(() => {
+//   return configStore.save_tags?.map((tagArray, index) => ({
+//     key: `row-${index}`,
+//     rowData: tagArray
+//   }))
+// })
+// 定义 processedOptions
+const processedOptions = computed<TagRowOption[]>(() => {
+  // 检查 configStore.save_tags 是否为 undefined
+  if (!configStore.save_tags) {
+    return [] // 如果为 undefined，返回空数组
+  }
+  // 如果存在值，执行映射
+  return configStore.save_tags.map((tagArray, index) => ({
+    key: `row-${index}`,
+    rowData: tagArray
+  }))
+})
 
 // 自定义渲染函数
 const renderDropdownLabel: (option: TagRowOption) => Component = (option) => {
@@ -83,8 +105,12 @@ const renderDropdownLabel: (option: TagRowOption) => Component = (option) => {
             { class: 'flex flex-wrap gap-2 flex-1' },
             option.rowData.map(tag =>
                 h(NTag, {
-                  class: `${tag.bg_color} ${tag.text_color} rounded-md`,
-                  size: 'small' as const,
+                  class: `${tag.bg_color} ${tag.text_color} rounded-md pb-2.5`,
+                  color: { // 使用对象形式
+                    color: tag.bg_color,
+                    textColor: tag.text_color
+                  },
+                  size: 'medium' as const,
                 }, {
                   default: () => tag.value
                 })
@@ -97,12 +123,12 @@ const renderDropdownLabel: (option: TagRowOption) => Component = (option) => {
               class: 'flex-shrink-0 ml-4 cursor-pointer text-gray-400 hover:text-red-500',
               onClick: (e: MouseEvent) => {
                 e.stopPropagation()
-                handleCloseRow(option)
+                handleDeleteRow(option)
               }
             },
             [
               h(resolveComponent('inline-svg'), {
-                src: '../assets/svg/Save24Regular.svg',
+                src: '../assets/svg/Delete24Regular.svg',
                 class: 'w-5 h-5 transition-colors'
               })
             ]
@@ -110,9 +136,22 @@ const renderDropdownLabel: (option: TagRowOption) => Component = (option) => {
       ]
   )
 }
-function handleCloseRow(option: TagRowOption){
+function handleDeleteRow(option: TagRowOption){
   //删除时直接取出所有id加一起，然后看哪个哪组加起来一样大就删了。
   message.info(`[删除] ${option.rowData[0].value}`)
+  // 获取当前行的所有 Tag
+  const tags = option.rowData
+  // 提取所有 Tag 的 id 并计算总和
+  const idSum = tags.reduce((sum, tag) => sum + tag.id, 0)
+  // 显示删除信息
+  message.info(`[删除] ${tags.map(tag => tag.value).join(', ')}，ID总和为 ${idSum}`)
+  configStore.removeSaveTags(idSum)
+}
+function saveConfigs(){
+  // 提取所有 tag 的 id
+  const tagIds = tagStore.andTags.map(tag => tag.id)
+  configStore.addSaveTags(tagIds)
+  message.success("标签组成功保存")
 }
 const handleSelect = (_key: string | number, option: TagRowOption) => {
   message.info(`[选择] ${option.rowData}`)
@@ -135,6 +174,7 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
             <inline-svg
                 src="../assets/svg/Save24Regular.svg"
                 class="svg-button w-6 h-6 mr-3"
+                @click.stop="saveConfigs"
             ></inline-svg>
           </template>
             保存标签组
@@ -148,7 +188,7 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
             class="custom-dropdown"
         >
           <inline-svg
-              src="../assets/svg/Save24Regular.svg"
+              src="../assets/svg/DropDown24.svg"
               class="svg-button w-6 h-6 mr-3"
           ></inline-svg>
         </n-dropdown>

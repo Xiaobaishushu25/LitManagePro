@@ -7,7 +7,7 @@ import {
 } from "naive-ui";
 import useDocStore from "../../stroe/doc.ts";
 import {h, ref, watchEffect} from "vue";
-import {convertFileSrc, invoke} from "@tauri-apps/api/core";
+import {invoke} from "@tauri-apps/api/core";
 import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
 import useTagGroupsStore from "../../stroe/tag.ts";

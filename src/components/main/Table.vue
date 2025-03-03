@@ -260,7 +260,6 @@ function openWithExe(exePath:string){
                   :options="contextOptions"
               >
                 <context-menu-item label="用系统默认打开" @click="openDocDefault"/>
-                <context-menu-item label="用知云打开" @click=""/>
                 <context-menu-item label="用WPS打开" />
                 <context-menu-item
                     v-for="exe in configStore.config?.exe_configs"

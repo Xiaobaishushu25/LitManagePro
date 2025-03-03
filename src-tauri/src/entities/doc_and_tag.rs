@@ -1,5 +1,5 @@
+use crate::entities::doc_and_tag;
 use crate::entities::prelude::{Documents, Tags};
-use crate::entities::{doc_and_tag};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -63,11 +63,11 @@ impl Linked for TagToDoc {
 }
 
 #[cfg(test)]
-mod test{
-    use sea_orm::{EntityTrait, ModelTrait};
+mod test {
     use crate::entities::doc_and_tag::{DocToTag, TagToDoc};
-    use crate::entities::{init_db_coon, DB};
     use crate::entities::prelude::{Documents, Tags};
+    use crate::entities::{DB, init_db_coon};
+    use sea_orm::{EntityTrait, ModelTrait};
 
     #[tokio::test]
     async fn test_relation() {

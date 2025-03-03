@@ -16,10 +16,11 @@ interface TagAndGroups {
     tag_group: TagGroup;
     tags: Tag[];
 }
-interface DocumentTags {
+interface Document {
     index: number;
     id: number;
     title: string;
+    file_name: string;
     author?: string | null;
     abstract?: string | null;
     year?: string | null;
@@ -27,7 +28,22 @@ interface DocumentTags {
     contributions?: string | null;
     remark?: string | null;
     path: string;
+}
+interface DocumentTags extends Document {
     tags: Tag[];
 }
+// interface DocumentTags {
+//     index: number;
+//     id: number;
+//     title: string;
+//     author?: string | null;
+//     abstract?: string | null;
+//     year?: string | null;
+//     journal?: string | null;
+//     contributions?: string | null;
+//     remark?: string | null;
+//     path: string;
+//     tags: Tag[];
+// }
 
-export type {TagGroup,Tag,TagAndGroups,DocumentTags};
+export type {TagGroup,Tag,TagAndGroups,DocumentTags,Document};

@@ -1,7 +1,7 @@
-use tokio::sync::Mutex;
 use crate::config::{Config, init_logger};
 use crate::entities::init_db_coon;
 use crate::services::ai::{AI, ONCE_AI};
+use tokio::sync::Mutex;
 use tracing_appender::non_blocking::WorkerGuard;
 
 pub async fn init_app(err_msg: &mut Vec<String>) -> (WorkerGuard, Config) {

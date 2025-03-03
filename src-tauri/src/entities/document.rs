@@ -8,6 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
     pub id: i32,
     pub title: String,
+    pub file_name: String,
     pub author: Option<String>,
     pub r#abstract: Option<String>,
     pub year: Option<String>,
@@ -17,11 +18,12 @@ pub struct Model {
     pub path: String,
 }
 impl Model {
-    pub fn new(title: String, path: String) -> Self {
+    pub fn new(file_name: String, path: String) -> Self {
         Self {
             index: 0,
             id: 0,
-            title,
+            title: file_name.clone(),
+            file_name,
             author: None,
             r#abstract: None,
             year: None,

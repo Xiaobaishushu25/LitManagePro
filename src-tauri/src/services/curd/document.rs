@@ -56,7 +56,26 @@ impl DocumentCurd {
         }
         Ok(())
     }
-    pub async fn update_document_by_partdoc(part_doc: PartDoc) -> AppResult<()> {
+    pub async fn update_detail(doc_new: Document) -> AppResult<()> {
+        let db = crate::entities::DB
+            .get()
+            .ok_or(Tip("数据库未初始化".into()))?;
+        let doc = Documents::find_by_id(doc_new.id).one(db).await?;
+        if let Some(doc) = doc {
+            let mut doc = doc.into_active_model();
+            doc.title = Set(doc_new.title);
+            doc.r#abstract = Set(doc_new.r#abstract);
+            doc.author = Set(doc_new.author);
+            doc.year = Set(doc_new.year);
+            doc.journal = Set(doc_new.journal);
+            doc.contributions = Set(doc_new.contributions);
+            doc.remark = Set(doc_new.remark);
+            Documents::update(doc).exec(db).await?;
+        }
+        Ok(())
+    }
+    /// 根据部分文档更新文档,这个函数目前仅用于ai总结完成后更新文档信息
+    pub async fn update_document_by_part_doc(part_doc: PartDoc) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;

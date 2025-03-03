@@ -1,8 +1,8 @@
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::doc_and_tag::Column;
+use crate::entities::document;
 use crate::entities::prelude::{DocAndTag, DocAndTags, Documents};
-use crate::entities::{document};
 use sea_orm::QueryFilter;
 use sea_orm::prelude::Expr;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QuerySelect};
@@ -133,7 +133,7 @@ impl DocAndTagCurd {
 }
 
 #[cfg(test)]
-mod test{
+mod test {
     use crate::entities::init_db_coon;
     use crate::services::curd::doc_and_tag::DocAndTagCurd;
 

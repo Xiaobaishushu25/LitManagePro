@@ -1,6 +1,9 @@
 use crate::init::init_app;
-use crate::services::commands::config::{get_config, save_config};
-use crate::services::commands::doc::{insert_docs, query_docs_by_tags,delete_doc,open_dir,open_doc_default,open_with_exe};
+use crate::services::commands::config::{get_config, save_config,add_new_exe};
+use crate::services::commands::doc::{
+    delete_doc, insert_docs, open_dir, open_doc_default, open_with_exe, query_docs_by_tags,
+    update_doc_detail,
+};
 use crate::services::commands::tag::{
     create_tag, create_tag_group, delete_doc_tag, delete_group, delete_tag, insert_doc_tag,
     query_tag_groups, rename_tag_group, update_doc_tags,
@@ -26,6 +29,7 @@ pub async fn run() {
     let (_log_guard, config) = init_app(&mut err_msg).await;
     info!("litManagePro ui start...");
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
@@ -42,11 +46,13 @@ pub async fn run() {
             delete_group,
             get_config,
             save_config,
+            add_new_exe,
             insert_doc_tag,
             delete_doc_tag,
             update_doc_tags,
             insert_docs,
             query_docs_by_tags,
+            update_doc_detail,
             delete_doc_tag,
             delete_doc,
             open_dir,

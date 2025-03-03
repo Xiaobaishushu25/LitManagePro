@@ -5,11 +5,21 @@ import {DocumentTags} from "../components/main/main-type.ts";
 const useDocStore = defineStore('docs', ()=>{
     const docs = ref<DocumentTags[]|null>(null);
     const currentSelectDoc = ref<DocumentTags>();
+    //不知道为啥这两个watch没用，留这以后再看
+    // watch(()=> docs.value, (newValue)=>{
+    //     console.log("data改变了")
+    //     currentSelectDoc.value = newValue?.[0];
+    // })
+    // watchEffect(()=>{
+    //     console.log("currentSelectDoc改变了")
+    //     currentSelectDoc.value = docs.value?.[0];
+    // })
     function addNewDoc(doc: DocumentTags) {
         docs.value!.push(doc);
     }
     function setAllDocs(_docs: DocumentTags[]) {
         docs.value = _docs;
+        currentSelectDoc.value = _docs[0];
     }
     function setCurrentSelectDoc(doc: DocumentTags) {
         currentSelectDoc.value = doc;

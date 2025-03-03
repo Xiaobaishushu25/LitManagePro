@@ -49,7 +49,7 @@ pub async fn init_db_coon() {
     .await;
 }
 ///打开数据库的日志
-#[allow(dead_code)]//function `open_db_log` is never used 这个只有少数需要查看数据库日志时才使用
+#[allow(dead_code)] //function `open_db_log` is never used 这个只有少数需要查看数据库日志时才使用
 pub async fn open_db_log() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)

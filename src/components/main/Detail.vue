@@ -6,11 +6,13 @@ import {
   TreeOption,
 } from "naive-ui";
 import useDocStore from "../../stroe/doc.ts";
-import {h, ref, watchEffect} from "vue";
+import {h, ref, watch, watchEffect} from "vue";
 import {invoke} from "@tauri-apps/api/core";
 import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
+import EditableText from "../../util/EditableText.vue";
+import {Document} from "./main-type.ts"
 
 const docsStore = useDocStore()
 const tagStore = useTagGroupsStore()
@@ -102,6 +104,49 @@ function updateTags(){
       .catch(e => {message.error(e)})
   console.log("update tag")
 }
+const authorEdit = ref()
+const titleEdit = ref()
+const fileNameEdit = ref()
+const abstractEdit = ref()
+const yearEdit = ref()
+const journalEdit = ref()
+const remarkEdit = ref()
+const contributionsEdit = ref()
+watch(() => docsStore.currentSelectDoc, () => {
+  remarkEdit.value = docsStore.currentSelectDoc?.remark
+  titleEdit.value = docsStore.currentSelectDoc?.title
+  fileNameEdit.value = docsStore.currentSelectDoc?.file_name
+  abstractEdit.value = docsStore.currentSelectDoc?.abstract
+  yearEdit.value = docsStore.currentSelectDoc?.year
+  journalEdit.value = docsStore.currentSelectDoc?.journal
+  authorEdit.value = docsStore.currentSelectDoc?.author
+  contributionsEdit.value = docsStore.currentSelectDoc?.contributions
+})
+function updateDoc(){
+  if(docsStore.currentSelectDoc===undefined){
+    return
+  }
+  const newDoc:Document = {
+    index: docsStore.currentSelectDoc?.index,
+    id: docsStore.currentSelectDoc?.id,
+    title: titleEdit.value,
+    file_name: fileNameEdit.value,
+    author: authorEdit.value,
+    year: yearEdit.value,
+    journal:journalEdit.value,
+    abstract: abstractEdit.value,
+    remark: remarkEdit.value,
+    contributions: contributionsEdit.value,
+    path: docsStore.currentSelectDoc?.path
+  }
+  invoke('update_doc_detail', {doc:newDoc})
+      .then(_ => {
+        message.success("修改成功")
+      })
+      .catch(e => {
+        message.error(e)
+      })
+}
 </script>
 
 <template>
@@ -120,12 +165,48 @@ function updateTags(){
   <div>
     <n-scrollbar class="h-[86vh]">
       <n-card  title="详细信息">
-        <n-flex vertical justify="space-between" style="margin-bottom: 20px;">
-          <n-text  class="text-base text-green-700" >标题: {{ docsStore.currentSelectDoc?.title }}</n-text>
-          <n-text  class="text-base text-green-700" >作者: {{ docsStore.currentSelectDoc?.author }}</n-text>
-          <n-text  class="text-base text-green-700" >刊物: {{ docsStore.currentSelectDoc?.journal }}</n-text>
-          <n-text  class="text-base text-green-700" >年份: {{ docsStore.currentSelectDoc?.year}}</n-text>
-        </n-flex>
+        <div class="grid grid-cols-[55px_1fr] gap-4 items-center">
+          <div class="text-right text-sm">标题:</div>
+          <div class="text-left text-base">
+            <editable-text
+                v-model:value="titleEdit"
+                :on-save="updateDoc"
+                content-class="font-bold"
+            />
+          </div>
+          <div class="text-right text-sm">文件名:</div>
+          <div class="text-left text-base">
+            <editable-text
+                v-model:value="fileNameEdit"
+                :on-save="updateDoc"
+                content-class="font-bold"
+            />
+          </div>
+          <div class="text-right text-sm">作者:</div>
+          <div class="text-left text-base">
+            <editable-text
+                v-model:value="authorEdit"
+                :on-save="updateDoc"
+                content-class="font-bold"
+            />
+          </div>
+          <div class="text-right text-sm">刊物:</div>
+          <div class="text-left text-base">
+            <editable-text
+                v-model:value="journalEdit"
+                :on-save="updateDoc"
+                content-class="font-bold"
+            />
+          </div>
+          <div class="text-right text-sm">年份:</div>
+          <div class="text-left text-base">
+            <editable-text
+                v-model:value="yearEdit"
+                :on-save="updateDoc"
+                content-class="font-bold"
+            />
+          </div>
+        </div>
       </n-card>
       <n-card title="标签信息">
         <template #header-extra>
@@ -166,16 +247,14 @@ function updateTags(){
           </n-tag>
         </div>
       </n-card>
-      <n-card title="核心思想">
-        <div >
-          {{docsStore.currentSelectDoc?.remark}}
-        </div>
+      <n-card title="核心思想" >
+        <editable-text v-model:value="remarkEdit" :on-save="updateDoc" content-class="text-base text-blue-600 font-bold" />
       </n-card>
-      <n-card title="要点总结">
-        <n-flex vertical justify="space-between" style="margin-bottom: 10px;">
-          <n-text  class="font-medium text-base text-green-700" >摘要: {{ docsStore.currentSelectDoc?.abstract}}</n-text>
-          <n-text  class="text-base text-green-700" >创新点: {{ docsStore.currentSelectDoc?.contributions }}</n-text>
-        </n-flex>
+      <n-card title="摘要">
+        <editable-text v-model:value="abstractEdit" :on-save="updateDoc" content-class="text-base"/>
+      </n-card>
+      <n-card title="创新点">
+        <editable-text v-model:value="contributionsEdit" :on-save="updateDoc" content-class="text-base"/>
       </n-card>
     </n-scrollbar>
   </div>

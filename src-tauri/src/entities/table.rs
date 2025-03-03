@@ -30,13 +30,14 @@ pub async fn create_all_need_table(db: &DatabaseConnection) {
 }
 #[cfg(test)]
 mod test {
-    use crate::entities::{init_db_coon, DB};
-    use crate::entities::prelude::DocAndTags;
+    use crate::entities::prelude::{DocAndTags, Documents};
     use crate::entities::table::create_table;
+    use crate::entities::{DB, init_db_coon};
     #[tokio::test]
     async fn test_create_table() {
         init_db_coon().await;
         let db = DB.get().unwrap();
-        create_table(db, DocAndTags).await;
+        // create_table(db, DocAndTags).await;
+        create_table(db, Documents).await;
     }
 }

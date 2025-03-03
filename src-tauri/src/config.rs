@@ -1,10 +1,11 @@
 use crate::app_errors::AppResult;
+use crate::services::util::file::get_and_save_icon;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::{env, fs, io};
 use time::UtcOffset;
@@ -15,7 +16,7 @@ use tracing_subscriber::fmt::time::OffsetTime;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer, Registry, fmt};
-use crate::services::util::file::get_and_save_icon;
+use crate::app_errors::AppError::Tip;
 
 pub static CURRENT_DIR: LazyLock<String> = LazyLock::new(|| {
     let current_dir = &env::current_dir().expect("无法获取当前目录");
@@ -76,7 +77,7 @@ impl Default for Config {
 pub struct UiConfig {
     //tag组是否打开，key为tag_group_name，value为bool
     tag_group_state: HashMap<i32, bool>,
-    save_tag_groups:Vec<Vec<i32>>,
+    save_tag_groups: Vec<Vec<i32>>,
     //表格是否展开总结行(在有总结的情况时)
     table_expand: bool,
 }
@@ -84,34 +85,33 @@ impl Default for UiConfig {
     fn default() -> Self {
         UiConfig {
             tag_group_state: HashMap::new(),
-            save_tag_groups:vec![],
+            save_tag_groups: vec![],
             table_expand: true,
         }
     }
 }
 
 ///executable program的配置
-#[derive(Debug,Serialize,Deserialize,Clone)]
-pub struct ExeConfig{
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ExeConfig {
     pub name: String,
     pub path: String,
     pub icon_path: String,
 }
 
 impl ExeConfig {
-    pub fn new(_path:&str)->Self{
-        let (name,icon_path) = get_and_save_icon(_path,16).unwrap();
+    pub fn new(_path: &str) -> AppResult<Self> {
+        let (name, icon_path) = get_and_save_icon(_path, 16).map_err(|e| {Tip(format!("获取程序图标出错{:#}", e))})?;
         // let path = Path::new(_path);
         // let icon_dir = format!("{}/icon", CURRENT_DIR.clone());
         // let name = path.file_stem().unwrap().to_str().unwrap().to_string();
-        ExeConfig{
+        Ok(ExeConfig {
             name,
-            path:_path.to_string(),
-            icon_path
-        }
+            path: _path.to_string(),
+            icon_path,
+        })
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiConfig {
@@ -223,13 +223,13 @@ pub fn init_logger() -> WorkerGuard {
     worker_guard
 }
 #[cfg(test)]
-mod test{
+mod test {
     use crate::config::ExeConfig;
 
     #[test]
     fn test_new_exe() {
         let exe_config = ExeConfig::new("D:\\知云\\ZhiyunTranslator\\ZhiYunTranslator.exe");
         println!("{:?}", exe_config);
-        println!("{}", serde_json::to_string(&exe_config).unwrap());
+        // println!("{}", serde_json::to_string(&exe_config).unwrap());
     }
 }

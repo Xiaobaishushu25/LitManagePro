@@ -1,8 +1,8 @@
-use std::sync::{OnceLock};
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use reqwest::Client;
 use serde_json::{Value, json};
+use std::sync::OnceLock;
 use tokio::sync::Mutex;
 
 mod deepseek;
@@ -10,9 +10,9 @@ mod kimi;
 const KIMI_CHAT: &str = "https://api.moonshot.cn/v1/chat/completions";
 const DEEPSEEK_CHAT: &str = "https://api.deepseek.com/chat/completions";
 
-pub static ONCE_AI:OnceLock<Mutex<Option<AI>>> = OnceLock::new();
+pub static ONCE_AI: OnceLock<Mutex<Option<AI>>> = OnceLock::new();
 
-#[allow(dead_code)]//field `online` is never read 
+#[allow(dead_code)] //field `online` is never read
 #[derive(Debug)]
 pub struct AI {
     client: Client,

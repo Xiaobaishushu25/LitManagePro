@@ -1,11 +1,12 @@
-use std::path::PathBuf;
 use crate::config::Config;
 pub(crate) use crate::dtos::doc::{DocumentTags, PartDoc};
+use crate::entities::prelude::Document;
 use crate::services::commands::doc::doc_util::{handle_many_paths, handle_query_docs_by_tags};
-use log::{error};
-use std::sync::Mutex;
-use tauri::{State};
 use crate::services::curd::document::DocumentCurd;
+use log::error;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use tauri::{Emitter, State};
 
 #[tauri::command]
 pub async fn insert_docs(
@@ -21,7 +22,7 @@ pub async fn insert_docs(
     let flag = { config.lock().unwrap().ai_config.use_ai };
     // let o_ai = o_ai.lock().await;
     match handle_many_paths(flag, app_handle, paths, tags_id).await {
-    // match handle_many_paths(flag, o_ai, app_handle, paths, tags_id).await {
+        // match handle_many_paths(flag, o_ai, app_handle, paths, tags_id).await {
         Ok(_) => Ok(()),
         Err(e) => {
             error!("插入文档失败：{:?}", e);
@@ -53,6 +54,21 @@ pub async fn delete_doc(id: i32) -> Result<(), String> {
     }
 }
 #[tauri::command]
+pub async fn update_doc_detail(app_handle: tauri::AppHandle, doc: Document) -> Result<(), String> {
+    let id = doc.id;
+    match DocumentCurd::update_detail(doc).await {
+        Ok(_) => {
+            let document_tags = DocumentTags::from_doc_id(id).await;
+            let _ = app_handle.emit("doc_update", document_tags);
+            Ok(())
+        }
+        Err(e) => {
+            error!("更新文档失败：{:?}", e);
+            Err("更新文档失败".to_string())
+        }
+    }
+}
+#[tauri::command]
 pub async fn open_doc_default(path: String) -> Result<(), String> {
     match open::that(path) {
         Ok(_) => Ok(()),
@@ -73,35 +89,35 @@ pub async fn open_dir(path: String) -> Result<(), String> {
     }
 }
 #[tauri::command]
-pub async fn open_with_exe(exe_path: String,file_path: String) -> Result<(), String> {
+pub async fn open_with_exe(exe_path: String, file_path: String) -> Result<(), String> {
     // 使用指定的可执行文件打开文件
-    match open::with(file_path, exe_path){
+    match open::with(file_path, exe_path) {
         Ok(()) => Ok(()),
         Err(err) => {
             error!("使用指定的可执行文件打开文件失败：{:?}", err);
             Err("使用指定的可执行文件打开文件失败".to_string())
-        },
+        }
     }
 }
 #[allow(dead_code)]
 mod doc_util {
     use crate::app_errors::AppError::Tip;
     use crate::app_errors::AppResult;
+    use crate::dtos::Progress;
     use crate::dtos::doc::{DocumentTags, PartDoc};
     use crate::entities::prelude::Document;
-    use crate::services::ai::{ONCE_AI};
+    use crate::services::ai::ONCE_AI;
     use crate::services::curd::doc_and_tag::DocAndTagCurd;
     use crate::services::curd::document::DocumentCurd;
     use crate::services::util::file::extract_limit_pages;
     use log::{error, info};
+    use rand::{Rng, rng};
     use std::collections::HashSet;
     use std::path::Path;
+    use std::sync::Arc;
     use std::sync::atomic::{AtomicI32, Ordering};
-    use std::sync::{Arc};
-    use rand::{rng, Rng};
-    use tauri::{Emitter};
+    use tauri::Emitter;
     use tracing::instrument;
-    use crate::dtos::Progress;
 
     pub(crate) async fn handle_many_paths(
         use_ai: bool,
@@ -113,13 +129,22 @@ mod doc_util {
         paths: Vec<String>,
         tags_id: Vec<i32>,
     ) -> AppResult<()> {
-        let progress_id= rng().random_range(1000..=9999);
+        let progress_id = rng().random_range(1000..=9999);
         let count = Arc::new(AtomicI32::new(0));
         let total = paths.len();
         // let o_ai = Arc::new(o_ai);
         let app_handle = Arc::new(app_handle);
         let count = count.clone();
-        let _r = app_handle.emit("progress_event", Progress::new(progress_id,true, "正在插入文档".to_string(), 0f64, total as f64));
+        let _r = app_handle.emit(
+            "progress_event",
+            Progress::new(
+                progress_id,
+                true,
+                "正在插入文档".to_string(),
+                0f64,
+                total as f64,
+            ),
+        );
         for path_s in paths {
             //根据path获取文件信息
             // Convert the string path to a Path
@@ -157,17 +182,26 @@ mod doc_util {
                             let _ = app_handle.emit("insert_doc", document_tags);
                             if let Some(ext) = path.extension() {
                                 match ext.to_str().unwrap() {
-                                    "pdf" => { // 处理PDF文件,提取作者名、标题、摘要等信息
+                                    "pdf" => {
+                                        // 处理PDF文件,提取作者名、标题、摘要等信息
                                         if use_ai {
                                             // let o_ai = o_ai.clone();
                                             let app_handle = app_handle.clone();
                                             let count = count.clone();
                                             tokio::spawn(async move {
-                                                update_progress(progress_id,app_handle.clone(), "正在解析文档",0, count.clone(), total).await;
+                                                update_progress(
+                                                    progress_id,
+                                                    app_handle.clone(),
+                                                    "正在解析文档",
+                                                    0,
+                                                    count.clone(),
+                                                    total,
+                                                )
+                                                .await;
                                                 // match handle_new_paper(o_ai, &path_s, id).await {
                                                 match handle_new_paper(&path_s, id).await {
                                                     Ok(part_doc) => {
-                                                        if let Err(e) = DocumentCurd::update_document_by_partdoc(part_doc).await {
+                                                        if let Err(e) = DocumentCurd::update_document_by_part_doc(part_doc).await {
                                                             error!("更新文档失败: {:?}", e);
                                                             let _ = app_handle.emit("backend_message", format!("更新文档失败: {:?}", e), );
                                                         } else {
@@ -243,17 +277,43 @@ mod doc_util {
                                             //         let _ = app_handle.emit("backend_message", err_msg);
                                             //     }
                                             // }
+                                        }else { 
+                                            update_progress(
+                                                progress_id,
+                                                app_handle.clone(),
+                                                "插入文档完成",
+                                                1,
+                                                count.clone(),
+                                                total,
+                                            )
+                                            .await;
                                         }
                                     }
                                     _ => {
-                                        update_progress(progress_id,app_handle.clone(), "插入文档完成",1, count.clone(), total).await;
+                                        update_progress(
+                                            progress_id,
+                                            app_handle.clone(),
+                                            "插入文档完成",
+                                            1,
+                                            count.clone(),
+                                            total,
+                                        )
+                                        .await;
                                         // let _old = count.clone().fetch_add(1, Ordering::SeqCst);
                                         // let new_value = count.load(Ordering::SeqCst);
                                         // let _r = app_handle.emit("progress_event", Progress::new(true, "插入文档完成".to_string(), new_value as f64, total as f64));
                                     }
                                 }
-                            }else {
-                                update_progress(progress_id,app_handle.clone(), "插入文档完成",1, count.clone(), total).await;
+                            } else {
+                                update_progress(
+                                    progress_id,
+                                    app_handle.clone(),
+                                    "插入文档完成",
+                                    1,
+                                    count.clone(),
+                                    total,
+                                )
+                                .await;
                                 // let _old = count.clone().fetch_add(1, Ordering::SeqCst);
                                 // let new_value = count.load(Ordering::SeqCst);
                                 // let _r = app_handle.emit("progress_event", Progress::new(true, "插入文档完成".to_string(), new_value as f64, total as f64));
@@ -333,10 +393,20 @@ mod doc_util {
             .map_err(|e| Tip(format!("解析JSON失败: {:?}", e)))?;
         Ok(part_doc)
     }
-    async fn update_progress(progress_id:i32,app_handle: Arc<tauri::AppHandle>, msg: &str,add:i32, now:Arc<AtomicI32>, max: usize){
+    async fn update_progress(
+        progress_id: i32,
+        app_handle: Arc<tauri::AppHandle>,
+        msg: &str,
+        add: i32,
+        now: Arc<AtomicI32>,
+        max: usize,
+    ) {
         let _ = now.fetch_add(add, Ordering::SeqCst);
         let now = now.load(Ordering::SeqCst) as f64;
-        let _r = app_handle.emit("progress_event", Progress::new(progress_id,true, msg.into(), now, max as f64));
+        let _r = app_handle.emit(
+            "progress_event",
+            Progress::new(progress_id, true, msg.into(), now, max as f64),
+        );
     }
 }
 #[test]

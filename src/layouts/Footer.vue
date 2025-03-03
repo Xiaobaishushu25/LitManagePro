@@ -91,8 +91,6 @@ const percentage = computed(() => {
   <div>
     <n-flex class="bg-gray-200 size-full" align="center">
       <n-flex align="center" v-if="total_progress" class="ml-auto mr-5" :size="10">
-        {{total_progress}}
-        {{ newMessage }}
         <n-progress
             type="line"
             :percentage="percentage"

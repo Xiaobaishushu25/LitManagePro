@@ -26,6 +26,7 @@ let unlistenDoc: () => void;
 let unlistenDocUp: () => void;
 
 const selectedRowIndex = ref(-1);
+const tableRef = ref()
 
 const showDocDeleteModal = ref(false)
 
@@ -66,18 +67,33 @@ watch([watchAndTags, watchOrTags], (_, _oldValue) => {
       {andTagsId: tagStore.andTags.map(tag => tag.id), orTagsId: tagStore.orTags.map(tag => tag.id)}
   ).then(data => {
     docsStore.setAllDocs(data)
-    console.log(data)
-    // docsStore.docs = data
   }).catch(e=>{message.error(e)})
 },{immediate:true,deep:true})
-
+// 监听currentSelectDoc的变化
+watch(
+    () => docsStore.currentSelectDoc,
+    (newVal) => {
+      // 使用唯一标识符比较（假设每个文档有唯一id）
+      if (docsStore.docs==null||newVal==undefined) return
+      const index = docsStore.docs.findIndex(doc => doc.id === newVal.id)
+      selectedRowIndex.value = index >= 0 ? index : -1
+    },
+    {
+      deep: true,      // 深度监听对象内部变化
+      immediate: true  // 立即触发一次初始值计算
+    }
+)
 const createColumns = (): DataTableColumns<DocumentTags> => [
   {
     type: 'expand',
     width: 20,
     expandable: (rowData: DocumentTags) => rowData.remark !== null,
     renderExpand: (rowData: DocumentTags) => {
-      return h('div', { style: 'white-space: normal;color:#00BFFF;font-size:13px;font-weight:bold;margin-left:50px' }, rowData.remark || '无备注')
+      return h('div', {
+        style: 'white-space: normal;font-size:13px;font-weight:bold;margin-left:50px',
+        class: 'text-blue-600'
+      },
+          rowData.remark || '无备注')
     }
   },
   { title: '标题', key: 'title' , resizable:true},
@@ -146,10 +162,9 @@ const getRowClassName = (row: DocumentTags) => {
 const rowClick = (row: DocumentTags) => {
   docsStore.setCurrentSelectDoc(row);
 };
-const handleKeyDown = (e: KeyboardEvent) => {
+const handleKeyDown = async (e: KeyboardEvent) => {
   if (docsStore.docs == null) return;
   if (docsStore.docs!.length === 0) return;
-
   if (e.key === 'ArrowUp') { // Move up
     selectedRowIndex.value = (selectedRowIndex.value - 1 + docsStore.docs.length) % docsStore.docs.length;
   } else if (e.key === 'ArrowDown') { // Move down
@@ -157,7 +172,18 @@ const handleKeyDown = (e: KeyboardEvent) => {
   }
   // Update the selected document
   docsStore.setCurrentSelectDoc(docsStore.docs[selectedRowIndex.value]);
+  // 等待 DOM 更新
+  await nextTick()
+  // 执行滚动
+  scrollToSelectedRow()
 };
+//todo 滚动没作用
+const scrollToSelectedRow = () => {
+  const table = tableRef.value
+  if (!table || selectedRowIndex.value === -1||docsStore.docs==null) return
+  const selectedId = docsStore.docs[selectedRowIndex.value].id
+  table.scrollTo({ rowKey: selectedId })
+}
 // 行点击事件
 function setRowProps(row: DocumentTags) {
   return {
@@ -240,7 +266,7 @@ function openWithExe(exePath:string){
           <div @keydown="handleKeyDown" tabindex="0" class="outline-none">
             <n-scrollbar class="h-[80vh]" :size="5">
               <n-data-table
-                  tabindex
+                  ref="tableRef"
                   size="small"
                   :columns="columns"
                   :data="docsStore.docs"

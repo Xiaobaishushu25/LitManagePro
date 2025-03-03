@@ -23,3 +23,14 @@
 .svg-button{
     @apply cursor-pointer  w-4 h-4 fill-current hover:text-green-600 focus:outline-none;
 }
+
+.setting-card{
+    @apply bg-gray-200 rounded-lg pl-4 pt-2 pb-2 pr-4 mr-4 text-base;
+}
+.setting-card-row{
+    @apply flex justify-between items-center w-full;
+}
+.n-divider:not(.n-divider--vertical) {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}

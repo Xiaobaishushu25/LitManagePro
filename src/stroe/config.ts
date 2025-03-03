@@ -1,9 +1,8 @@
 import {defineStore} from "pinia";
 import {computed, reactive, ref, watch, watchEffect} from "vue";
-import {Config} from "../config-type.ts";
+import {Config, ExeConfig} from "../config-type.ts";
 import {Tag} from "../components/main/main-type.ts";
 import useTagGroupsStore from "./tag.ts";
-
 
 const useConfigStore = defineStore('config', ()=>{
     const tagStore = useTagGroupsStore();
@@ -77,6 +76,13 @@ const useConfigStore = defineStore('config', ()=>{
         }
     }
 
+    function addNewExecution(exe_config:ExeConfig){
+        config.value?.exe_configs.push(exe_config)
+    }
+    function updateExeConfig(exe_configs:ExeConfig[]){
+        config.value!.exe_configs = exe_configs;
+    }
+
     return {
         config,
         // save_tags_id,
@@ -84,6 +90,8 @@ const useConfigStore = defineStore('config', ()=>{
         addSaveTags,
         removeSaveTags,
         getTagGroupState,
+        addNewExecution,
+        updateExeConfig,
     }
 })
 export default useConfigStore

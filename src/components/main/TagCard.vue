@@ -6,6 +6,7 @@ import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
 import useConfigStore from "../../stroe/config.ts";
+import {WebviewWindow} from "@tauri-apps/api/webviewWindow";
 
 const store = useTagGroupsStore()
 const configStore = useConfigStore()
@@ -85,6 +86,41 @@ function hoverGroup(index: number,id: number, name: string){
     name: name
   }
 }
+//***************************************暂时的窗口设置*************************************
+async function openSetting(){
+  await showAndFocusWindow('setting')
+  console.log('openSetting')
+  const webview = new WebviewWindow('setting', {
+    url: '/#/setting',
+    center: true,
+    title: '设置',
+    width: 1025,
+    height: 800,
+    minWidth: 1025,
+    minHeight: 625,
+    // decorations: false,
+    resizable: true,
+    dragDropEnabled: false,
+    // visible: false,
+  });
+  console.log('openSetting2')
+  await webview.once('tauri://created', async function () {
+    console.log('openSetting22')
+    await webview.show()
+  });
+  await webview.once('tauri://error', function (e) {
+    // an error happened creating the webview
+    console.error(e);
+  });
+}
+async function showAndFocusWindow(label:string){
+  const window = await WebviewWindow.getByLabel(label);
+  if (window!=null) {
+    await window.unminimize()
+    await window.setFocus()
+  }
+}
+//***************************************暂时的窗口设置*************************************
 function createNewTag(){
   let value = newTagValue.value;
   if(value.length === 0){
@@ -252,6 +288,7 @@ function deleteGroup(){
           <n-space>
             <n-input placeholder="请输入标签名" />
             <n-button @click="showNewGroupModal">+</n-button>
+            <inline-svg src="../assets/svg/setting.svg" class="svg-button text-black" @click.left="openSetting"></inline-svg>
           </n-space>
         </n-grid-item>
         <n-grid-item>

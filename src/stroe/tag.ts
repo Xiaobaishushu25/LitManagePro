@@ -15,7 +15,6 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
     watch(tagGroups, (newTagGroups) => {
         // 将所有 tagGroups 中的 tags 提取出来，形成一个扁平化的数组
         allTags.value = newTagGroups.flatMap((group) => group.tags);
-        console.log(allTags.value)
     }, { immediate: true,deep:true });
     function addNewTagGroup(tagGroup:TagGroup){
         tagGroups.value.push({

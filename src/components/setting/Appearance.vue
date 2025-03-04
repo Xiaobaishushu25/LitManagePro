@@ -59,7 +59,7 @@ async function removeExeConfig(name:string){
             <div v-for="(config, index) in configStore.config?.exe_configs" :key="index">
               <n-flex class="items-center">
                 <n-flex class="items-center w-56">
-                  <img :src="convertFileSrc(config.icon_path)" alt="icon">
+                  <img :src="convertFileSrc(config.icon_path)" alt="icon" class="w-4 h-4">
                   <n-tooltip trigger="hover">
                     <template #trigger>
                       <label>{{config.name}}</label>
@@ -78,7 +78,10 @@ async function removeExeConfig(name:string){
 
           <n-divider />
           <div class="setting-card-row">
-            <label class="label-text">总是将标价线段延伸到图表的右边界:</label>
+            <n-tooltip>
+
+            </n-tooltip>
+            <label class="label-text">是否使用ai分析论文:</label>
             <n-button>测试</n-button>
           </div>
         </div>

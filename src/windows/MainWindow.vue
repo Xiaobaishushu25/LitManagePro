@@ -33,7 +33,7 @@ onUnmounted(async ()=>{
 <template>
   <div class="h-screen w-full flex flex-col">
     <!-- 顶部标题栏 -->
-    <WindowTitlebar class="flex-shrink-0  window-titlebar"></WindowTitlebar>
+<!--    <WindowTitlebar class="flex-shrink-0  window-titlebar"></WindowTitlebar>-->
     <div class="flex-grow flex flex-col">
       <!-- 中间内容区域 -->
 <!--      用h-[calc(100vh-10rem)]来强制设置主内容的高度，避免被撑开导致软件出现滚动条，注意，这里这个高度可以设小，

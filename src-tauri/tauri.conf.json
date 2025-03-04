@@ -14,10 +14,9 @@
       {
         "title": "文献管理",
         "width": 1025,
-        "height": 690,
+        "height": 800,
         "minWidth": 1025,
         "minHeight": 690,
-        "decorations": false,
         "visible": false
       }
     ],

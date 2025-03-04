@@ -294,7 +294,7 @@ function openWithExe(exePath:string){
                     @click="openWithExe(exe.path)"
                 >
                   <template #icon>
-                    <img :src="convertFileSrc(exe.icon_path)" alt="icon">
+                    <img :src="convertFileSrc(exe.icon_path)" alt="icon" class="w-4 h-4">
                   </template>
                 </context-menu-item>
                 <context-menu-item label="打开文件目录" @click="openDir" />

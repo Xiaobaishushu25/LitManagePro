@@ -101,7 +101,7 @@ pub struct ExeConfig {
 
 impl ExeConfig {
     pub fn new(_path: &str) -> AppResult<Self> {
-        let (name, icon_path) = get_and_save_icon(_path, 16).map_err(|e| {Tip(format!("获取程序图标出错{:#}", e))})?;
+        let (name, icon_path) = get_and_save_icon(_path, 34).map_err(|e| {Tip(format!("获取程序图标出错{:#}", e))})?;
         // let path = Path::new(_path);
         // let icon_dir = format!("{}/icon", CURRENT_DIR.clone());
         // let name = path.file_stem().unwrap().to_str().unwrap().to_string();

@@ -21,12 +21,12 @@ onMounted(async () => {
     configStore.updateExeConfig(event.payload)
   });
   unExeListen = await getCurrentWindow().onCloseRequested(async (event) => {
-    event.preventDefault();
+    // event.preventDefault();
     await saveWindowState(StateFlags.ALL);
     await invoke('save_config',{config: configStore.config}).then(_ => {}).catch(e => {
       message.error(`保存配置出错${e}`);
     })
-    await invoke('exit_app', {})
+    // await invoke('exit_app', {})
   });
 
   await invoke<Config>('get_config',{}).then(data => {

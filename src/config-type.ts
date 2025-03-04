@@ -11,16 +11,32 @@ interface ExeConfig {
     icon_path: string,
 }
 
+// interface AiConfig {
+//     use_ai:boolean,
+//     //默认使用的ai，分别为：kimi,deepseek
+//     default_ai:String,
+//     //模型，key为ai名称，value为模型名称集合
+//     default_model:String,
+//     models:Map<string, string[]>
+//     //key为ai名称，value为ai的key
+//     keys:Map<string,string>,
+//     online:boolean,
+// }
+// interface AiConfig {
+//     use_ai: boolean;
+//     default_ai: string;
+//     default_model: string;
+//     models: { [key: string]: string[] };
+//     keys: { [key: string]: string };
+//     online: boolean;
+// }
 interface AiConfig {
-    use_ai:boolean,
-    //默认使用的ai，分别为：kimi,deepseek
-    default_ai:String,
-    //模型，key为ai名称，value为模型名称集合
-    default_model:String,
-    models:Map<string, string[]>
-    //key为ai名称，value为ai的key
-    keys:Map<string,string>,
-    online:boolean,
+    use_ai: boolean;
+    default_ai: string;
+    default_model: string;
+    models: Record<string, string[]>; // 使用 Record 来表示键值对
+    keys: Record<string, string>; // 使用 Record 来表示键值对
+    online: boolean;
 }
 
 interface Config {

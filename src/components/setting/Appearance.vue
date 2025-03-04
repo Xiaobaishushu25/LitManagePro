@@ -24,7 +24,6 @@ watch(()=>use_ai.value,async (value)=>{
   configStore.config.ai_config.use_ai = value
 })
 watch(()=>aiSupport.value, async (value)=>{{
-  console.log("hgao")
   if (configStore.config==undefined) return
   let _key: string|undefined = configStore.config.ai_config.keys[value];
   if (_key!=undefined){
@@ -62,8 +61,9 @@ async function removeExeConfig(name:string){
   await emit('update_exe_config',configStore.config!.exe_configs)
 }
 function setNewKey(){
-  configStore.config.ai_config.keys[aiSupport.value] = key.value;
-  // configStore.config?.ai_config.keys.set(aiSupport.value,key.value)
+  if (configStore.config && configStore.config.ai_config && configStore.config.ai_config.keys) {
+    configStore.config.ai_config.keys[aiSupport.value] = key.value;
+  }
 }
 watch(()=>configStore.config,async ()=>{
   // await emit('update_exe_config',configStore.config!.exe_configs)
@@ -149,7 +149,7 @@ const renderLabel = (option:{ label: string, value: string, icon: string}) => {
                   style="width: 200px"
               />
             </n-flex>
-            <n-input v-model:value="key" placeholder="请填入对应的apiKey" size="small" style="width: 200px" class="w-56" @blur="setNewKey"></n-input>
+            <n-input v-model:value="key" placeholder="请填入对应的apiKey" size="small" style="width: 300px" class="w-56" @blur="setNewKey"></n-input>
           </div>
           <div class="setting-card-row">
             <n-flex class="items-center" :size="5">

@@ -25,7 +25,7 @@ mod entities;
 pub async fn run() {
     //用于存储界面初始化之前的错误信息
     let mut err_msg = vec![];
-    //_log_guard存活的周期内才能写入日志，所以需要返回给调用者。o_ai表示可能为None。
+    //_log_guard存活的周期内才能写入日志，所以需要返回给调用者。
     let (_log_guard, config) = init_app(&mut err_msg).await;
     info!("litManagePro ui start...");
     tauri::Builder::default()
@@ -35,7 +35,6 @@ pub async fn run() {
         .plugin(tauri_plugin_os::init())
         .manage(Mutex::new(config))
         .manage(err_msg)
-        // .manage(tokio::sync::Mutex::new(o_ai))
         .invoke_handler(tauri::generate_handler![
             first_run,
             query_tag_groups,

@@ -25,7 +25,7 @@
 }
 
 .setting-card{
-    @apply bg-gray-200 rounded-lg pl-4 pt-2 pb-2 pr-4 mr-4 text-base;
+    @apply bg-gray-200 rounded-lg pl-6 pt-2 pb-2 pr-6 mr-6 text-base;
 }
 .setting-card-row{
     @apply flex justify-between items-center w-full;

@@ -58,13 +58,15 @@ async function removeExeConfig(name:string){
           <div class="ml-4">
             <div v-for="(config, index) in configStore.config?.exe_configs" :key="index">
               <n-flex class="items-center">
-                <img :src="convertFileSrc(config.icon_path)" alt="icon">
-                <n-tooltip trigger="hover">
-                  <template #trigger>
-                    <label>{{config.name}}</label>
-                  </template>
-                  {{config.path}}
-                </n-tooltip>
+                <n-flex class="items-center w-56">
+                  <img :src="convertFileSrc(config.icon_path)" alt="icon">
+                  <n-tooltip trigger="hover">
+                    <template #trigger>
+                      <label>{{config.name}}</label>
+                    </template>
+                    {{config.path}}
+                  </n-tooltip>
+                </n-flex>
                 <inline-svg
                     src="../assets/svg/SubtractCircle24Regular.svg"
                     class="svg-button text-red-600 hover:text-red-600 ml-7"

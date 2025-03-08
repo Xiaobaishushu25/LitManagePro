@@ -4,6 +4,7 @@ use reqwest::Client;
 use serde_json::{Value, json};
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
+use crate::config::Config;
 
 mod deepseek;
 mod kimi;
@@ -31,6 +32,18 @@ impl AI {
             model,
             online,
         }
+    }
+    pub fn get_ai_from_config(config: Config)->AppResult<AI>{
+        let default_ai = config.ai_config.default_ai;
+        let key = config.ai_config.keys.get(&default_ai).ok_or(Tip(format!("未找到{}对应的key",default_ai)))?;
+        let model = config.ai_config.default_model.get(&default_ai).ok_or(Tip(format!("未找到{}对应的默认模型",default_ai)))?;
+        let ai = AI::new(
+            default_ai.clone(),
+            key.to_string(),
+            model.to_string(),
+            config.ai_config.online
+        );
+        Ok(ai)
     }
     pub fn change(&mut self, supporter: String, key: String, model: String, online: bool) {
         self.supporter = supporter;
@@ -78,5 +91,22 @@ impl AI {
             .as_str()
             .ok_or(Tip(format!("content字段解析出错:{}", text)))?;
         Ok(content.into())
+    }
+}
+pub trait AiTrait{
+    fn get_ai_from_config(&self,config: Config)->AppResult<AI>;
+}
+impl AiTrait for Option<AI> {
+    fn get_ai_from_config(&self,config: Config)->AppResult<AI>{
+        let default_ai = config.ai_config.default_ai;
+        let key = config.ai_config.keys.get(&default_ai).ok_or(Tip(format!("未找到{}对应的key",default_ai)))?;
+        let model = config.ai_config.default_model.get(&default_ai).ok_or(Tip(format!("未找到{}对应的默认模型",default_ai)))?;
+        let ai = AI::new(
+            default_ai.clone(),
+            key.to_string(),
+            model.to_string(),
+            config.ai_config.online
+        );
+        Ok(ai)
     }
 }

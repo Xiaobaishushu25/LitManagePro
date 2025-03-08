@@ -33,10 +33,12 @@ interface ExeConfig {
 interface AiConfig {
     use_ai: boolean;
     default_ai: string;
-    default_model: string;
+    // default_model: string;
+    default_model: Record<string, string>;
     models: Record<string, string[]>; // 使用 Record 来表示键值对
     keys: Record<string, string>; // 使用 Record 来表示键值对
     online: boolean;
+    max_concurrency:number;
 }
 
 interface Config {

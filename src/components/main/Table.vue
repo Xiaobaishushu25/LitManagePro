@@ -244,16 +244,6 @@ function openWithExe(exePath:string){
 }
 ///-------------------------------------右键事件---------------end---------
 
-// const fetchSuggestions = async (query: string) => {
-//   if (query === " ") { // 如果输入一个空格，则返回所有标签
-//     return tagStore.allTags;
-//   }
-//   // 将查询字符串和标签值都转换为小写，以便进行大小写不敏感的匹配
-//   const queryLower = query.toLowerCase();
-//   return tagStore.allTags.filter(option =>
-//       option.value.toLowerCase().includes(queryLower)
-//   );
-// };
 </script>
 
 <template>
@@ -286,8 +276,14 @@ function openWithExe(exePath:string){
                   :options="contextOptions"
               >
                 <context-menu-item label="用系统默认打开" @click="openDocDefault"/>
-                <context-menu-item label="用WPS打开" />
-                <context-menu-item label="用AI总结文档" />
+                <context-menu-item label="用AI总结文档" @click="">
+                  <template #icon>
+                    <inline-svg
+                        src="../assets/svg/ai.svg"
+                        class="svg-button"
+                    ></inline-svg>
+                  </template>
+                </context-menu-item>
                 <context-menu-item
                     v-for="exe in configStore.config?.exe_configs"
                     :key="exe.name"

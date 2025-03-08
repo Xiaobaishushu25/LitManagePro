@@ -3,7 +3,7 @@ pub(crate) use crate::dtos::doc::{DocumentTags, PartDoc};
 use crate::entities::prelude::Document;
 use crate::services::commands::doc::doc_util::{handle_many_paths, handle_query_docs_by_tags};
 use crate::services::curd::document::DocumentCurd;
-use log::error;
+use log::{error, info};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Emitter, State};
@@ -20,9 +20,9 @@ pub async fn insert_docs(
     tags_id: Vec<i32>,
 ) -> Result<(), String> {
     let flag = { config.lock().unwrap().ai_config.use_ai };
-    // let o_ai = o_ai.lock().await;
-    match handle_many_paths(flag, app_handle, paths, tags_id).await {
-        // match handle_many_paths(flag, o_ai, app_handle, paths, tags_id).await {
+    let max_concurrency = { config.lock().unwrap().ai_config.max_concurrency };
+    info!("最大并发数量：{max_concurrency}");
+    match handle_many_paths(flag,max_concurrency, app_handle, paths, tags_id).await {
         Ok(_) => Ok(()),
         Err(e) => {
             error!("插入文档失败：{:?}", e);
@@ -117,10 +117,12 @@ mod doc_util {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicI32, Ordering};
     use tauri::Emitter;
+    use tokio::sync::Semaphore;
     use tracing::instrument;
 
     pub(crate) async fn handle_many_paths(
         use_ai: bool,
+        max_concurrency:i32,
         // o_ai: &Option<AI>,
         // o_ai: &'static Option<AI>,
         // o_ai: Option<AI>,
@@ -129,6 +131,8 @@ mod doc_util {
         paths: Vec<String>,
         tags_id: Vec<i32>,
     ) -> AppResult<()> {
+        // 创建一个信号量，限制最大并发数为 max_concurrency
+        let semaphore = Arc::new(Semaphore::new(max_concurrency as usize));
         let progress_id = rng().random_range(1000..=9999);
         let count = Arc::new(AtomicI32::new(0));
         let total = paths.len();
@@ -154,12 +158,15 @@ mod doc_util {
                 let err_msg = format!("路径不存在: {}", path.display());
                 error!("{}", err_msg);
                 let _ = app_handle.emit("backend_message", err_msg);
+                update_progress(progress_id, app_handle.clone(), "路径不存在", 1, count.clone(), total).await;
                 continue;
             }
             if path.is_dir() {
                 let err_msg = format!("不支持解析文件夹: {}", path.display());
                 error!("{}", err_msg);
                 let _ = app_handle.emit("backend_message", err_msg);
+                update_progress(progress_id, app_handle.clone(), "不支持解析文件夹", 1, count.clone(), total).await;
+                
                 continue;
             }
             // path.file_stem()
@@ -185,10 +192,12 @@ mod doc_util {
                                     "pdf" => {
                                         // 处理PDF文件,提取作者名、标题、摘要等信息
                                         if use_ai {
-                                            // let o_ai = o_ai.clone();
                                             let app_handle = app_handle.clone();
                                             let count = count.clone();
+                                            let semaphore =semaphore.clone();
                                             tokio::spawn(async move {
+                                                // let permit = semaphore.acquire().await.unwrap();
+                                                // let _guard = permit;
                                                 update_progress(
                                                     progress_id,
                                                     app_handle.clone(),
@@ -204,6 +213,7 @@ mod doc_util {
                                                         if let Err(e) = DocumentCurd::update_document_by_part_doc(part_doc).await {
                                                             error!("更新文档失败: {:?}", e);
                                                             let _ = app_handle.emit("backend_message", format!("更新文档失败: {:?}", e), );
+                                                            update_progress(progress_id,app_handle, "更新文档出现错误",1, count, total).await;
                                                         } else {
                                                             let document_tags = DocumentTags::from_doc_id(id).await;
                                                             let _ = app_handle.emit("doc_update", document_tags);
@@ -214,69 +224,17 @@ mod doc_util {
                                                         error!("{}", e);
                                                         let _ = app_handle
                                                             .emit("backend_message", e.to_string());
+                                                        update_progress(
+                                                            progress_id,
+                                                            app_handle.clone(),
+                                                            "解析文档出现错误",
+                                                            1,
+                                                            count.clone(),
+                                                            total,
+                                                        ).await;
                                                     }
                                                 }
                                             });
-                                            // match o_ai {
-                                            //     Some(ai) => {
-                                            //         match extract_limit_pages(&path_s, id).await {
-                                            //             Ok(content) => {
-                                            //                 match ai.analyse_paper(content, id).await {
-                                            //                     Ok(string) => {
-                                            //                         info!("AI分析结果{}", string);
-                                            //                         match serde_json::from_str::<PartDoc>(
-                                            //                             &string,
-                                            //                         ) {
-                                            //                             Ok(part_doc) => {
-                                            //                                 info!(
-                                            //                                     "AI分析成功: {:?}",
-                                            //                                     part_doc
-                                            //                                 );
-                                            //                                 if let Err(e) = DocumentCurd::update_document_by_partdoc(part_doc).await{
-                                            //                                     error!("更新文档失败: {:?}", e);
-                                            //                                     let _ = app_handle.emit("backend_message", format!("更新文档失败: {:?}", e));
-                                            //                                 }else {
-                                            //                                     let document_tags = DocumentTags::from_doc_id(id).await;
-                                            //                                     let _ = app_handle.emit("doc_update", document_tags);
-                                            //                                 }
-                                            //                                 // let _ = app_handle.emit("insert_doc", document_tags);
-                                            //                             }
-                                            //                             Err(e) => {
-                                            //                                 let err_msg = format!(
-                                            //                                     "AI分析失败: {:?}",
-                                            //                                     e
-                                            //                                 );
-                                            //                                 error!("{}", err_msg);
-                                            //                             }
-                                            //                         }
-                                            //                     }
-                                            //                     Err(e) => {
-                                            //                         let err_msg =
-                                            //                             format!("AI分析失败: {:?}", e);
-                                            //                         error!("{}", err_msg);
-                                            //                         let _ = app_handle.emit(
-                                            //                             "backend_message",
-                                            //                             err_msg,
-                                            //                         );
-                                            //                     }
-                                            //                 }
-                                            //             }
-                                            //             Err(e) => {
-                                            //                 let err_msg =
-                                            //                     format!("提取PDF内容失败: {:?}", e);
-                                            //                 error!("{}", err_msg);
-                                            //                 let _ = app_handle
-                                            //                     .emit("backend_message", err_msg);
-                                            //             }
-                                            //         }
-                                            //     }
-                                            //     None => {
-                                            //         let err_msg =
-                                            //             "请正确配置AI来解析文档。".to_string();
-                                            //         error!("{}", err_msg);
-                                            //         let _ = app_handle.emit("backend_message", err_msg);
-                                            //     }
-                                            // }
                                         }else { 
                                             update_progress(
                                                 progress_id,
@@ -293,48 +251,45 @@ mod doc_util {
                                         update_progress(
                                             progress_id,
                                             app_handle.clone(),
-                                            "插入文档完成",
+                                            "插入完成",
                                             1,
                                             count.clone(),
                                             total,
                                         )
                                         .await;
-                                        // let _old = count.clone().fetch_add(1, Ordering::SeqCst);
-                                        // let new_value = count.load(Ordering::SeqCst);
-                                        // let _r = app_handle.emit("progress_event", Progress::new(true, "插入文档完成".to_string(), new_value as f64, total as f64));
                                     }
                                 }
                             } else {
                                 update_progress(
                                     progress_id,
                                     app_handle.clone(),
-                                    "插入文档完成",
+                                    "插入完成",
                                     1,
                                     count.clone(),
                                     total,
                                 )
                                 .await;
-                                // let _old = count.clone().fetch_add(1, Ordering::SeqCst);
-                                // let new_value = count.load(Ordering::SeqCst);
-                                // let _r = app_handle.emit("progress_event", Progress::new(true, "插入文档完成".to_string(), new_value as f64, total as f64));
                             }
                         }
                         Err(e) => {
                             let err_msg = format!("插入文档{}失败: {:?}", path.display(), e);
                             error!("{}", err_msg);
                             let _ = app_handle.emit("backend_message", err_msg);
+                            update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
                         }
                     }
                 } else {
                     let err_msg = format!("无效的文件名: {}", path.display());
                     error!("{}", err_msg);
                     let _ = app_handle.emit("backend_message", err_msg);
+                    update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
                 }
             } else {
                 //文件夹的情况
                 let err_msg = format!("未获取到文件名: {}", path.display());
                 error!("{}", err_msg);
                 let _ = app_handle.emit("backend_message", err_msg);
+                update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
             }
         }
         Ok(())

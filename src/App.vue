@@ -3,29 +3,27 @@ import {onMounted, onUnmounted} from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {message, } from './message.ts';
-import {Config, ExeConfig} from "./config-type.ts";
+import {Config} from "./config-type.ts";
 import useConfigStore from "./stroe/config.ts";
 import { saveWindowState, StateFlags } from '@tauri-apps/plugin-window-state';
-import {listen} from "@tauri-apps/api/event";
 
 const configStore = useConfigStore()
 
 let unlisten: () => void;
-let unExeListen: () => void;
 
 onMounted(async () => {
   document.addEventListener('contextmenu', function(event) {
     event.preventDefault();
   });
-  unlisten = await listen('update_exe_config',async (event:{ payload:ExeConfig[]}) => {
-    configStore.updateExeConfig(event.payload)
-  });
-  unExeListen = await getCurrentWindow().onCloseRequested(async (event) => {
+  unlisten = await getCurrentWindow().onCloseRequested(async (_event) => {
+    let window = getCurrentWindow();
     // event.preventDefault();
     await saveWindowState(StateFlags.ALL);
-    await invoke('save_config',{config: configStore.config}).then(_ => {}).catch(e => {
-      message.error(`保存配置出错${e}`);
-    })
+    if (window.label === 'main') {
+      await invoke('save_config',{config: configStore.config}).then(_ => {}).catch(e => {
+        message.error(`保存配置出错${e}`);
+      })
+    }
     // await invoke('exit_app', {})
   });
 
@@ -35,9 +33,10 @@ onMounted(async () => {
     message.error(e);
   })
 })
+
+// 暴露 store 实例
 onUnmounted(async ()=>{
   unlisten();
-  unExeListen();
 })
 
 </script>

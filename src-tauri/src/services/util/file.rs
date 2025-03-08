@@ -7,6 +7,7 @@ use lopdf::Document;
 use std::fs;
 use std::fs::File;
 use std::path::Path;
+use log::info;
 
 pub async fn extract_limit_pages(path: &str, id: i32) -> AppResult<String> {
     let new_path = segment_pdf(path, id).await?;
@@ -16,6 +17,7 @@ pub async fn extract_limit_pages(path: &str, id: i32) -> AppResult<String> {
 /// 分页pdf
 ///
 async fn segment_pdf(path: &str, id: i32) -> AppResult<String> {
+    info!("{path}");//todo lopdf不支持load中文吗，此外，修改日志要捕获panic的
     let mut doc = Document::load(path).unwrap();
     let total_pages = doc.get_pages().keys().len();
     // 如果总页数大于 3，删除第 4 页及以后的页

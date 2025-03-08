@@ -7,7 +7,7 @@ use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::LazyLock;
-use std::{env, fs, io};
+use std::{env, fs, io, panic};
 use time::UtcOffset;
 use time::macros::format_description;
 use tracing_appender::non_blocking::WorkerGuard;
@@ -47,7 +47,7 @@ impl Config {
             }
         }
     }
-    pub async fn update(&mut self, config: Config) {
+    pub fn update(&mut self, config: Config) {
         *self = config;
     }
     /**
@@ -119,23 +119,25 @@ pub struct AiConfig {
     //默认使用的ai，分别为：kimi,deepseek
     pub default_ai: String,
     //默认使用的模型
-    pub default_model: String,
+    pub default_model:HashMap<String, String>,
     //模型，key为ai名称，value为模型名称集合
     pub models: HashMap<String, Vec<String>>,
     //key为ai名称，value为ai的key
     pub keys: HashMap<String, String>,
     pub online: bool,
+    pub max_concurrency: i32,
 }
 impl Default for AiConfig {
     fn default() -> Self {
         AiConfig {
             use_ai: false,
             default_ai: "kimi".to_string(),
-            default_model: "moonshot-v1-8k".to_string(),
+            default_model: HashMap::from([("kimi".to_string(),"moonshot-v1-8k".to_string())]),
             models: HashMap::from([("kimi".to_string(), vec!["moonshot-v1-8k".to_string()])]),
             keys: HashMap::new(),
             // keys:HashMap::new(),
             online: false,
+            max_concurrency: 3,
         }
     }
 }
@@ -220,6 +222,28 @@ pub fn init_logger() -> WorkerGuard {
 
     // tracing::subscriber::set_global_default(subscriber)
     //     .expect("设置日志订阅器失败");
+    panic::set_hook(Box::new(|info| {
+        if let Some(location) = info.location() {
+            // 打印 panic 信息和发生 panic 的位置
+            error!(
+                "Panic occurred at {}:{}:{}",
+                location.file(),
+                location.line(),
+                location.column()
+            );
+        }
+        // 处理panic payload，检查是否为某个具体的错误类型
+        if let Some(payload) = info.payload().downcast_ref::<String>() {
+            // 如果payload是字符串类型，直接打印
+            error!("Panic message: {}", payload);
+        } else if let Some(payload) = info.payload().downcast_ref::<&str>() {
+            // 如果是&str，直接打印
+            error!("Panic message: {}", payload);
+        } else {
+            // 其他情况，打印更通用的信息
+            error!("Panic occurred with unknown payload: {:?}", info.payload());
+        }
+    }));
     worker_guard
 }
 #[cfg(test)]

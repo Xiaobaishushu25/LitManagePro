@@ -89,7 +89,6 @@ function hoverGroup(index: number,id: number, name: string){
 //***************************************暂时的窗口设置*************************************
 async function openSetting(){
   await showAndFocusWindow('setting')
-  console.log('openSetting')
   const webview = new WebviewWindow('setting', {
     url: '/#/setting',
     center: true,
@@ -101,11 +100,9 @@ async function openSetting(){
     // decorations: false,
     resizable: true,
     dragDropEnabled: false,
-    // visible: false,
+    visible: false,
   });
-  console.log('openSetting2')
   await webview.once('tauri://created', async function () {
-    console.log('openSetting22')
     await webview.show()
   });
   await webview.once('tauri://error', function (e) {

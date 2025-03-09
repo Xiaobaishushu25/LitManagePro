@@ -1,3 +1,4 @@
+use sea_orm::QueryFilter;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::document::Column;
@@ -54,6 +55,14 @@ impl DocumentCurd {
             }
             doc.delete(db).await?;
         }
+        Ok(())
+    }
+    pub async fn delete_many(ids: Vec<i32>) -> AppResult<()> {
+        let db = crate::entities::DB
+            .get()
+            .ok_or(Tip("数据库未初始化".into()))?;
+        Documents::delete_many().filter(Column::Id.is_in(ids.clone())).exec(db).await?;
+        DocAndTags::delete_many().filter(crate::entities::doc_and_tag::Column::DocId.is_in(ids)).exec(db).await?;
         Ok(())
     }
     pub async fn update_detail(doc_new: Document) -> AppResult<()> {

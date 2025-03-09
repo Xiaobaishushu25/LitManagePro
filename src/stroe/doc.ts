@@ -34,13 +34,12 @@ const useDocStore = defineStore('docs', ()=>{
             currentSelectDoc.value = doc;
         }
     }
-    function deleteDoc(id: number){
-        docs.value!.forEach((item,index)=>{
-            if(item.id === id){
-                docs.value!.splice(index,1);
-            }
-        })
-        if (currentSelectDoc.value?.id === id){
+    function deleteDocs(ids: number[]){
+        console.log(ids)
+        console.log(docs.value!.length)
+        docs.value = docs.value!.filter(doc => !ids.includes(doc.id));
+        console.log(docs.value!.length)
+        if (ids.includes(currentSelectDoc.value!.id)){
             currentSelectDoc.value = undefined;
         }
     }
@@ -51,7 +50,7 @@ const useDocStore = defineStore('docs', ()=>{
         setCurrentSelectDoc,
         addNewDoc,
         updateDoc,
-        deleteDoc
+        deleteDocs
     }
 })
 export default useDocStore

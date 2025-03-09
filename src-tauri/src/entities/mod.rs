@@ -26,8 +26,8 @@ pub async fn init_db_coon() {
     let exist = match check_db_file(&db_path, &current_dir) {
         Ok(flag) => flag,
         Err(e) => {
-            error!("数据库文件不存在，创建数据库文件{}失败:{:?}", db_path, e);
-            panic!("数据库文件不存在，创建数据库文件{}失败:{:?}", db_path, e)
+            error!("数据库文件不存在，创建数据库文件{}失败:{}", db_path, e);
+            panic!("数据库文件不存在，创建数据库文件{}失败:{}", db_path, e)
         }
     };
     DB.get_or_init(|| async {

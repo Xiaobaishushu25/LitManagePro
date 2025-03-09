@@ -4,7 +4,6 @@ import {listen} from "@tauri-apps/api/event";
 
 interface Progress {
   id:number,
-  show:boolean,
   msg:string
   now:number,
   max:number,
@@ -24,7 +23,6 @@ watch(
       const totalMax = progresss.value.reduce((sum, p) => sum + p.max, 0);
       total_progress.value = {
         id: -1, // 虚拟 ID
-        show: true,
         msg: 'Total Progress',
         now: totalNow,
         max: totalMax,

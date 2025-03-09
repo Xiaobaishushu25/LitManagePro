@@ -26,6 +26,8 @@ let unlistenDoc: () => void;
 let unlistenDocUp: () => void;
 
 const selectedRowIndex = ref(-1);
+const selectedRows = ref<DocumentTags[]>([]); // Store selected rows
+const lastClickedIndex = ref<number | null>(null); // Store the index of the last clicked row
 const tableRef = ref()
 
 const showDocDeleteModal = ref(false)
@@ -154,21 +156,65 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
 const columns = createColumns()
 // 定义当前选中的行
 const getRowClassName = (row: DocumentTags) => {
-  if (row === docsStore.currentSelectDoc) {
-    return 'highlighted-row';
+  if (selectedRows.value.includes(row)||docsStore.currentSelectDoc===row) {
+    return "highlighted-row";
   }
 };
 
-const rowClick = (row: DocumentTags) => {
+// const rowClick = (row: DocumentTags) => {
+//   docsStore.setCurrentSelectDoc(row);
+// };
+const rowClick = (row: DocumentTags, index: number, event: MouseEvent) => {
+  if (event.button === 2) {
+    if (selectedRows.value.length>1){
+      return
+    }
+  }
+  const ctrlKey = event.ctrlKey;
+  const shiftKey = event.shiftKey;
+
+  if (ctrlKey) {
+    // Ctrl + Click: Toggle selection
+    lastClickedIndex.value = index;
+    if (selectedRows.value.includes(row)) {
+      selectedRows.value = selectedRows.value.filter((r) => r !== row);
+      return;//不要把该行设置为选中行，要提前返回
+    } else {
+      selectedRows.value = [...selectedRows.value, row];
+    }
+  } else if (shiftKey && lastClickedIndex.value !== null) {
+    // Shift + Click: Select range
+    const startIndex = Math.min(index, lastClickedIndex.value);
+    const endIndex = Math.max(index, lastClickedIndex.value);
+
+    selectedRows.value = []; // Clear previous selection
+    for (let i = startIndex; i <= endIndex; i++) {
+      if (docsStore.docs) { // Check if docsStore.docs is not null
+        for (let i = startIndex; i <= endIndex; i++) {
+          if (!selectedRows.value.includes(docsStore.docs[i])) {
+            selectedRows.value.push(docsStore.docs[i]);
+          }
+        }
+      }
+    }
+  } else {
+    // Single click: Select only this row
+    selectedRows.value = [row];
+    lastClickedIndex.value = index;
+  }
   docsStore.setCurrentSelectDoc(row);
 };
 const handleKeyDown = async (e: KeyboardEvent) => {
   if (docsStore.docs == null) return;
   if (docsStore.docs!.length === 0) return;
   if (e.key === 'ArrowUp') { // Move up
+    selectedRows.value = []
     selectedRowIndex.value = (selectedRowIndex.value - 1 + docsStore.docs.length) % docsStore.docs.length;
+    lastClickedIndex.value = selectedRowIndex.value;
   } else if (e.key === 'ArrowDown') { // Move down
+    selectedRows.value = []
     selectedRowIndex.value = (selectedRowIndex.value + 1) % docsStore.docs.length;
+    lastClickedIndex.value = selectedRowIndex.value;
   }
   // Update the selected document
   docsStore.setCurrentSelectDoc(docsStore.docs[selectedRowIndex.value]);
@@ -185,14 +231,14 @@ const scrollToSelectedRow = () => {
   table.scrollTo({ rowKey: selectedId })
 }
 // 行点击事件
-function setRowProps(row: DocumentTags) {
+function setRowProps(row: DocumentTags,index: number) {
   return {
     style: {
       cursor: 'pointer'
     },
-    onClick:() => rowClick(row),
+    onClick:(e: MouseEvent) => rowClick(row, index, e),
     onContextmenu: (e: MouseEvent) => {
-      rowClick(row)
+      rowClick(row, index, e)
       e.preventDefault()
       nextTick().then(() => {
         contextMenuShow.value = true
@@ -206,12 +252,17 @@ function setRowProps(row: DocumentTags) {
   };
 }
 ///-------------------------------------右键事件---------------begin---------
-function deleteDoc(){
+function deleteDocs(){
   showDocDeleteModal.value = false
-  let title = docsStore.currentSelectDoc!.title;
-  invoke('delete_doc', {id: docsStore.currentSelectDoc!.id}).then(_ => {
-    docsStore.deleteDoc(docsStore.currentSelectDoc!.id)
-    message.success(`删除文档${title}成功`)
+  //拿出selrows的id组成一个数组
+  let ids = selectedRows.value.map(row => row.id)
+  // let title = docsStore.currentSelectDoc!.title;
+  // invoke('delete_docs', {id: docsStore.currentSelectDoc!.id}).then(_ => {
+  invoke('delete_docs', {ids: ids}).then(_ => {
+    console.log(ids)
+    selectedRows.value = []
+    docsStore.deleteDocs(ids)
+    message.success(`删除文档成功`)
   }).catch(e => {
     message.error(e)
   })
@@ -263,7 +314,7 @@ function openWithExe(exePath:string){
                   :row-props="setRowProps"
                   :row-class-name="getRowClassName"
                   :row-key="(row:DocumentTags) => row.id"
-                  style="font-size: 15px"
+                  style="font-size: 15px;user-select: none"
                   :default-expand-all="configStore.config?.ui_config.table_expand ?? true"
                   striped
               >
@@ -296,9 +347,9 @@ function openWithExe(exePath:string){
                 </context-menu-item>
                 <context-menu-item label="打开文件目录" @click="openDir" />
                 <context-menu-sperator />
-                <context-menu-item label="管理标签"/>
+                <context-menu-item label="管理标签"></context-menu-item>
                 <context-menu-sperator />
-                <context-menu-item label="删除" class="cursor-pointer" @click.stop="showDocDeleteModal=true">
+                <context-menu-item  :label="selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)`" class="cursor-pointer" @click.stop="showDocDeleteModal=true">
                   <template #icon>
                     <inline-svg
                         src="../assets/svg/Delete24Regular.svg"
@@ -319,13 +370,19 @@ function openWithExe(exePath:string){
   <custom-modal
       v-model:show="showDocDeleteModal"
       title="删除文件"
-      :onConfirm="deleteDoc"
+      :onConfirm="deleteDocs"
   >
     <div>
-      <span>确定删除文件：</span>
-      <span class="text-orange-600 text-base">{{ docsStore.currentSelectDoc?.title }}</span>
-      <span>?</span>
-      <p>删除后不可恢复，请谨慎操作。</p>
+      <span v-if="selectedRows.length === 1">
+        确定删除文件：<span class="text-orange-600 text-base">{{ docsStore.currentSelectDoc?.title }}</span>?<p>删除后不可恢复，请谨慎操作。</p>
+      </span>
+      <span v-else>
+        你确定要删除这<span class="text-orange-600 text-base">{{ selectedRows.length }}</span>条？删除后不可恢复，请谨慎操作。
+      </span>
+<!--      <span>确定删除文件：</span>-->
+<!--      <span class="text-orange-600 text-base">{{ docsStore.currentSelectDoc?.title }}</span>-->
+<!--      <span>?</span>-->
+<!--      <p>删除后不可恢复，请谨慎操作。</p>-->
     </div>
   </custom-modal>
 </template>

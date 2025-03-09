@@ -43,7 +43,7 @@ impl Config {
                 config
             }
             Err(e) => {
-                panic!("创建或解析配置文件{}失败:{:?}", path, e)
+                panic!("创建或解析配置文件{}失败:{}", path, e)
             }
         }
     }
@@ -75,6 +75,8 @@ impl Default for Config {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UiConfig {
+    //分屏大小,第一个是MainContent.vue的，第二个是Table.vue的
+    split_size:Vec<f32>,
     //tag组是否打开，key为tag_group_name，value为bool
     tag_group_state: HashMap<i32, bool>,
     save_tag_groups: Vec<Vec<i32>>,
@@ -84,6 +86,7 @@ pub struct UiConfig {
 impl Default for UiConfig {
     fn default() -> Self {
         UiConfig {
+            split_size:vec![0.2,0.65],
             tag_group_state: HashMap::new(),
             save_tag_groups: vec![],
             table_expand: true,
@@ -102,9 +105,6 @@ pub struct ExeConfig {
 impl ExeConfig {
     pub fn new(_path: &str) -> AppResult<Self> {
         let (name, icon_path) = get_and_save_icon(_path, 34).map_err(|e| {Tip(format!("获取程序图标出错{:#}", e))})?;
-        // let path = Path::new(_path);
-        // let icon_dir = format!("{}/icon", CURRENT_DIR.clone());
-        // let name = path.file_stem().unwrap().to_str().unwrap().to_string();
         Ok(ExeConfig {
             name,
             path: _path.to_string(),
@@ -112,8 +112,20 @@ impl ExeConfig {
         })
     }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// impl PartialEq for Vec<ExeConfig>{
+//     fn eq(&self, other: &Self) -> bool {
+//         if self.len() != other.len() {
+//             return false;
+//         }
+//         for (a, b) in self.iter().zip(other.iter()) {
+//             if a != b {
+//                 return false;
+//             }
+//         }
+//         true
+//     }
+// }
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AiConfig {
     pub(crate) use_ai: bool,
     //默认使用的ai，分别为：kimi,deepseek
@@ -133,7 +145,7 @@ impl Default for AiConfig {
             use_ai: false,
             default_ai: "kimi".to_string(),
             default_model: HashMap::from([("kimi".to_string(),"moonshot-v1-8k".to_string())]),
-            models: HashMap::from([("kimi".to_string(), vec!["moonshot-v1-8k".to_string()])]),
+            models: HashMap::from([("kimi".to_string(), vec!["moonshot-v1-8k".to_string(),"moonshot-v1-32k".into()])]),
             keys: HashMap::new(),
             // keys:HashMap::new(),
             online: false,

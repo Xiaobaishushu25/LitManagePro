@@ -9,6 +9,7 @@ import InlineSvg from "vue-inline-svg";
 import {SelectOption} from "naive-ui";
 
 const configStore = useConfigStore()
+console.log(configStore.config)
 
 const use_ai = ref()
 
@@ -102,8 +103,16 @@ async function removeExeConfig(name:string){
 }
 function setNewKey(){
   if (configStore.config && configStore.config.ai_config && configStore.config.ai_config.keys) {
-    configStore.config.ai_config.keys[aiSupport.value] = key.value;
+    const currentValue = configStore.config.ai_config.keys[aiSupport.value];
+    const newValue = key.value;
+    // 检查前后是否有变化
+    if (currentValue !== newValue) {
+      configStore.config.ai_config.keys[aiSupport.value] = newValue;
+    }
   }
+  // if (configStore.config && configStore.config.ai_config && configStore.config.ai_config.keys) {
+  //   configStore.config.ai_config.keys[aiSupport.value] = key.value;
+  // }
 }
 
 const options = ref([

@@ -12,7 +12,8 @@ const useConfigStore = defineStore('config', ()=>{
     const tagGroupStates = reactive<{ [key: number]: boolean }>({});
     const save_tags = ref<Tag[][]>()
 
-    watch(() => config.value, (newConfig) => {
+    //注意，由于这个store是多个页面共享的，每个页面都会监听到变化，要注意多次触发的问题
+    watch(() => config.value, (newConfig, oldConfig) => {
         if (newConfig?.ui_config?.tag_group_state) {
             for (const [key, value] of Object.entries(newConfig.ui_config.tag_group_state)) {
                 const numericKey = Number(key);
@@ -21,7 +22,9 @@ const useConfigStore = defineStore('config', ()=>{
                 }
             }
         }
-        if (newConfig!=undefined){
+        //JSON.stringify(newConfig)!=JSON.stringify(oldConfig)防止多次触发
+        if (newConfig!=undefined&&JSON.stringify(newConfig)!=JSON.stringify(oldConfig)){
+            console.log("进来调用update_config")
             invoke('update_config', { config: newConfig }).then(() => {}).catch(() => {})
         }
     }, { immediate: true,deep : true });

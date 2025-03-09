@@ -1,8 +1,10 @@
+use std::cmp::PartialEq;
+use std::ops::Deref;
 use crate::config::{Config, ExeConfig};
 use log::{error, info};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, State};
-use crate::services::ai::{AiTrait, AI, ONCE_AI};
+use crate::services::ai::{AI, ONCE_AI};
 
 #[tauri::command]
 pub async fn get_config(state: State<'_, Mutex<Config>>) -> Result<Config, String> {
@@ -14,22 +16,41 @@ pub fn update_config(app_handle:AppHandle,state: State<'_, Mutex<Config>>, confi
     info!("更新配置：{:?}", config);
     let mut mutex_guard = state.lock().unwrap();
     mutex_guard.update(config.clone());
-    match AI::get_ai_from_config(config){
-        Ok(ai) => {
-            info!("更新AI：{:?}", ai);
-            {
-                tokio::spawn(async move {
-                    let mut o_ai = ONCE_AI.get().unwrap().lock().await;
-                    *o_ai = Some(ai);
-                });
-                // let mut o_ai = ONCE_AI.get().unwrap().lock().await;
-                // *o_ai = Some(ai);
+    let ai_config = config.ai_config;
+    if ai_config.use_ai{
+        tokio::spawn(async move {
+            let o_ai = &mut *ONCE_AI.get().unwrap().lock().await;
+            let result = if let Some(ai) = o_ai{
+                ai.update_by_ai_config(&ai_config)
+            }else {
+                match AI::get_ai_from_ai_config(&ai_config){
+                    Ok(ai) => {
+                        info!("更新AI：{}", ai);
+                        *o_ai = Some(ai);
+                        Ok(())
+                    },
+                    Err(e) => {Err(e)}
+                }
+            };
+            if let Err(e) = result{
+                error!("更新AI失败：{}", e);
+                let _ = app_handle.emit("backend_message", "根据配置更新AI失败。");
             }
-        },
-        Err(e) => {
-            error!("更新AI失败：{:?}", e);
-            let _ = app_handle.emit("backend_message", "根据配置更新AI失败。");
-        }
+            // if let None = o_ai{
+            //     match AI::get_ai_from_ai_config(ai_config){
+            //         Ok(ai) => {
+            //             info!("更新AI：{:?}", ai);
+            //             *o_ai = Some(ai);
+            //         },
+            //         Err(e) => {
+            //             error!("更新AI失败：{:?}", e);
+            //             let _ = app_handle.emit("backend_message", "根据配置更新AI失败。");
+            //         }
+            //     }
+            // }else { 
+            //     
+            // }
+        });
     }
     Ok(())
 }
@@ -39,7 +60,7 @@ pub async fn save_config(config: Config) -> Result<(), String> {
     match config.save_to_file().await {
         Ok(_) => Ok(()),
         Err(e) => {
-            error!("保存配置失败：{:?}", e);
+            error!("保存配置失败：{}", e);
             Err("保存配置失败".to_string())
         }
     }
@@ -52,7 +73,7 @@ pub async fn add_new_exe(path:String) -> Result<ExeConfig, String> {
             Ok(exe_config)
         },
         Err(e) => {
-            error!("添加程序失败：{:?}", e);
+            error!("添加程序失败：{}", e);
             Err("添加程序失败".to_string())
         }
     }

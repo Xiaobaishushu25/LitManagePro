@@ -25,7 +25,7 @@ pub async fn insert_docs(
     match handle_many_paths(flag,max_concurrency, app_handle, paths, tags_id).await {
         Ok(_) => Ok(()),
         Err(e) => {
-            error!("插入文档失败：{:?}", e);
+            error!("插入文档失败：{}", e);
             Err("插入文档失败".to_string())
         }
     }
@@ -38,17 +38,17 @@ pub async fn query_docs_by_tags(
     match handle_query_docs_by_tags(and_tags_id, or_tags_id).await {
         Ok(data) => Ok(data),
         Err(e) => {
-            error!("查找文档失败：{:?}", e);
+            error!("查找文档失败：{}", e);
             Err("查找文档失败".to_string())
         }
     }
 }
 #[tauri::command]
-pub async fn delete_doc(id: i32) -> Result<(), String> {
-    match DocumentCurd::delete(id).await {
+pub async fn delete_docs(ids: Vec<i32>) -> Result<(), String> {
+    match DocumentCurd::delete_many(ids).await {
         Ok(_) => Ok(()),
         Err(e) => {
-            error!("删除文档失败：{:?}", e);
+            error!("删除文档失败：{}", e);
             Err("删除文档失败".to_string())
         }
     }
@@ -63,7 +63,7 @@ pub async fn update_doc_detail(app_handle: tauri::AppHandle, doc: Document) -> R
             Ok(())
         }
         Err(e) => {
-            error!("更新文档失败：{:?}", e);
+            error!("更新文档失败：{}", e);
             Err("更新文档失败".to_string())
         }
     }
@@ -73,7 +73,7 @@ pub async fn open_doc_default(path: String) -> Result<(), String> {
     match open::that(path) {
         Ok(_) => Ok(()),
         Err(e) => {
-            error!("打开文档失败：{:?}", e);
+            error!("打开文档失败：{}", e);
             Err("打开文档失败".to_string())
         }
     }
@@ -83,7 +83,7 @@ pub async fn open_dir(path: String) -> Result<(), String> {
     match open::that(PathBuf::from(path).parent().unwrap()) {
         Ok(_) => Ok(()),
         Err(e) => {
-            error!("打开文档所在目录失败：{:?}", e);
+            error!("打开文档所在目录失败：{}", e);
             Err("打开文档所在目录失败".to_string())
         }
     }
@@ -94,7 +94,7 @@ pub async fn open_with_exe(exe_path: String, file_path: String) -> Result<(), St
     match open::with(file_path, exe_path) {
         Ok(()) => Ok(()),
         Err(err) => {
-            error!("使用指定的可执行文件打开文件失败：{:?}", err);
+            error!("使用指定的可执行文件打开文件失败：{}", err);
             Err("使用指定的可执行文件打开文件失败".to_string())
         }
     }
@@ -143,7 +143,6 @@ mod doc_util {
             "progress_event",
             Progress::new(
                 progress_id,
-                true,
                 "正在插入文档".to_string(),
                 0f64,
                 total as f64,
@@ -211,8 +210,8 @@ mod doc_util {
                                                 match handle_new_paper(&path_s, id).await {
                                                     Ok(part_doc) => {
                                                         if let Err(e) = DocumentCurd::update_document_by_part_doc(part_doc).await {
-                                                            error!("更新文档失败: {:?}", e);
-                                                            let _ = app_handle.emit("backend_message", format!("更新文档失败: {:?}", e), );
+                                                            error!("更新文档失败: {}", e);
+                                                            let _ = app_handle.emit("backend_message", format!("更新文档失败: {}", e), );
                                                             update_progress(progress_id,app_handle, "更新文档出现错误",1, count, total).await;
                                                         } else {
                                                             let document_tags = DocumentTags::from_doc_id(id).await;
@@ -272,7 +271,7 @@ mod doc_util {
                             }
                         }
                         Err(e) => {
-                            let err_msg = format!("插入文档{}失败: {:?}", path.display(), e);
+                            let err_msg = format!("插入文档{}失败: {}", path.display(), e);
                             error!("{}", err_msg);
                             let _ = app_handle.emit("backend_message", err_msg);
                             update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
@@ -339,13 +338,13 @@ mod doc_util {
             .ok_or(Tip("请正确配置AI来解析文档。".into()))?;
         let content = extract_limit_pages(path_s, doc_id)
             .await
-            .map_err(|e| Tip(format!("提取PDF内容失败: {:?}", e)))?;
+            .map_err(|e| Tip(format!("提取PDF内容失败: {}", e)))?;
         let json_data = ai
             .analyse_paper(content, doc_id)
             .await
-            .map_err(|e| Tip(format!("AI分析失败: {:?}", e)))?;
+            .map_err(|e| Tip(format!("AI分析失败: {}", e)))?;
         let part_doc = serde_json::from_str::<PartDoc>(&json_data)
-            .map_err(|e| Tip(format!("解析JSON失败: {:?}", e)))?;
+            .map_err(|e| Tip(format!("解析JSON失败: {}", e)))?;
         Ok(part_doc)
     }
     async fn update_progress(
@@ -360,7 +359,7 @@ mod doc_util {
         let now = now.load(Ordering::SeqCst) as f64;
         let _r = app_handle.emit(
             "progress_event",
-            Progress::new(progress_id, true, msg.into(), now, max as f64),
+            Progress::new(progress_id, msg.into(), now, max as f64),
         );
     }
 }

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-
-import {WindowTitlebar} from "@tauri-controls/vue";
 import RightBar from "../layouts/RightBar.vue";
 import MainContent from "../layouts/MainContent.vue";
 import Footer from "../layouts/Footer.vue";
@@ -8,7 +6,6 @@ import {onMounted, onUnmounted} from "vue";
 import {listen} from "@tauri-apps/api/event";
 import {message} from "../message.ts";
 import {invoke} from "@tauri-apps/api/core";
-import InlineSvg from "../main.ts";
 
 let unlistenMsg: () => void;
 onMounted(async ()=>{

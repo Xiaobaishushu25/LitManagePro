@@ -38,6 +38,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Table: typeof import('./src/components/main/Table.vue')['default']
+    Table2: typeof import('./src/components/main/Table2.vue')['default']
     TagCard: typeof import('./src/components/main/TagCard.vue')['default']
     TagComplete: typeof import('./src/components/main/TagComplete.vue')['default']
     Tree: typeof import('./src/components/main/Tree.vue')['default']

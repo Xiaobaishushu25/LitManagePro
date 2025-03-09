@@ -2,7 +2,7 @@
 
 import Table from "../components/main/Table.vue";
 import TagCard from "../components/main/TagCard.vue";
-import {ref} from "vue";
+import {onMounted, ref} from "vue";
 import useConfigStore from "../stroe/config.ts";
 
 const configStore = useConfigStore()
@@ -13,6 +13,9 @@ const handleDragEnd = () => {
   const formattedSize = parseFloat(splitSize.value.toFixed(2));
   console.log('拖动结束，新的分隔比例（保留两位小数）:', formattedSize);
 };
+onMounted(() => {
+  console.log(configStore.config?.ui_config)
+})
 </script>
 
 <template>

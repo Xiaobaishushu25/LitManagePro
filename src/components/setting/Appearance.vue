@@ -8,18 +8,15 @@ import {h, ref, watch, computed, VNode, nextTick} from "vue";
 import InlineSvg from "vue-inline-svg";
 import {SelectOption} from "naive-ui";
 
-const configStore = useConfigStore()
-console.log(configStore.config)
-
-const use_ai = ref()
-
 const defaultModelRef = ref()
 
-const aiSupport = ref(); // 当前选中的值
+const configStore = useConfigStore()
+const use_ai = ref(configStore.config?.ai_config.use_ai || false)
+const aiSupport = ref(configStore.config?.ai_config.default_ai || "kimi"); // 当前选中的值
 const key = ref()
 const defaultModel = ref()
-const maxConcurrency = ref()
-const onLine = ref()
+const maxConcurrency = ref(configStore.config?.ai_config.max_concurrency || 3)
+const onLine = ref(configStore.config?.ai_config.online || false)
 // 将字符串数组转换为对象数组
 const modelOptions = computed(() => {
   return configStore.config?.ai_config.models[aiSupport.value]?.map(item => ({
@@ -28,17 +25,18 @@ const modelOptions = computed(() => {
   }));
 });
 
-watch(()=>configStore.config,async (_newValue, oldValue)=>{
-  if (oldValue==undefined){
-    use_ai.value = configStore.config?.ai_config.use_ai || false;
-    aiSupport.value = configStore.config?.ai_config.default_ai || "kimi";
-    maxConcurrency.value = configStore.config?.ai_config.max_concurrency || 3;
-    onLine.value = configStore.config?.ai_config.online || false;
-  }
-},{deep:true})
+// watch(()=>configStore.config,async (_newValue, oldValue)=>{
+//   if (oldValue==undefined){
+//     use_ai.value = configStore.config?.ai_config.use_ai || false;
+//     aiSupport.value = configStore.config?.ai_config.default_ai || "kimi";
+//     maxConcurrency.value = configStore.config?.ai_config.max_concurrency || 3;
+//     onLine.value = configStore.config?.ai_config.online || false;
+//   }
+// },{deep:true})
 
 watch(()=>use_ai.value,async (value)=>{
   if (configStore.config==undefined||value==undefined) return
+  console.log("use_ai",value)
   configStore.config.ai_config.use_ai = value
 })
 watch(()=>aiSupport.value, async (value)=>{{
@@ -226,7 +224,7 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
                   style="width: 200px"
               />
             </n-flex>
-            <n-input v-model:value="key" placeholder="请填入对应的apiKey" size="small" style="width: 400px"  @blur="setNewKey"></n-input>
+            <n-input v-model:value="key" placeholder="请填入对应的apiKey" size="small" style="width: 350px"  @blur="setNewKey"></n-input>
           </div>
           <div class="setting-card-row">
             <label>选择使用模型:</label>

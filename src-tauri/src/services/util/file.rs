@@ -5,9 +5,7 @@ use file_icon_provider::get_file_icon;
 use image::{DynamicImage, RgbaImage};
 use lopdf::Document;
 use std::fs;
-use std::fs::File;
 use std::path::Path;
-
 pub async fn extract_limit_pages(path: &str, id: i32) -> AppResult<String> {
     let new_path = segment_pdf(path, id).await?;
     let content = extract_pdf(&new_path).await?;
@@ -16,7 +14,7 @@ pub async fn extract_limit_pages(path: &str, id: i32) -> AppResult<String> {
 /// 分页pdf
 ///
 async fn segment_pdf(path: &str, id: i32) -> AppResult<String> {
-    let mut doc = Document::load(path).unwrap();
+    let mut doc = Document::load(path).map_err(|e| Tip(format!("加载pdf失败{:#}", e)))?;
     let total_pages = doc.get_pages().keys().len();
     // 如果总页数大于 3，删除第 4 页及以后的页
     if total_pages > 3 {
@@ -49,4 +47,22 @@ pub fn get_and_save_icon(path: &str, size: u16) -> AppResult<(String, String)> {
         .save_with_format(save_path.clone(), image::ImageFormat::Png)
         .map_err(|e| Tip(format!("保存图标失败{:#}", e)))?;
     Ok((name.into(), save_path))
+}
+#[cfg(test)]
+mod test{
+    use std::fs::File;
+
+    #[test]
+    fn test_open_pdf() {
+        // todo lopdf无法加载一些文件
+        // let path = "F:\\科研\\论文\\基于对抗样本的神经网络安全性问题研究综述_李紫珊.pdf";
+        let path = "F:\\科研\\论文\\基于频域分析的可迁移对抗攻击算法研究_李腾蛟.pdf";
+        // let path = "F:\\科研\\论文\\RTRGAN-崔宝杰.pdf";
+        if let Err(e) = lopdf::Document::load(path){
+            println!("{:#}", e);
+        }
+        let file = File::open(path).unwrap();
+        let metadata = file.metadata().unwrap();
+        println!("{:?}", metadata);
+    }
 }

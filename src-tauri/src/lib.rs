@@ -1,7 +1,7 @@
 use crate::init::init_app;
-use crate::services::commands::config::{get_config, save_config,add_new_exe};
+use crate::services::commands::config::{get_config, save_config,add_new_exe,update_config};
 use crate::services::commands::doc::{
-    delete_doc, insert_docs, open_dir, open_doc_default, open_with_exe, query_docs_by_tags,
+    delete_docs, insert_docs, open_dir, open_doc_default, open_with_exe, query_docs_by_tags,
     update_doc_detail,
 };
 use crate::services::commands::tag::{
@@ -25,7 +25,7 @@ mod entities;
 pub async fn run() {
     //用于存储界面初始化之前的错误信息
     let mut err_msg = vec![];
-    //_log_guard存活的周期内才能写入日志，所以需要返回给调用者。o_ai表示可能为None。
+    //_log_guard存活的周期内才能写入日志，所以需要返回给调用者。
     let (_log_guard, config) = init_app(&mut err_msg).await;
     info!("litManagePro ui start...");
     tauri::Builder::default()
@@ -35,7 +35,6 @@ pub async fn run() {
         .plugin(tauri_plugin_os::init())
         .manage(Mutex::new(config))
         .manage(err_msg)
-        // .manage(tokio::sync::Mutex::new(o_ai))
         .invoke_handler(tauri::generate_handler![
             first_run,
             query_tag_groups,
@@ -46,6 +45,7 @@ pub async fn run() {
             delete_group,
             get_config,
             save_config,
+            update_config,
             add_new_exe,
             insert_doc_tag,
             delete_doc_tag,
@@ -54,7 +54,7 @@ pub async fn run() {
             query_docs_by_tags,
             update_doc_detail,
             delete_doc_tag,
-            delete_doc,
+            delete_docs,
             open_dir,
             open_doc_default,
             open_with_exe,

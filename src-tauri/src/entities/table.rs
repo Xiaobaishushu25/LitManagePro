@@ -12,8 +12,8 @@ where
     match execution.await {
         Ok(_) => info!("Created {} table.", entity.table_name()),
         Err(e) => {
-            error!("create data table error: {:?}", e);
-            panic!("create data table error: {:?}", e);
+            error!("create data table error: {}", e);
+            panic!("create data table error: {}", e);
         }
     }
 }

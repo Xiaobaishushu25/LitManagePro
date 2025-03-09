@@ -27,7 +27,9 @@ const emit = defineEmits(['update:value'])
 const inputRef = ref<InstanceType<typeof NInput> | null>(null)
 const isEditing = ref(false)
 
+const originalValue = ref<string | null>(null) // 用于保存原始值
 function toggleEdit() {
+  originalValue.value = props.value // 保存当前值为原始值
   isEditing.value = true
   nextTick(() => {
     inputRef.value?.focus()
@@ -40,11 +42,19 @@ function handleSave() {
   if (finalValue === undefined) {
     return
   }
-  if (typeof props.onSave === 'function') {
-    props.onSave(finalValue)
-  } else {
-    emit('update:value', finalValue)
+  // 比较新值和原始值是否相同
+  if (finalValue !== originalValue.value) {
+    if (typeof props.onSave === 'function') {
+      props.onSave(finalValue)
+    } else {
+      emit('update:value', finalValue)
+    }
   }
+  // if (typeof props.onSave === 'function') {
+  //   props.onSave(finalValue)
+  // } else {
+  //   emit('update:value', finalValue)
+  // }
 }
 </script>
 

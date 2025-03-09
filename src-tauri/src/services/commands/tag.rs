@@ -12,7 +12,7 @@ pub async fn query_tag_groups() -> Result<Vec<TagAndGroups>, String> {
     match get_tag_and_groups().await {
         Ok(data) => Ok(data),
         Err(e) => {
-            let err_msg = format!("查询标签失败:{:?}", e);
+            let err_msg = format!("查询标签失败:{}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }
@@ -25,7 +25,7 @@ pub async fn create_tag(tag: Tag) -> Result<Tag, String> {
     match TagCurd::insert(tag).await {
         Ok(tag) => Ok(tag),
         Err(e) => {
-            let err_msg = format!("插入标签失败:{:?}", e);
+            let err_msg = format!("插入标签失败:{}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }
@@ -38,7 +38,7 @@ pub async fn delete_tag(id: i32) -> Result<(), String> {
     match TagCurd::delete(id).await {
         Ok(_) => Ok(()),
         Err(e) => {
-            let err_msg = format!("删除标签失败:{:?}", e);
+            let err_msg = format!("删除标签失败:{}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }
@@ -51,7 +51,7 @@ pub async fn create_tag_group(group_name: String) -> Result<TagGroup, String> {
     match TagGroupCurd::insert(&group_name).await {
         Ok(group) => Ok(group),
         Err(e) => {
-            let err_msg = format!("创建标签组{group_name}失败：{:?}", e);
+            let err_msg = format!("创建标签组{group_name}失败：{}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }
@@ -62,7 +62,7 @@ pub async fn delete_group(id: i32) -> Result<(), String> {
     match TagGroupCurd::delete(id).await {
         Ok(_) => Ok(()),
         Err(e) => {
-            let err_msg = format!("删除标签组失败：{:?}", e);
+            let err_msg = format!("删除标签组失败：{}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }
@@ -73,7 +73,7 @@ pub async fn rename_tag_group(id: i32, name: String) -> Result<(), String> {
     match TagGroupCurd::update_name(id, &name).await {
         Ok(_) => Ok(()),
         Err(e) => {
-            let err_msg = format!("修改标签组名为{name}失败：{:?}", e);
+            let err_msg = format!("修改标签组名为{name}失败：{}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }
@@ -85,7 +85,7 @@ pub async fn insert_doc_tag(doc_id: i32, tag_id: i32) -> Result<(), String> {
     match DocAndTagCurd::insert(doc_id, tag_id).await {
         Ok(_) => Ok(()),
         Err(e) => {
-            let err_msg = format!("保存文档标签失败：{:?}", e);
+            let err_msg = format!("保存文档标签失败：{}", e);
             error!("{}", err_msg);
             Err(err_msg)
         }
@@ -104,7 +104,7 @@ pub async fn delete_doc_tag(
             Ok(())
         }
         Err(e) => {
-            error!("删除文档的标签失败：{:?}", e);
+            error!("删除文档的标签失败：{}", e);
             Err("删除文档的标签失败".to_string())
         }
     }
@@ -122,7 +122,7 @@ pub async fn update_doc_tags(
             Ok(())
         }
         Err(e) => {
-            error!("更新文档的标签失败：{:?}", e);
+            error!("更新文档的标签失败：{}", e);
             Err("更新文档的标签失败".to_string())
         }
     }

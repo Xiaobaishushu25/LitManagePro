@@ -1,9 +1,11 @@
+use std::fmt;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use reqwest::Client;
 use serde_json::{Value, json};
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
+use crate::config::{AiConfig, Config};
 
 mod deepseek;
 mod kimi;
@@ -32,11 +34,29 @@ impl AI {
             online,
         }
     }
-    pub fn change(&mut self, supporter: String, key: String, model: String, online: bool) {
-        self.supporter = supporter;
-        self.key = key;
-        self.model = model;
+    pub fn get_ai_from_ai_config(ai_config: &AiConfig) ->AppResult<AI>{
+        let (supporter, key, model, online) = Self::parse_ai_config(ai_config)?;
+        let ai = AI::new(
+            supporter.into(),
+            key.to_string(),
+            model.to_string(),
+            online
+        );
+        Ok(ai)
+    }
+    pub fn update_by_ai_config(&mut self, ai_config: &AiConfig)->AppResult<()> {
+        let (supporter, key, model, online) = Self::parse_ai_config(ai_config)?;
+        self.supporter = supporter.into();
+        self.key = key.into();
+        self.model = model.into();
         self.online = online;
+        Ok(())
+    }
+    fn parse_ai_config(ai_config: &AiConfig)->AppResult<(&String,&String,&String,bool)>{
+        let default_ai = &ai_config.default_ai;
+        let key = ai_config.keys.get(default_ai).ok_or(Tip(format!("未找到{}对应的key", default_ai)))?;
+        let model = ai_config.default_model.get(default_ai).ok_or(Tip(format!("未找到{}对应的默认模型", default_ai)))?;
+        Ok((default_ai,key,model,ai_config.online))
     }
     pub async fn analyse_paper(&self, paper_content: String, paper_id: i32) -> AppResult<String> {
         let url = match self.supporter.as_str() {
@@ -78,5 +98,15 @@ impl AI {
             .as_str()
             .ok_or(Tip(format!("content字段解析出错:{}", text)))?;
         Ok(content.into())
+    }
+}
+impl fmt::Display for AI {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // 在这里指定要显示的字段，忽略 client 字段
+        write!(
+            f,
+            "AI {{ supporter: {}, key: {}, model: {}, online: {} }}",
+            self.supporter, self.key, self.model, self.online
+        )
     }
 }

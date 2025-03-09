@@ -10,21 +10,23 @@ pub async fn init_app(err_msg: &mut Vec<String>) -> (WorkerGuard, Config) {
     init_db_coon().await;
     let mut ai = None;
     if config.ai_config.use_ai {
-        if config.ai_config.default_ai != "" && config.ai_config.default_model != "" {
+        let default_ai = config.ai_config.default_ai.clone();
+        let o_default_model = config.ai_config.default_model.get(&default_ai);
+        if default_ai != "" && o_default_model != None {
             if config
                 .ai_config
                 .keys
-                .contains_key(&config.ai_config.default_ai)
+                .contains_key(&default_ai)
             {
                 ai = Some(AI::new(
-                    config.ai_config.default_ai.clone(),
+                    default_ai.clone(),
                     config
                         .ai_config
                         .keys
-                        .get(&config.ai_config.default_ai)
+                        .get(&default_ai)
                         .unwrap()
                         .clone(),
-                    config.ai_config.default_model.clone(),
+                    o_default_model.unwrap().to_string(),
                     config.ai_config.online,
                 ));
             } else {

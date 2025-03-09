@@ -4,7 +4,6 @@ import {listen} from "@tauri-apps/api/event";
 
 interface Progress {
   id:number,
-  show:boolean,
   msg:string
   now:number,
   max:number,
@@ -24,7 +23,6 @@ watch(
       const totalMax = progresss.value.reduce((sum, p) => sum + p.max, 0);
       total_progress.value = {
         id: -1, // 虚拟 ID
-        show: true,
         msg: 'Total Progress',
         now: totalNow,
         max: totalMax,
@@ -55,6 +53,7 @@ onMounted(async ()=>{
   unlistenProgress = await listen('progress_event', (event: { payload: Progress }) => {
     // 解构事件中的新进度数据
     const newProgress = event.payload
+    console.log(newProgress)
     // 更新消息内容
     newMessage.value = newProgress.msg
     // 在 progresss 数组中查找是否存在具有相同 ID 的进度项
@@ -91,6 +90,7 @@ const percentage = computed(() => {
   <div>
     <n-flex class="bg-gray-200 size-full" align="center">
       <n-flex align="center" v-if="total_progress" class="ml-auto mr-5" :size="10">
+        {{newMessage}}
         <n-progress
             type="line"
             :percentage="percentage"

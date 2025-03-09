@@ -30,6 +30,8 @@ const selectedRows = ref<DocumentTags[]>([]); // Store selected rows
 const lastClickedIndex = ref<number | null>(null); // Store the index of the last clicked row
 const tableRef = ref()
 
+const splitSize = ref(configStore.config?.ui_config.split_size[1]||0.65);
+
 const showDocDeleteModal = ref(false)
 
 const contextMenuShow = ref(false)
@@ -48,6 +50,7 @@ const handleBlur = () => {
 onMounted(async ()=>{
   unlistenFile = await listen('tauri://drag-drop', async (event:{ payload:{paths: string[]}})=>{
     let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
+    console.log(selectTagId)
     await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
   })
   unlistenDoc = await listen('insert_doc', (event: {payload:DocumentTags}) => {
@@ -64,6 +67,11 @@ onUnmounted(()=>{
   unlistenDocUp()
   window.removeEventListener('blur', handleBlur);
 })
+// watch(()=>configStore.config,async (_newValue, oldValue)=>{
+//   if (oldValue==undefined){
+//     splitSize.value = configStore.config?.ui_config.split_size[1]||0.65;
+//   }
+// })
 watch([watchAndTags, watchOrTags], (_, _oldValue) => {
   invoke<DocumentTags[]>('query_docs_by_tags',
       {andTagsId: tagStore.andTags.map(tag => tag.id), orTagsId: tagStore.orTags.map(tag => tag.id)}
@@ -294,7 +302,10 @@ function openWithExe(exePath:string){
   })
 }
 ///-------------------------------------右键事件---------------end---------
-
+const handleDragEnd = () => {
+  //注意，这个配置改变config那边没监听到，但是最后保存时是没问题的。
+  configStore.config!.ui_config.split_size[1] = parseFloat(splitSize.value.toFixed(2));
+};
 </script>
 
 <template>
@@ -302,7 +313,7 @@ function openWithExe(exePath:string){
     <tag-complete></tag-complete>
     <div>
 <!--      这里的v-if是为了在data有数据时才渲染，不然default-expand-all无法作用-->
-      <n-split direction="horizontal" v-if="docsStore.docs!==null" class="h-full mt-2" :max="1" :min="0" :default-size="0.65" >
+      <n-split direction="horizontal" v-if="docsStore.docs!==null" class="h-full mt-2" :max="1" :min="0" :size="splitSize"  @update:size="(e:number) => splitSize = e" @drag-end="handleDragEnd" >
         <template #1>
           <div @keydown="handleKeyDown" tabindex="0" class="outline-none">
             <n-scrollbar class="h-[80vh]" :size="5">

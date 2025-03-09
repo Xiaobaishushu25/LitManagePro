@@ -1,3 +1,4 @@
+use anyhow::Context;
 use sea_orm::QueryFilter;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
@@ -43,26 +44,30 @@ impl DocumentCurd {
     //     Ok(())
     // }
     ///根据文档id删除文档，同时删除文档和标签的关联关系
-    pub async fn delete(id: i32) -> AppResult<()> {
-        let db = crate::entities::DB
-            .get()
-            .ok_or(Tip("数据库未初始化".into()))?;
-        let doc = Documents::find_by_id(id).one(db).await?;
-        if let Some(doc) = doc {
-            let vec = doc.find_related(DocAndTags).all(db).await?;
-            for doc_and_tag in vec {
-                doc_and_tag.delete(db).await?;
-            }
-            doc.delete(db).await?;
-        }
-        Ok(())
-    }
+    /// 应该用不到，而且实现还存在问题，需要先删除doc_and_tag表的关联关系，再删除文档
+    // pub async fn delete(id: i32) -> AppResult<()> {
+    //     let db = crate::entities::DB
+    //         .get()
+    //         .ok_or(Tip("数据库未初始化".into()))?;
+    //     let doc = Documents::find_by_id(id).one(db).await?;
+    //     if let Some(doc) = doc {
+    //         let vec = doc.find_related(DocAndTags).all(db).await?;
+    //         for doc_and_tag in vec {
+    //             doc_and_tag.delete(db).await?;
+    //         }
+    //         doc.delete(db).await?;
+    //     }
+    //     Ok(())
+    // }
+    /// 批量删除文档，同时删除文档和标签的关联关系
+    /// 由于有外键关系，所以需要先删除doc_and_tag表的关联关系，再删除文档
     pub async fn delete_many(ids: Vec<i32>) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
-        Documents::delete_many().filter(Column::Id.is_in(ids.clone())).exec(db).await?;
-        DocAndTags::delete_many().filter(crate::entities::doc_and_tag::Column::DocId.is_in(ids)).exec(db).await?;
+        // Documents::delete_many().filter(Column::Id.is_in(ids.clone())).exec(db).await.with_context(|| "删除文档失败")?;
+        DocAndTags::delete_many().filter(crate::entities::doc_and_tag::Column::DocId.is_in(ids.clone())).exec(db).await?;
+        Documents::delete_many().filter(Column::Id.is_in(ids.clone())).exec(db).await.map_err(|e| Tip(format!("删除文档失败:{:#}",e)))?;
         Ok(())
     }
     pub async fn update_detail(doc_new: Document) -> AppResult<()> {

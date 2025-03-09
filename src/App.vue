@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, onUnmounted, watch} from "vue";
+import {onMounted, onUnmounted} from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {message, } from './message.ts';
@@ -44,11 +44,13 @@ onUnmounted(async ()=>{
 </script>
 
 <template>
-  <router-view v-slot="{ Component }">
-    <keep-alive>
-      <component :is="Component" />
-    </keep-alive>
-  </router-view>
+  <div v-if="configStore.config">
+    <router-view v-slot="{ Component }">
+      <keep-alive>
+        <component :is="Component" />
+      </keep-alive>
+    </router-view>
+  </div>
 </template>
 
 <style scoped>

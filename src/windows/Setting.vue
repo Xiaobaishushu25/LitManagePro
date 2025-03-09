@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import Appearance from "../components/setting/Appearance.vue";
+import useConfigStore from "../stroe/config.ts";
 
+const configStore = useConfigStore()
 
 </script>
 
 <template>
-  <div>
+  <div v-if="configStore.config">
     <n-tabs
         type="card"
         placement="left"

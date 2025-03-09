@@ -3,7 +3,7 @@ import {computed, nextTick, onMounted, onUnmounted, ref, watch} from "vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
 import {DocumentTags} from "./main-type.ts";
 import { h } from 'vue'
-import {DataTableColumns} from "naive-ui";
+import {DataTableColumn, DataTableColumns, NSpin} from "naive-ui";
 import {message} from "../../message.ts";
 import { listen } from '@tauri-apps/api/event'
 import {convertFileSrc, invoke} from "@tauri-apps/api/core";
@@ -24,10 +24,12 @@ const watchOrTags = computed(() => tagStore.orTags)
 let unlistenFile: () => void;
 let unlistenDoc: () => void;
 let unlistenDocUp: () => void;
+let unlistenParse: () => void;
 
 const selectedRowIndex = ref(-1);
 const selectedRows = ref<DocumentTags[]>([]); // Store selected rows
 const lastClickedIndex = ref<number | null>(null); // Store the index of the last clicked row
+const parseIngIds = ref<number[]>([])
 const tableRef = ref()
 
 const showDocDeleteModal = ref(false)
@@ -49,6 +51,14 @@ onMounted(async ()=>{
   unlistenFile = await listen('tauri://drag-drop', async (event:{ payload:{paths: string[]}})=>{
     let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
     await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
+  })
+  unlistenParse = await listen('parse_doc', (event: {payload:[boolean,number]}) => {
+    console.log(event.payload)
+    if (event.payload[0]){
+      parseIngIds.value.push(event.payload[1])
+    }else{
+      parseIngIds.value = parseIngIds.value.filter(id => id !== event.payload[1])
+    }
   })
   unlistenDoc = await listen('insert_doc', (event: {payload:DocumentTags}) => {
     docsStore.addNewDoc(event.payload)
@@ -85,6 +95,14 @@ watch(
       immediate: true  // 立即触发一次初始值计算
     }
 )
+watch(() => parseIngIds.value, (newValue, oldValue) => {
+  console.log(newValue,oldValue)
+  if (newValue.length>0&&oldValue.length==0){
+    columns.value.push(parseColumn)
+  }else if (newValue.length==0){
+    columns.value = columns.value.filter(column => column!.key !== parseColumn!.key);
+  }
+},{deep:true})
 const createColumns = (): DataTableColumns<DocumentTags> => [
   {
     type: 'expand',
@@ -153,7 +171,16 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
   //   }
   // }
 ]
-const columns = createColumns()
+let columns = ref(createColumns())
+const parseColumn: DataTableColumn<DocumentTags> = {
+  title: '解析',
+  key: 'parse',
+  render(row: DocumentTags) {
+    if (parseIngIds.value.includes(row.id)) {
+      return h(NSpin, { size: 13 });
+    }
+  },
+};
 // 定义当前选中的行
 const getRowClassName = (row: DocumentTags) => {
   if (selectedRows.value.includes(row)||docsStore.currentSelectDoc===row) {
@@ -161,9 +188,6 @@ const getRowClassName = (row: DocumentTags) => {
   }
 };
 
-// const rowClick = (row: DocumentTags) => {
-//   docsStore.setCurrentSelectDoc(row);
-// };
 const rowClick = (row: DocumentTags, index: number, event: MouseEvent) => {
   if (event.button === 2) {
     if (selectedRows.value.length>1){

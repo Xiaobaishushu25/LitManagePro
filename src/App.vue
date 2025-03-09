@@ -13,7 +13,6 @@ let unlisten: () => void;
 
 invoke<Config>('get_config',{}).then(data => {
   configStore.config = data;
-  console.log(configStore.config?.ui_config)
 }).catch(e => {
   message.error(e);
 })
@@ -31,9 +30,7 @@ onMounted(async () => {
         message.error(`保存配置出错${e}`);
       })
     }
-    // await invoke('exit_app', {})
   });
-  console.log(configStore.config?.ui_config)
 })
 
 // 暴露 store 实例

@@ -206,9 +206,11 @@ mod doc_util {
                                                     total,
                                                 )
                                                 .await;
+                                                let _ = app_handle.emit("parse_doc", (true, id));
                                                 // match handle_new_paper(o_ai, &path_s, id).await {
                                                 match handle_new_paper(&path_s, id).await {
                                                     Ok(part_doc) => {
+                                                        let _ = app_handle.emit("parse_doc", (false, id));
                                                         if let Err(e) = DocumentCurd::update_document_by_part_doc(part_doc).await {
                                                             error!("更新文档失败: {}", e);
                                                             let _ = app_handle.emit("backend_message", format!("更新文档失败: {}", e), );
@@ -221,6 +223,7 @@ mod doc_util {
                                                     }
                                                     Err(e) => {
                                                         error!("{}", e);
+                                                        let _ = app_handle.emit("parse_doc", (false, id));
                                                         let _ = app_handle
                                                             .emit("backend_message", e.to_string());
                                                         update_progress(

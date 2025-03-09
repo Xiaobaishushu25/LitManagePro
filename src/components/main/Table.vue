@@ -56,7 +56,6 @@ onMounted(async ()=>{
     await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
   })
   unlistenParse = await listen('parse_doc', (event: {payload:[boolean,number]}) => {
-    console.log(event.payload)
     if (event.payload[0]){
       parseIngIds.value.push(event.payload[1])
     }else{
@@ -75,6 +74,7 @@ onUnmounted(()=>{
   unlistenFile()
   unlistenDoc()
   unlistenDocUp()
+  unlistenParse()
   window.removeEventListener('blur', handleBlur);
 })
 // watch(()=>configStore.config,async (_newValue, oldValue)=>{
@@ -103,12 +103,13 @@ watch(
       immediate: true  // 立即触发一次初始值计算
     }
 )
-watch(() => parseIngIds.value, (newValue, oldValue) => {
-  console.log(newValue,oldValue)
-  if (newValue.length>0&&oldValue.length==0){
+watch(() => parseIngIds.value, (newValue, _oldValue) => {
+  //不知道为什么第一次变化时old和new一样的，所以只能判断有没有解析列了
+  const hasParseColumn = columns.value.some(column => column!.key === parseColumn!.key);
+  if (newValue.length>0&&!hasParseColumn){
     columns.value.push(parseColumn)
   }else if (newValue.length==0){
-    columns.value = columns.value.filter(column => column!.key !== parseColumn!.key);
+    columns.value = columns.value.filter(column => column?.key !== parseColumn?.key);
   }
 },{deep:true})
 const createColumns = (): DataTableColumns<DocumentTags> => [
@@ -179,7 +180,7 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
   //   }
   // }
 ]
-let columns = ref(createColumns())
+let columns = ref<DataTableColumns<DocumentTags>>(createColumns())
 const parseColumn: DataTableColumn<DocumentTags> = {
   title: '解析',
   key: 'parse',

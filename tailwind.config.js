@@ -14,6 +14,7 @@ export default {
         'label': ['"Open Sans"', 'sans-serif'], // 英文标签字体 (thin version)
         'yahei': ['"Microsoft YaHei"', 'sans-serif'], // 中文标题字体：微软雅黑
         'heiti': ['"SimHei"', 'sans-serif'], // 中文标题字体：微软雅黑
+        'wenKai': ['"wenKai"', 'sans-serif']
       },
     },
   },

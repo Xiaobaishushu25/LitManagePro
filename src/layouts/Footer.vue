@@ -6,7 +6,7 @@ interface Progress {
   id:number,
   msg:string
   now:number,
-  max:number,
+  total:number,
 }
 const progresss = ref<Progress[]>([])
 const total_progress = ref<Progress|null>(null)
@@ -20,12 +20,12 @@ watch(
         return null;
       }
       const totalNow = progresss.value.reduce((sum, p) => sum + p.now, 0);
-      const totalMax = progresss.value.reduce((sum, p) => sum + p.max, 0);
+      const totalMax = progresss.value.reduce((sum, p) => sum + p.total, 0);
       total_progress.value = {
         id: -1, // 虚拟 ID
         msg: 'Total Progress',
         now: totalNow,
-        max: totalMax,
+        total: totalMax,
       };
       // 检测进度是否完成
       if (totalNow >= totalMax) {
@@ -76,11 +76,11 @@ const percentage = computed(() => {
   if (!total_progress.value) {
     return 0; // 没有数据时不显示进度
   }
-  const { now, max } = total_progress.value;
-  if (max === 0) {
+  const { now, total } = total_progress.value;
+  if (total === 0) {
     return 100; // 防止除以零
   }
-  const percent = (now / max) * 100;
+  const percent = (now / total) * 100;
   return Math.round(percent * 100) / 100; // 保留两位小数
 });
 </script>
@@ -99,7 +99,11 @@ const percentage = computed(() => {
             style="width: 200px;"
             rail-color="#87CEFA"
             :processing="processing"
-        />
+        >
+          <template #default>
+            {{total_progress.now}}/{{total_progress.total}}
+          </template>
+        </n-progress>
       </n-flex>
     </n-flex>
   </div>

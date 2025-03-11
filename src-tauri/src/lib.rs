@@ -1,8 +1,8 @@
 use crate::init::init_app;
 use crate::services::commands::config::{get_config, save_config,add_new_exe,update_config};
 use crate::services::commands::doc::{
-    delete_docs, insert_docs, open_dir, open_doc_default, open_with_exe, query_docs_by_tags,
-    update_doc_detail,
+    delete_docs, insert_docs, open_dir, open_by_system, open_by_app, open_with_exe, query_docs_by_tags,
+    update_doc_detail, summarize_docs_by_ai,
 };
 use crate::services::commands::tag::{
     create_tag, create_tag_group, delete_doc_tag, delete_group, delete_tag, insert_doc_tag,
@@ -53,10 +53,12 @@ pub async fn run() {
             insert_docs,
             query_docs_by_tags,
             update_doc_detail,
+            summarize_docs_by_ai,
             delete_doc_tag,
             delete_docs,
             open_dir,
-            open_doc_default,
+            open_by_system,
+            open_by_app,
             open_with_exe,
             exit_app
         ])

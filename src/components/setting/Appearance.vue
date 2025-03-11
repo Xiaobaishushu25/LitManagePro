@@ -8,9 +8,10 @@ import {h, ref, watch, computed, VNode, nextTick} from "vue";
 import InlineSvg from "vue-inline-svg";
 import {SelectOption} from "naive-ui";
 
+const configStore = useConfigStore()
+
 const defaultModelRef = ref()
 
-const configStore = useConfigStore()
 const use_ai = ref(configStore.config?.ai_config.use_ai || false)
 const aiSupport = ref(configStore.config?.ai_config.default_ai || "kimi"); // 当前选中的值
 const key = ref()
@@ -24,15 +25,69 @@ const modelOptions = computed(() => {
     value: item
   }));
 });
+//------------------------------------表格外观设置begin------------------------------------------
+const expand = ref(configStore.config?.ui_config.table_expand||true)
+watch(() => expand.value, async (value:boolean) => {
+  configStore.config!.ui_config.table_expand = value
+})
+//------------------------------------表格外观设置end------------------------------------------
 
-// watch(()=>configStore.config,async (_newValue, oldValue)=>{
-//   if (oldValue==undefined){
-//     use_ai.value = configStore.config?.ai_config.use_ai || false;
-//     aiSupport.value = configStore.config?.ai_config.default_ai || "kimi";
-//     maxConcurrency.value = configStore.config?.ai_config.max_concurrency || 3;
-//     onLine.value = configStore.config?.ai_config.online || false;
-//   }
-// },{deep:true})
+
+//------------------------------------应用程序设置begin------------------------------------------
+const defaultExe = ref(configStore.config?.exe_configs.filter((item) => item.is_default)[0]?.name);
+
+const exeOptions = computed(() => {
+  return configStore.config?.exe_configs.map(item => ({
+    label: item.name,
+    value: item.name,
+    icon: convertFileSrc(item.icon_path)
+  }));
+});
+watch(()=>defaultExe.value, async (value)=>{
+  if (configStore.config==undefined) return
+  const exeConfigs = configStore.config.exe_configs;
+  exeConfigs.forEach(item => {
+    item.is_default = false;
+  });
+  const foundItem = exeConfigs.find(item => item.name === value);
+  if (foundItem) {
+    foundItem.is_default = true;
+  }
+})
+async function removeExeConfig(name:string){
+  if (configStore.config==undefined) return
+  configStore.config.exe_configs = configStore.config.exe_configs.filter(item => item.name !== name)
+  // await emit('update_exe_config',configStore.config!.exe_configs)
+}
+async function openDir(){
+  try {
+    const path = await open({
+      multiple: false,
+      directory: false, // 设置为 true 可以选择目录
+      filters: [{
+        name: '可执行程序',
+        extensions: ['exe']
+      }]
+    });
+    console.log(path)
+    invoke<ExeConfig>("add_new_exe", {path: path}).then(
+        (data) => {
+          configStore.addNewExecution(data)
+          // emit('update_exe_config',configStore.config!.exe_configs)
+          message.success("添加成功")
+        }
+    ).catch((e) => {message.error(e)})
+  } catch (error) {
+    message.error(`打开文件选择器时出错:${error}`)
+  }
+}
+const renderExeLabel = (option:{ label: string, value: string, icon: string}) => {
+  return h('div', { style: { display: 'flex', alignItems: 'center' } }, [
+    h('img', { src: option.icon, class: 'w-4 h-4' }),
+    h('span', { style: { marginLeft: '8px' } }, option.label)
+  ]);
+};
+//---------------------------------应用程序设置end------------------------------------------
 
 watch(()=>use_ai.value,async (value)=>{
   if (configStore.config==undefined||value==undefined) return
@@ -72,33 +127,6 @@ watch(()=>defaultModel.value, async (value)=>{
     models[aiValue].push(value);
   }
 })
-async function openDir(){
-  try {
-    const path = await open({
-      multiple: false,
-      directory: false, // 设置为 true 可以选择目录
-      filters: [{
-        name: '可执行程序',
-        extensions: ['exe']
-      }]
-    });
-    console.log(path)
-    invoke<ExeConfig>("add_new_exe", {path: path}).then(
-        (data) => {
-          configStore.addNewExecution(data)
-          // emit('update_exe_config',configStore.config!.exe_configs)
-          message.success("添加成功")
-        }
-    ).catch((e) => {message.error(e)})
-  } catch (error) {
-    message.error(`打开文件选择器时出错:${error}`)
-  }
-}
-async function removeExeConfig(name:string){
-  if (configStore.config==undefined) return
-  configStore.config.exe_configs = configStore.config.exe_configs.filter(item => item.name !== name)
-  // await emit('update_exe_config',configStore.config!.exe_configs)
-}
 function setNewKey(){
   if (configStore.config && configStore.config.ai_config && configStore.config.ai_config.keys) {
     const currentValue = configStore.config.ai_config.keys[aiSupport.value];
@@ -108,11 +136,7 @@ function setNewKey(){
       configStore.config.ai_config.keys[aiSupport.value] = newValue;
     }
   }
-  // if (configStore.config && configStore.config.ai_config && configStore.config.ai_config.keys) {
-  //   configStore.config.ai_config.keys[aiSupport.value] = key.value;
-  // }
 }
-
 const options = ref([
   { label: 'ChatGpt', value: 'chatgpt', icon: '../assets/icon/chatgpt.svg' },
   { label: 'DeepSeek', value: 'deepseek', icon: '../assets/icon/deepseek.svg' },
@@ -164,10 +188,22 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
 <template>
   <div>
     {{configStore.config}}
-    <n-scrollbar>
+    <n-scrollbar class="h-[calc(100vh-90px)]">
       <n-flex vertical>
         <label class="text-2xl ml-5 font-bold text-gray-800">外观</label>
         <div class="setting-card">
+          <div class="setting-card-row">
+            <n-flex class="items-center" :size="2">
+              <label>默认展开核心思想行</label>
+              <n-tooltip trigger="hover">
+                <template #trigger>
+                  <inline-svg src="../assets/svg/what.svg" class="w-4 h-4"></inline-svg>
+                </template>
+                开启后会默认展开所有可展开的核心思想行，关闭后需要单独点击展开。
+              </n-tooltip>
+            </n-flex>
+            <n-switch v-model:value="expand"/>
+          </div>
           <div class="setting-card-row">
             <n-flex class="items-center" :size="2">
               <label>添加可执行程序</label>
@@ -200,7 +236,35 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
               </n-flex>
             </div>
           </div>
-          <n-divider />
+          <div class="setting-card-row">
+            <n-flex class="items-center" :size="2">
+              <label>默认应用</label>
+              <n-tooltip trigger="hover">
+                <template #trigger>
+                  <inline-svg src="../assets/svg/what.svg" class="w-4 h-4"></inline-svg>
+                </template>
+                双击以及右键菜单中的默认选项会使用该应用打开文件。
+              </n-tooltip>
+            </n-flex>
+            <n-select
+                v-model:value="defaultExe"
+                :options="exeOptions"
+                :render-label="renderExeLabel"
+                placeholder="选择一个应用程序"
+                size="small"
+                style="width: 300px"
+            >
+              <template #empty>
+                <div class="flex items-center">
+                  <span>目前没有可选择的应用程序</span>
+                </div>
+              </template>
+            </n-select>
+          </div>
+          <n-divider class="bg-cyan-700" />
+        </div>
+        <label class="text-2xl ml-5 font-bold text-gray-800">AI</label>
+        <div class="setting-card">
           <div class="setting-card-row">
             <n-flex class="items-center" :size="2">
               <label>是否使用ai分析论文</label>
@@ -264,9 +328,6 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
             <label>是否开启联网搜索</label>
             <n-switch v-model:value="onLine" @update:value="configStore.config!.ai_config.online = $event"/>
           </div>
-        </div>
-        <div class="setting-card-row">
-
         </div>
       </n-flex>
     </n-scrollbar>

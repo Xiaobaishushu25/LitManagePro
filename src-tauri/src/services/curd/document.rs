@@ -6,7 +6,7 @@ use crate::entities::document::Column;
 use crate::entities::prelude::{DocAndTags, Document, Documents};
 use crate::services::commands::doc::PartDoc;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, NotSet, QuerySelect};
 
 pub struct DocumentCurd;
 impl DocumentCurd {

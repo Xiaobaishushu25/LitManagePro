@@ -32,6 +32,9 @@ const lastClickedIndex = ref<number | null>(null); // Store the index of the las
 const parseIngIds = ref<number[]>([])
 const tableRef = ref()
 
+const expandedRowKeys = ref<number[]>([]);
+const expandedAll = ref<boolean>(configStore.config?.ui_config.table_expand||true);
+
 const splitSize = ref(configStore.config?.ui_config.split_size[1]||0.65);
 
 const showDocDeleteModal = ref(false)
@@ -45,6 +48,12 @@ const contextOptions = {
   x: 500,
   y: 200
 }
+
+// 计算表格最大高度 高度是视口高度减去两个标签栏减去底栏
+const maxHeight = computed(() => {
+  return window.innerHeight - 60 - 30-35; // 对应 calc(100vh - 60px - 30px)
+});
+
 const handleBlur = () => {
   contextMenuShow.value = false
 };
@@ -55,11 +64,11 @@ onMounted(async ()=>{
     console.log(selectTagId)
     await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
   })
-  unlistenParse = await listen('parse_doc', (event: {payload:[boolean,number]}) => {
-    if (event.payload[0]){
-      parseIngIds.value.push(event.payload[1])
+  unlistenParse = await listen('summary_doc', (event: {payload:[number,boolean]}) => {
+    if (event.payload[1]){
+      parseIngIds.value.push(event.payload[0])
     }else{
-      parseIngIds.value = parseIngIds.value.filter(id => id !== event.payload[1])
+      parseIngIds.value = parseIngIds.value.filter(id => id !== event.payload[0])
     }
   })
   unlistenDoc = await listen('insert_doc', (event: {payload:DocumentTags}) => {
@@ -68,7 +77,20 @@ onMounted(async ()=>{
   unlistenDocUp = await listen('doc_update', (event: {payload:DocumentTags}) => {
     docsStore.updateDoc(event.payload)
   })
+  if (configStore.config?.ui_config.table_expand ?? true) {
+    watch(
+        () => docsStore.docs,
+        (newDocs) => {
+          if (newDocs) {
+            expandedRowKeys.value = newDocs.map(doc => doc.id);
+          }
+        },
+        { immediate: true, deep: true }
+    );
+  }
   window.addEventListener('blur', handleBlur);
+  // window.addEventListener('resize', updateMaxHeight);
+
 })
 onUnmounted(()=>{
   unlistenFile()
@@ -76,12 +98,9 @@ onUnmounted(()=>{
   unlistenDocUp()
   unlistenParse()
   window.removeEventListener('blur', handleBlur);
+  // window.removeEventListener('resize', updateMaxHeight);
 })
-// watch(()=>configStore.config,async (_newValue, oldValue)=>{
-//   if (oldValue==undefined){
-//     splitSize.value = configStore.config?.ui_config.split_size[1]||0.65;
-//   }
-// })
+
 watch([watchAndTags, watchOrTags], (_, _oldValue) => {
   invoke<DocumentTags[]>('query_docs_by_tags',
       {andTagsId: tagStore.andTags.map(tag => tag.id), orTagsId: tagStore.orTags.map(tag => tag.id)}
@@ -112,20 +131,56 @@ watch(() => parseIngIds.value, (newValue, _oldValue) => {
     columns.value = columns.value.filter(column => column?.key !== parseColumn?.key);
   }
 },{deep:true})
+watch(() => expandedAll.value, (newValue, _oldValue) => {
+  if (newValue&&docsStore.docs!=null){
+    expandedRowKeys.value = docsStore.docs!.map(doc => doc.id);
+  }else{
+    expandedRowKeys.value = [];
+  }
+})
 const createColumns = (): DataTableColumns<DocumentTags> => [
+  // {
+  //   title: () => h(
+  //       'div',
+  //       { style: 'display: flex; align-items: center; gap: 5px;' },
+  //       [
+  //         h('span', '展开全部'),
+  //         h(NSwitch, {
+  //           modelValue: allExpanded.value,
+  //           'onUpdate:modelValue': (value: boolean) => {
+  //             allExpanded.value = value;
+  //             toggleAll(value);
+  //           },
+  //         }),
+  //       ]
+  //   ),
+  //   key: 'expandAll',
+  //   width: 150, // Adjust width as needed
+  // },
   {
     type: 'expand',
     width: 20,
     expandable: (rowData: DocumentTags) => rowData.remark !== null,
     renderExpand: (rowData: DocumentTags) => {
       return h('div', {
-        style: 'white-space: normal;font-size:13px;font-weight:bold;margin-left:50px',
+        style: 'white-space: normal;font-size:13px;margin-left:50px',
         class: 'text-blue-600'
       },
           rowData.remark || '无备注')
     }
   },
-  { title: '标题', key: 'title' , resizable:true},
+  {
+    title: '标题',
+    key: 'title' ,
+    resizable:true,
+    render: (rowData: DocumentTags) => {
+      return h('div', {
+            style: 'white-space:normal;font-size:16px',
+            class: 'font-bold'
+          },
+          rowData.title)
+    }
+  },
   {
     title: '年份',
     key: 'year',
@@ -164,20 +219,6 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
   //     )
   //   }
   // },
-  // {
-  //   title: '操作',
-  //   key: 'actions',
-  //   resizable:true,
-  //   render(row: DocumentTags) {
-  //     return h(
-  //         NButton,
-  //         {
-  //           size: 'small',
-  //           onClick: () => message.info(`打开文件 ${row.title}`)
-  //         },
-  //         { default: () => '打开' }
-  //     )
-  //   }
   // }
 ]
 let columns = ref<DataTableColumns<DocumentTags>>(createColumns())
@@ -236,6 +277,16 @@ const rowClick = (row: DocumentTags, index: number, event: MouseEvent) => {
     lastClickedIndex.value = index;
   }
   docsStore.setCurrentSelectDoc(row);
+  if (event.button === 0 ) {
+    toggleExpand(row.id);
+  }
+};
+const toggleExpand = (rowKey: number) => {
+  if (expandedRowKeys.value.includes(rowKey)) {
+    expandedRowKeys.value = expandedRowKeys.value.filter(key => key !== rowKey);
+  } else {
+    expandedRowKeys.value.push(rowKey);
+  }
 };
 const handleKeyDown = async (e: KeyboardEvent) => {
   if (docsStore.docs == null) return;
@@ -280,7 +331,7 @@ function setRowProps(row: DocumentTags,index: number) {
       })
     },
     onDblclick: () => {
-      console.log("dblclick")
+      openByApp()
     },
   };
 }
@@ -300,13 +351,13 @@ function deleteDocs(){
     message.error(e)
   })
 }
-function openDocDefault(){
+function openBySystem(){
   if(docsStore.currentSelectDoc===undefined){return}
-  invoke('open_doc_default', {path: docsStore.currentSelectDoc!.path}).then(_ => {
-    console.log("open dir")
-  }).catch(e => {
-    message.error(e)
-  })
+  invoke('open_by_system', {path: docsStore.currentSelectDoc!.path}).then(_ => {}).catch(e => {message.error(e)})
+}
+function openByApp(){
+  if(docsStore.currentSelectDoc===undefined){return}
+  invoke('open_by_app', {path: docsStore.currentSelectDoc!.path}).then(_ => {}).catch(e => {message.error(e)})
 }
 function openDir(){
   if(docsStore.currentSelectDoc===undefined){return}
@@ -326,11 +377,20 @@ function openWithExe(exePath:string){
     message.error(e)
   })
 }
+function summaryByAi(){
+  let docs = selectedRows.value;
+  if (docs.length === 0)return
+  invoke('summarize_docs_by_ai', {documentTagsList: docs}).then(_ => {
+  }).catch(e => {
+    message.error(e)
+  })
+}
 ///-------------------------------------右键事件---------------end---------
 const handleDragEnd = () => {
   //注意，这个配置改变config那边没监听到，但是最后保存时是没问题的。
   configStore.config!.ui_config.split_size[1] = parseFloat(splitSize.value.toFixed(2));
 };
+const scrollbarSize= ref(10)
 </script>
 
 <template>
@@ -338,63 +398,73 @@ const handleDragEnd = () => {
     <tag-complete></tag-complete>
     <div>
 <!--      这里的v-if是为了在data有数据时才渲染，不然default-expand-all无法作用-->
-      <n-split direction="horizontal" v-if="docsStore.docs!==null" class="h-full mt-2" :max="1" :min="0" :size="splitSize"  @update:size="(e:number) => splitSize = e" @drag-end="handleDragEnd" >
+      <n-split direction="horizontal" v-if="docsStore.docs!==null" class="h-full" :max="1" :min="0" :size="splitSize"  @update:size="(e:number) => splitSize = e" @drag-end="handleDragEnd" >
         <template #1>
           <div @keydown="handleKeyDown" tabindex="0" class="outline-none">
-            <n-scrollbar class="h-[80vh]" :size="5">
-              <n-data-table
-                  ref="tableRef"
-                  size="small"
-                  :columns="columns"
-                  :data="docsStore.docs"
-                  :row-props="setRowProps"
-                  :row-class-name="getRowClassName"
-                  :row-key="(row:DocumentTags) => row.id"
-                  style="font-size: 15px;user-select: none"
-                  :default-expand-all="configStore.config?.ui_config.table_expand ?? true"
-                  striped
+<!--            高度是视口高度减去两个标签栏减去底栏-->
+<!--            <n-scrollbar class="h-[calc(100vh-60px-30px)]" :size="scrollbarSize">-->
+<!--            </n-scrollbar>-->
+            <n-data-table
+                ref="tableRef"
+                size="small"
+                :columns="columns"
+                :data="docsStore.docs"
+                :row-props="setRowProps"
+                :row-class-name="getRowClassName"
+                :row-key="(row:DocumentTags) => row.id"
+                style="font-size: 15px;user-select: none;width: calc(100% - 5px);"
+                :max-height="maxHeight"
+                :expanded-row-keys="expandedRowKeys"
+                :default-expand-all="configStore.config?.ui_config.table_expand ?? true"
+                striped
+            >
+              <template #empty>
+                没有数据
+              </template>
+            </n-data-table>
+            <context-menu
+                v-model:show="contextMenuShow"
+                :options="contextOptions"
+            >
+              <context-menu-item label="用系统默认应用打开" @click="openBySystem"/>
+              <context-menu-item label="用天书默认应用打开" @click="openByApp"/>
+              <context-menu-item
+                  v-for="exe in configStore.config?.exe_configs"
+                  :key="exe.name"
+                  :label="`用${exe.name}打开`"
+                  @click="openWithExe(exe.path)"
               >
-                <template #empty>
-                  没有数据
+                <template #icon>
+                  <img :src="convertFileSrc(exe.icon_path)" alt="icon" class="w-4 h-4">
                 </template>
-              </n-data-table>
-              <context-menu
-                  v-model:show="contextMenuShow"
-                  :options="contextOptions"
-              >
-                <context-menu-item label="用系统默认打开" @click="openDocDefault"/>
-                <context-menu-item label="用AI总结文档" @click="">
-                  <template #icon>
-                    <inline-svg
-                        src="../assets/svg/ai.svg"
-                        class="svg-button"
-                    ></inline-svg>
-                  </template>
-                </context-menu-item>
-                <context-menu-item
-                    v-for="exe in configStore.config?.exe_configs"
-                    :key="exe.name"
-                    :label="`用${exe.name}打开`"
-                    @click="openWithExe(exe.path)"
-                >
-                  <template #icon>
-                    <img :src="convertFileSrc(exe.icon_path)" alt="icon" class="w-4 h-4">
-                  </template>
-                </context-menu-item>
-                <context-menu-item label="打开文件目录" @click="openDir" />
-                <context-menu-sperator />
-                <context-menu-item label="管理标签"></context-menu-item>
-                <context-menu-sperator />
-                <context-menu-item  :label="selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)`" class="cursor-pointer" @click.stop="showDocDeleteModal=true">
-                  <template #icon>
-                    <inline-svg
-                        src="../assets/svg/Delete24Regular.svg"
-                        class="svg-button text-red-600 hover:text-red-600"
-                    ></inline-svg>
-                  </template>
-                </context-menu-item>
-              </context-menu>
-            </n-scrollbar>
+              </context-menu-item>
+              <context-menu-item label="打开文件所在目录" @click="openDir" />
+              <context-menu-sperator />
+              <context-menu-item :label="selectedRows.length === 1 ? '用AI总结' : `用AI总结这${selectedRows.length}条文档`" @click="summaryByAi">
+                <template #icon>
+                  <inline-svg
+                      src="../assets/svg/ai.svg"
+                      class="svg-button"
+                  ></inline-svg>
+                </template>
+              </context-menu-item>
+              <context-menu-sperator />
+              <context-menu-item
+                  :label="expandedAll ? '关闭所有可展开行' : '展开所有可展开行'"
+                  @click="expandedAll = !expandedAll"
+              ></context-menu-item>
+              <context-menu-sperator />
+              <context-menu-item label="管理标签"></context-menu-item>
+              <context-menu-sperator />
+              <context-menu-item  :label="selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)`" class="cursor-pointer" @click.stop="showDocDeleteModal=true">
+                <template #icon>
+                  <inline-svg
+                      src="../assets/svg/Delete24Regular.svg"
+                      class="svg-button text-red-600 hover:text-red-600"
+                  ></inline-svg>
+                </template>
+              </context-menu-item>
+            </context-menu>
           </div>
         </template>
         <template #2>

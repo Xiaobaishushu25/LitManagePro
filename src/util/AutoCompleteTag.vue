@@ -107,7 +107,7 @@ const clearAllTags = () => {
         @select="handleSelect"
         :show-empty="isEmpty"
         :clear-after-select="true"
-        @update:show="(val) => (showMenu = val)"
+        @update:show="(val:boolean) => (showMenu = val)"
     >
       <template #empty>
         <div>没有匹配的标签</div>
@@ -152,7 +152,8 @@ const clearAllTags = () => {
   position: relative;
   border: 1px solid #ddd;
   border-radius: 3px;
-  min-height: 36px;
+  min-height: 30px;
+  height: 30px;
 }
 
 .input-container {
@@ -160,6 +161,8 @@ const clearAllTags = () => {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  min-height: 30px;
+  height: 30px;
 }
 
 .input {
@@ -169,5 +172,7 @@ const clearAllTags = () => {
   outline: none;
   padding: 4px;
   background: transparent;
+  min-height: 30px;
+  height: 30px;
 }
 </style>

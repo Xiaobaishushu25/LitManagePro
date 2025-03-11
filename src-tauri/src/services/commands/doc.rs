@@ -1,12 +1,13 @@
 use crate::config::Config;
 pub(crate) use crate::dtos::doc::{DocumentTags, PartDoc};
 use crate::entities::prelude::Document;
-use crate::services::commands::doc::doc_util::{handle_many_paths, handle_query_docs_by_tags};
+use crate::services::commands::doc::doc_util::{handle_many_paths, handle_query_docs_by_tags, update_paper_summary};
 use crate::services::curd::document::DocumentCurd;
 use log::{error, info};
 use std::path::PathBuf;
-use std::sync::Mutex;
-use tauri::{Emitter, State};
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Emitter, State};
+use crate::dtos::ProgressWrapper;
 
 #[tauri::command]
 pub async fn insert_docs(
@@ -15,7 +16,7 @@ pub async fn insert_docs(
     //用Option再take的话没有意义了，因为后面还要用，不如直接用OnceLock装起来。
     // o_ai: State<'_, tokio::sync::Mutex<Option<AI>>>,
     // o_ai: State<'static, tokio::sync::Mutex<Option<AI>>>,
-    app_handle: tauri::AppHandle,
+    app_handle: AppHandle,
     paths: Vec<String>,
     tags_id: Vec<i32>,
 ) -> Result<(), String> {
@@ -54,7 +55,7 @@ pub async fn delete_docs(ids: Vec<i32>) -> Result<(), String> {
     }
 }
 #[tauri::command]
-pub async fn update_doc_detail(app_handle: tauri::AppHandle, doc: Document) -> Result<(), String> {
+pub async fn update_doc_detail(app_handle: AppHandle, doc: Document) -> Result<(), String> {
     let id = doc.id;
     match DocumentCurd::update_detail(doc).await {
         Ok(_) => {
@@ -68,14 +69,53 @@ pub async fn update_doc_detail(app_handle: tauri::AppHandle, doc: Document) -> R
         }
     }
 }
+/// 总结文档
 #[tauri::command]
-pub async fn open_doc_default(path: String) -> Result<(), String> {
+pub async fn summarize_docs_by_ai(app_handle:AppHandle, document_tags_list: Vec<DocumentTags>) -> Result<(), String> {
+    let a_pro = Arc::new(ProgressWrapper::new("正在总结文档", document_tags_list.len() as i32));
+    let _ = app_handle.emit("progress_event", a_pro.get_progress());
+    for document_tags in document_tags_list {
+        let _ = app_handle.emit("progress_event", a_pro.update("正在总结文档", 0));
+        let _ = app_handle.emit("summary_doc",(document_tags.id, true));
+        match update_paper_summary(&document_tags.path, document_tags.id).await{
+            Ok(new_document_tags) => {
+                let _ = app_handle.emit("summary_doc",(document_tags.id, false));
+                let _ = app_handle.emit("doc_update", new_document_tags);
+                let _ = app_handle.emit("progress_event", a_pro.update("总结文档完成", 1));
+            },
+            Err(e) => {
+                error!("总结文档{}失败：{}",document_tags.title, e);
+                let _ = app_handle.emit("summary_doc",(document_tags.id, false));
+                let _ = app_handle.emit("progress_event", a_pro.update("总结文档失败", 1));
+                return Err(e.to_string());
+            }
+        }
+
+    }
+    Ok(())
+}
+#[tauri::command]
+pub async fn open_by_system(path: String) -> Result<(), String> {
     match open::that(path) {
         Ok(_) => Ok(()),
         Err(e) => {
             error!("打开文档失败：{}", e);
             Err("打开文档失败".to_string())
         }
+    }
+}
+#[tauri::command]
+pub async fn open_by_app(config: State<'_, Mutex<Config>>,path: String) -> Result<(), String> {
+    let exes = &config.lock().unwrap().exe_configs;
+    if let Some(exe) = exes.iter().find(|exe| exe.is_default){
+        info!("使用默认的打开方式：{}", exe.name);
+        if let Err(e) = open::with(path,exe.path.clone()){
+            error!("打开文档失败：{}", e);
+            Err("打开文档失败".to_string())
+        }else { Ok(()) }
+    }else {
+        error!("请先设置默认的打开方式");
+        Err("请先设置默认的打开方式".to_string())
     }
 }
 #[tauri::command]
@@ -103,7 +143,6 @@ pub async fn open_with_exe(exe_path: String, file_path: String) -> Result<(), St
 mod doc_util {
     use crate::app_errors::AppError::Tip;
     use crate::app_errors::AppResult;
-    use crate::dtos::Progress;
     use crate::dtos::doc::{DocumentTags, PartDoc};
     use crate::entities::prelude::Document;
     use crate::services::ai::ONCE_AI;
@@ -111,14 +150,13 @@ mod doc_util {
     use crate::services::curd::document::DocumentCurd;
     use crate::services::util::file::extract_limit_pages;
     use log::{error, info};
-    use rand::{Rng, rng};
     use std::collections::HashSet;
     use std::path::Path;
     use std::sync::Arc;
-    use std::sync::atomic::{AtomicI32, Ordering};
     use tauri::Emitter;
     use tokio::sync::Semaphore;
     use tracing::instrument;
+    use crate::dtos::ProgressWrapper;
 
     pub(crate) async fn handle_many_paths(
         use_ai: bool,
@@ -133,48 +171,29 @@ mod doc_util {
     ) -> AppResult<()> {
         // 创建一个信号量，限制最大并发数为 max_concurrency
         let semaphore = Arc::new(Semaphore::new(max_concurrency as usize));
-        let progress_id = rng().random_range(1000..=9999);
-        let count = Arc::new(AtomicI32::new(0));
         let total = paths.len();
-        // let o_ai = Arc::new(o_ai);
         let app_handle = Arc::new(app_handle);
-        let count = count.clone();
-        let _r = app_handle.emit(
-            "progress_event",
-            Progress::new(
-                progress_id,
-                "正在插入文档".to_string(),
-                0f64,
-                total as f64,
-            ),
-        );
+        let progress_wrapper = Arc::new(ProgressWrapper::new("正在插入文档", total as i32));
+        let _ = app_handle.emit("progress_event", progress_wrapper.get_progress());
         for path_s in paths {
-            //根据path获取文件信息
-            // Convert the string path to a Path
             let path = Path::new(&path_s);
-            if !path.exists() {
-                //虽然感觉不可能不存在的情况
-                let err_msg = format!("路径不存在: {}", path.display());
-                error!("{}", err_msg);
-                let _ = app_handle.emit("backend_message", err_msg);
-                update_progress(progress_id, app_handle.clone(), "路径不存在", 1, count.clone(), total).await;
+            if !path.exists() { //虽然感觉不可能不存在的情况
+                error!("路径不存在: {}", path.display());
+                let _ = app_handle.emit("backend_message", "路径不存在");
+                let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("路径不存在", 1));
                 continue;
             }
             if path.is_dir() {
-                let err_msg = format!("不支持解析文件夹: {}", path.display());
-                error!("{}", err_msg);
-                let _ = app_handle.emit("backend_message", err_msg);
-                update_progress(progress_id, app_handle.clone(), "不支持解析文件夹", 1, count.clone(), total).await;
-                
+                error!("不支持解析文件夹: {}", path.display());
+                let _ = app_handle.emit("backend_message", "不支持解析文件夹");
+                let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("不支持解析文件夹", 1));
                 continue;
             }
             // path.file_stem()
             if let Some(file_name) = path.file_name() {
                 if let Some(file_name_str) = file_name.to_str() {
                     info!("File name: {}", file_name_str);
-                    // let _ = app_handle.emit("backend_message", format!("正在处理文件: {}", file_name_str));
-                    match DocumentCurd::insert(Document::new(file_name_str.into(), path_s.clone()))
-                        .await
+                    match DocumentCurd::insert(Document::new(file_name_str.into(), path_s.clone())).await
                     {
                         Ok(doc) => {
                             if !tags_id.is_empty() {
@@ -191,107 +210,62 @@ mod doc_util {
                                     "pdf" => {
                                         // 处理PDF文件,提取作者名、标题、摘要等信息
                                         if use_ai {
+                                            info!("正在总结PDF文件: {}", path.display());
                                             let app_handle = app_handle.clone();
-                                            let count = count.clone();
                                             let semaphore =semaphore.clone();
+                                            let progress_wrapper = progress_wrapper.clone();
                                             tokio::spawn(async move {
-                                                // let permit = semaphore.acquire().await.unwrap();
-                                                // let _guard = permit;
-                                                update_progress(
-                                                    progress_id,
-                                                    app_handle.clone(),
-                                                    "正在解析文档",
-                                                    0,
-                                                    count.clone(),
-                                                    total,
-                                                )
-                                                .await;
-                                                let _ = app_handle.emit("parse_doc", (true, id));
-                                                // match handle_new_paper(o_ai, &path_s, id).await {
-                                                match handle_new_paper(&path_s, id).await {
-                                                    Ok(part_doc) => {
-                                                        let _ = app_handle.emit("parse_doc", (false, id));
-                                                        if let Err(e) = DocumentCurd::update_document_by_part_doc(part_doc).await {
-                                                            error!("更新文档失败: {}", e);
-                                                            let _ = app_handle.emit("backend_message", format!("更新文档失败: {}", e), );
-                                                            update_progress(progress_id,app_handle, "更新文档出现错误",1, count, total).await;
-                                                        } else {
-                                                            let document_tags = DocumentTags::from_doc_id(id).await;
-                                                            let _ = app_handle.emit("doc_update", document_tags);
-                                                            update_progress(progress_id,app_handle, "解析文档完成",1, count, total).await;
-                                                        }
+                                                let permit = semaphore.acquire().await.unwrap();
+                                                let _guard = permit;
+                                                let _ = app_handle.emit("progress_event", progress_wrapper.update("正在解析文档", 0));
+                                                let _ = app_handle.emit("summary_doc", (id,true));
+                                                match update_paper_summary(&path_s,id).await{
+                                                    Ok(document_tags)=>{
+                                                        let _ = app_handle.emit("summary_doc", (id,false));
+                                                        let _ = app_handle.emit("doc_update", document_tags);
+                                                        let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("解析文档完成", 1));
                                                     }
-                                                    Err(e) => {
+                                                    Err(e)=>{
                                                         error!("{}", e);
-                                                        let _ = app_handle.emit("parse_doc", (false, id));
-                                                        let _ = app_handle
-                                                            .emit("backend_message", e.to_string());
-                                                        update_progress(
-                                                            progress_id,
-                                                            app_handle.clone(),
-                                                            "解析文档出现错误",
-                                                            1,
-                                                            count.clone(),
-                                                            total,
-                                                        ).await;
+                                                        let _ = app_handle.emit("summary_doc", (id,false,));
+                                                        let _ = app_handle.emit("backend_message", "更新文档总结失败");
+                                                        let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("解析文档出现错误", 1));
+                                                        // update_progress(progress_id,app_handle, "解析文档出现错误",1, count, total).await;
                                                     }
                                                 }
                                             });
-                                        }else { 
-                                            update_progress(
-                                                progress_id,
-                                                app_handle.clone(),
-                                                "插入文档完成",
-                                                1,
-                                                count.clone(),
-                                                total,
-                                            )
-                                            .await;
+                                        }else {
+                                            let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("插入文档完成", 1));
                                         }
                                     }
                                     _ => {
-                                        update_progress(
-                                            progress_id,
-                                            app_handle.clone(),
-                                            "插入完成",
-                                            1,
-                                            count.clone(),
-                                            total,
-                                        )
-                                        .await;
+                                        let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("插入完成", 1));
                                     }
                                 }
                             } else {
-                                update_progress(
-                                    progress_id,
-                                    app_handle.clone(),
-                                    "插入完成",
-                                    1,
-                                    count.clone(),
-                                    total,
-                                )
-                                .await;
+                                let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("插入完成", 1));
                             }
                         }
                         Err(e) => {
-                            let err_msg = format!("插入文档{}失败: {}", path.display(), e);
-                            error!("{}", err_msg);
-                            let _ = app_handle.emit("backend_message", err_msg);
-                            update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
+                            error!("插入文档{}失败: {}", path.display(), e);
+                            let _ = app_handle.emit("backend_message", "插入文档失败");
+                            let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("出现错误", 1));
                         }
                     }
                 } else {
                     let err_msg = format!("无效的文件名: {}", path.display());
                     error!("{}", err_msg);
                     let _ = app_handle.emit("backend_message", err_msg);
-                    update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
+                    let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("出现错误", 1));
+                    // update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
                 }
             } else {
                 //文件夹的情况
                 let err_msg = format!("未获取到文件名: {}", path.display());
                 error!("{}", err_msg);
                 let _ = app_handle.emit("backend_message", err_msg);
-                update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
+                let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("出现错误", 1));
+                // update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
             }
         }
         Ok(())
@@ -328,9 +302,15 @@ mod doc_util {
                 }
             }
         }
+        doc_tags.sort_by(|a, b| a.index.cmp(&b.index));
         Ok(doc_tags)
     }
-    async fn handle_new_paper(
+    pub async fn update_paper_summary(path_s:&str,id:i32)->AppResult<DocumentTags>{
+        let part_doc = summarize_paper(&path_s, id).await.map_err(|e| Tip(format!("总结文档出现错误:{}", e)))?;
+        DocumentCurd::update_document_by_part_doc(part_doc).await.map_err(|e| Tip(format!("更新文档出现错误:{}", e)))?;
+        Ok(DocumentTags::from_doc_id(id).await)
+    }
+    async fn summarize_paper(
         // o_ai: Arc<&Option<AI>>,
         path_s: &str,
         doc_id: i32,
@@ -341,34 +321,23 @@ mod doc_util {
             .ok_or(Tip("请正确配置AI来解析文档。".into()))?;
         let content = extract_limit_pages(path_s, doc_id)
             .await
-            .map_err(|e| Tip(format!("提取PDF内容失败: {}", e)))?;
+            .map_err(|e| Tip(format!("提取PDF{}内容失败: {}",path_s, e)))?;
         let json_data = ai
             .analyse_paper(content, doc_id)
             .await
-            .map_err(|e| Tip(format!("AI分析失败: {}", e)))?;
+            .map_err(|e| Tip(format!("AI分析{}失败: {}",path_s, e)))?;
         let part_doc = serde_json::from_str::<PartDoc>(&json_data)
-            .map_err(|e| Tip(format!("解析JSON失败: {}", e)))?;
+            .map_err(|e| Tip(format!("解析{}JSON为PartDoc失败: {}",path_s, e)))?;
         Ok(part_doc)
     }
-    async fn update_progress(
-        progress_id: i32,
-        app_handle: Arc<tauri::AppHandle>,
-        msg: &str,
-        add: i32,
-        now: Arc<AtomicI32>,
-        max: usize,
-    ) {
-        let _ = now.fetch_add(add, Ordering::SeqCst);
-        let now = now.load(Ordering::SeqCst) as f64;
-        let _r = app_handle.emit(
-            "progress_event",
-            Progress::new(progress_id, msg.into(), now, max as f64),
-        );
-    }
 }
-#[test]
-fn test_serde() {
-    let json = r#"
+#[cfg(test)]
+mod doc_test {
+    use crate::dtos::doc::PartDoc;
+
+    #[test]
+    fn test_serde() {
+        let json = r#"
   {
     "id": 13,
     "title": "NAPGuard: Towards Detecting Naturalistic Adversarial Patches",
@@ -380,6 +349,20 @@ fn test_serde() {
     "remark": "NAPGuard通过关键特征调制框架有效地检测自然对抗性补丁，通过在训练期间对齐攻击性特征和在推理期间抑制自然特征，以提高检测精度和泛化能力。"
    }
     "#;
-    let doc_tags: PartDoc = serde_json::from_str(json).unwrap();
-    println!("{:?}", doc_tags);
+        let doc_tags: PartDoc = serde_json::from_str(json).unwrap();
+        println!("{:?}", doc_tags);
+    }
+    #[test]
+    fn test_open_many() {
+        let paths = vec!["F:\\科研\\论文\\基于对抗样本的神经网络安全性问题研究综述_李紫珊.pdf","F:\\科研\\论文\\I-FGSM.pdf"];
+        let exe = "D:\\知云\\ZhiyunTranslator\\ZhiYunTranslator.exe";
+        for file_path in paths {
+            match open::with(file_path, exe) {
+                Ok(()) => println!("{}", "使用指定的可执行文件打开文件成功".to_string()),
+                Err(_err) => {
+                    println!("{}", "使用指定的可执行文件打开文件失败".to_string());
+                }
+            }
+        }
+    }
 }

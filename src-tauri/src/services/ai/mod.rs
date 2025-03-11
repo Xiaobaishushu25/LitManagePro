@@ -68,7 +68,7 @@ impl AI {
         let prompt = format!(
             "请你准确地根据提供给你的论文内容和联网搜索信息给出该论文的标题、作者、发表的刊物（会议或者期刊简称）、发表年份、并总结摘要和贡献点以及核心思想(即remark)。
             摘要、贡献点以及核心思想请总结为{}。
-            必须把回答信息序列化为json字符串，key先插入一个id，值为{},然后分别是title，author，journal，year，abstract，contributions，remark，不要有任何额外信息。请务必准确，必要时请联网搜索。
+            必须把回答信息序列化为json字符串，key先插入一个id，值为{},然后分别是title，author，journal，year，abstract，contributions，remark，不要有任何额外信息。请务必准确，如果提供给你的内容中找不到需要的数据时请联网搜索。
             注意，年份为字符串，不要用数字。并且不要在json字符串中包含任何控制符（如换行符等）。",
             lang, paper_id
          );

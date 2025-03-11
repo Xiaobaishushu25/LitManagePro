@@ -100,6 +100,7 @@ pub struct ExeConfig {
     pub name: String,
     pub path: String,
     pub icon_path: String,
+    pub is_default:bool
 }
 
 impl ExeConfig {
@@ -109,6 +110,7 @@ impl ExeConfig {
             name,
             path: _path.to_string(),
             icon_path,
+            is_default:false
         })
     }
 }

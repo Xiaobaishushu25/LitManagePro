@@ -4,7 +4,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("error:`{0}`")]
+    #[error("{0}")]
     Tip(String),
     #[error("error:`{0}`")]
     AnyHow(#[from] anyhow::Error),

@@ -4,6 +4,7 @@ use crate::entities::prelude::{Document, Documents, Tag};
 use sea_orm::{EntityTrait, ModelTrait};
 use serde::{Deserialize, Serialize};
 
+/// 文档和及其对应的标签的组合，注意，这个s并不是DocumentTag的复数，而是一个Document和多个Tag的意思
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentTags {
     pub index: i32,

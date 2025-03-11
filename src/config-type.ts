@@ -9,6 +9,7 @@ interface ExeConfig {
     name: string,
     path: string,
     icon_path: string,
+    is_default:boolean,
 }
 interface AiConfig {
     use_ai: boolean;

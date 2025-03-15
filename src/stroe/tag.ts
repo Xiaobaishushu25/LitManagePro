@@ -61,6 +61,9 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
     function setAllAndTags(ids:number[]){
         andTags.value = allTags.value.filter(tag => ids.includes(tag.id));
     }
+    function setAllOrTags(ids:number[]){
+        orTags.value = allTags.value.filter(tag => ids.includes(tag.id));
+    }
     function addTagToOrTags(id:number){
         // let tag = allTags.value.find(tag => tag.id === id);
         let tag = allTags.value.find(tag => tag.id === id);
@@ -86,6 +89,7 @@ const useTagGroupsStore = defineStore('tagGroups', ()=>{
         addTagToOrTags,
         renameTagGroup,
         setAllAndTags,
+        setAllOrTags,
     }
 })
 export default useTagGroupsStore

@@ -88,6 +88,9 @@ onMounted(async ()=>{
         { immediate: true, deep: true }
     );
   }
+  //恢复上次使用的tag组
+  tagStore.setAllAndTags(configStore.config?.ui_config.last_use_tags[0]||[]);
+  tagStore.setAllOrTags(configStore.config?.ui_config.last_use_tags[1]||[]);
   window.addEventListener('blur', handleBlur);
   // window.addEventListener('resize', updateMaxHeight);
 

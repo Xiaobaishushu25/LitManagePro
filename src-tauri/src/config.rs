@@ -79,7 +79,10 @@ pub struct UiConfig {
     split_size:Vec<f32>,
     //tag组是否打开，key为tag_group_name，value为bool
     tag_group_state: HashMap<i32, bool>,
+    //保存的快捷tag组
     save_tag_groups: Vec<Vec<i32>>,
+    //最近使用的tag组，第一个是上栏的，第二个是下栏的
+    last_use_tags:[Vec<i32>; 2],
     //表格是否展开总结行(在有总结的情况时)
     table_expand: bool,
 }
@@ -89,6 +92,7 @@ impl Default for UiConfig {
             split_size:vec![0.2,0.65],
             tag_group_state: HashMap::new(),
             save_tag_groups: vec![],
+            last_use_tags: [vec![],vec![]],
             table_expand: true,
         }
     }

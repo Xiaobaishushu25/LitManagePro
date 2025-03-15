@@ -26,6 +26,7 @@ onMounted(async () => {
     // event.preventDefault();
     await saveWindowState(StateFlags.ALL);
     if (window.label === 'main') {
+      configStore.saveLastUseTags()
       await invoke('save_config',{config: configStore.config}).then(_ => {}).catch(e => {
         message.error(`保存配置出错${e}`);
       })

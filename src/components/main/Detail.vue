@@ -6,7 +6,7 @@ import {
   TreeOption,
 } from "naive-ui";
 import useDocStore from "../../stroe/doc.ts";
-import {h, ref, watch, watchEffect} from "vue";
+import {computed, h, ref, watch, watchEffect} from "vue";
 import {invoke} from "@tauri-apps/api/core";
 import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
@@ -61,10 +61,12 @@ watchEffect(() => {
 })
 
 // 默认展开所有分组
-const defaultExpandedKeys = ref<string[]>(
-    tagStore.tagGroups.map(g => `group-${g.tag_group.id}`)
-)
-
+// const defaultExpandedKeys = ref<string[]>(
+//     tagStore.tagGroups.map(g => `group-${g.tag_group.id}`)
+// )
+const defaultExpandedKeys = computed(() => {
+  return tagStore.tagGroups.map(g => `group-${g.tag_group.id}`);
+});
 // 处理穿梭框源列表渲染
 const renderSourceList: TransferRenderSourceList = ({ onCheck, pattern }) => {
   return h(NTree, {

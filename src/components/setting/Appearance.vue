@@ -187,7 +187,6 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
 
 <template>
   <div>
-    {{configStore.config}}
     <n-scrollbar class="h-[calc(100vh-90px)]">
       <n-flex vertical>
         <label class="text-2xl ml-5 font-bold text-gray-800">外观</label>

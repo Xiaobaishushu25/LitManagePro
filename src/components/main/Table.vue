@@ -276,10 +276,15 @@ const rowClick = (row: DocumentTags, index: number, event: MouseEvent) => {
     selectedRows.value = [row];
     lastClickedIndex.value = index;
   }
-  docsStore.setCurrentSelectDoc(row);
   if (event.button === 0 ) {
-    toggleExpand(row.id);
+    if (row!=docsStore.currentSelectDoc&&expandedRowKeys.value.includes(row.id)){
+      //如果不是当前选中的行，且该行是展开的的，什么都不要做。
+      //情形为从别的行，点击一个展开的行，意味着重点关注该行，这时候不应该关闭该行的展开状态。
+    }else {
+      toggleExpand(row.id);
+    }
   }
+  docsStore.setCurrentSelectDoc(row);
 };
 const toggleExpand = (rowKey: number) => {
   if (expandedRowKeys.value.includes(rowKey)) {

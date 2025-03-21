@@ -19,6 +19,9 @@
     "core:webview:allow-create-webview-window",
     "window-state:default",
     "dialog:allow-open",
-    "dialog:default"
+    "dialog:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

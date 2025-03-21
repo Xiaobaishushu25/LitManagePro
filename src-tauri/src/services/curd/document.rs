@@ -1,11 +1,11 @@
-use anyhow::Context;
-use sea_orm::QueryFilter;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::document::Column;
 use crate::entities::prelude::{DocAndTags, Document, Documents};
 use crate::services::commands::doc::PartDoc;
+use anyhow::Context;
 use sea_orm::ActiveValue::Set;
+use sea_orm::QueryFilter;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, NotSet, QuerySelect};
 
 pub struct DocumentCurd;
@@ -66,8 +66,15 @@ impl DocumentCurd {
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
         // Documents::delete_many().filter(Column::Id.is_in(ids.clone())).exec(db).await.with_context(|| "删除文档失败")?;
-        DocAndTags::delete_many().filter(crate::entities::doc_and_tag::Column::DocId.is_in(ids.clone())).exec(db).await?;
-        Documents::delete_many().filter(Column::Id.is_in(ids.clone())).exec(db).await.map_err(|e| Tip(format!("删除文档失败:{:#}",e)))?;
+        DocAndTags::delete_many()
+            .filter(crate::entities::doc_and_tag::Column::DocId.is_in(ids.clone()))
+            .exec(db)
+            .await?;
+        Documents::delete_many()
+            .filter(Column::Id.is_in(ids.clone()))
+            .exec(db)
+            .await
+            .map_err(|e| Tip(format!("删除文档失败:{:#}", e)))?;
         Ok(())
     }
     pub async fn update_detail(doc_new: Document) -> AppResult<()> {

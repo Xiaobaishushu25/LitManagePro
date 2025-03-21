@@ -13,19 +13,10 @@ pub async fn init_app(err_msg: &mut Vec<String>) -> (WorkerGuard, Config) {
         let default_ai = config.ai_config.default_ai.clone();
         let o_default_model = config.ai_config.default_model.get(&default_ai);
         if default_ai != "" && o_default_model != None {
-            if config
-                .ai_config
-                .keys
-                .contains_key(&default_ai)
-            {
+            if config.ai_config.keys.contains_key(&default_ai) {
                 ai = Some(AI::new(
                     default_ai.clone(),
-                    config
-                        .ai_config
-                        .keys
-                        .get(&default_ai)
-                        .unwrap()
-                        .clone(),
+                    config.ai_config.keys.get(&default_ai).unwrap().clone(),
                     o_default_model.unwrap().to_string(),
                     config.ai_config.online,
                 ));

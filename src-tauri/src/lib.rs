@@ -1,8 +1,8 @@
 use crate::init::init_app;
-use crate::services::commands::config::{get_config, save_config,add_new_exe,update_config};
+use crate::services::commands::config::{add_new_exe, get_config, save_config, update_config};
 use crate::services::commands::doc::{
-    delete_docs, insert_docs, open_dir, open_by_system, open_by_app, open_with_exe, query_docs_by_tags,
-    update_doc_detail, summarize_docs_by_ai,
+    delete_docs, insert_docs, open_by_app, open_by_system, open_dir, open_with_exe,
+    query_docs_by_tags, summarize_docs_by_ai, update_doc_detail,
 };
 use crate::services::commands::tag::{
     create_tag, create_tag_group, delete_doc_tag, delete_group, delete_tag, insert_doc_tag,
@@ -11,6 +11,7 @@ use crate::services::commands::tag::{
 use std::process::exit;
 use std::sync::Mutex;
 use tauri::State;
+use tauri_plugin_autostart::MacosLauncher;
 use tracing::info;
 
 mod init;
@@ -29,6 +30,7 @@ pub async fn run() {
     let (_log_guard, config) = init_app(&mut err_msg).await;
     info!("litManagePro ui start...");
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--flag1", "--flag2"])))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_opener::init())

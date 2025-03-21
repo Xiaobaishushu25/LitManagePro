@@ -6,6 +6,10 @@ interface UiConfig {
     last_use_tags:[number[], number[]];
     table_expand:boolean,
 }
+interface AppConfig {
+    auto_start:boolean,
+}
+
 interface ExeConfig {
     name: string,
     path: string,
@@ -25,6 +29,7 @@ interface AiConfig {
 
 interface Config {
     ui_config: UiConfig;
+    app_config: AppConfig;
     ai_config: AiConfig;
     exe_configs: ExeConfig[];
 }

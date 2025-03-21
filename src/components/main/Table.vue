@@ -50,9 +50,15 @@ const contextOptions = {
 }
 
 // 计算表格最大高度 高度是视口高度减去两个标签栏减去底栏
-const maxHeight = computed(() => {
-  return window.innerHeight - 60 - 30-35; // 对应 calc(100vh - 60px - 30px)
-});
+// const maxHeight = computed(() => {
+//   return window.innerHeight - 60 - 30-35; // 对应 calc(100vh - 60px - 30px)
+// });
+
+const maxHeight = ref(window.innerHeight - 60 - 30-35) // 对应 calc(100vh - 60px - 30px);
+const handleResize = () => {
+  console.log('resize', window.innerHeight)
+  maxHeight.value = window.innerHeight - 60 - 30 - 35;
+};
 
 const handleBlur = () => {
   contextMenuShow.value = false
@@ -92,6 +98,7 @@ onMounted(async ()=>{
   tagStore.setAllAndTags(configStore.config?.ui_config.last_use_tags[0]||[]);
   tagStore.setAllOrTags(configStore.config?.ui_config.last_use_tags[1]||[]);
   window.addEventListener('blur', handleBlur);
+  window.addEventListener('resize', handleResize);
   // window.addEventListener('resize', updateMaxHeight);
 
 })
@@ -101,6 +108,7 @@ onUnmounted(()=>{
   unlistenDocUp()
   unlistenParse()
   window.removeEventListener('blur', handleBlur);
+  window.removeEventListener('resize', handleResize);
   // window.removeEventListener('resize', updateMaxHeight);
 })
 

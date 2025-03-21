@@ -7,24 +7,23 @@ import {ExeConfig} from "../../config-type.ts";
 import {h, ref, watch, computed, VNode, nextTick} from "vue";
 import InlineSvg from "vue-inline-svg";
 import {SelectOption} from "naive-ui";
+import {disable, enable} from "@tauri-apps/plugin-autostart";
 
 const configStore = useConfigStore()
 
 const defaultModelRef = ref()
+//------------------------------------app设置begin----------------------------------------
+const autoStart = ref(configStore.config?.app_config.auto_start || false)
+watch(() => autoStart.value, async (value:boolean) => {
+  configStore.config!.app_config.auto_start = value
+  if (value){
+    await enable()
+  }else {
+    await disable()
+  }
+})
+//------------------------------------app设置end------------------------------------------
 
-const use_ai = ref(configStore.config?.ai_config.use_ai || false)
-const aiSupport = ref(configStore.config?.ai_config.default_ai || "kimi"); // 当前选中的值
-const key = ref()
-const defaultModel = ref()
-const maxConcurrency = ref(configStore.config?.ai_config.max_concurrency || 3)
-const onLine = ref(configStore.config?.ai_config.online || false)
-// 将字符串数组转换为对象数组
-const modelOptions = computed(() => {
-  return configStore.config?.ai_config.models[aiSupport.value]?.map(item => ({
-    label: item,
-    value: item
-  }));
-});
 //------------------------------------表格外观设置begin------------------------------------------
 const expand = ref(configStore.config?.ui_config.table_expand||true)
 watch(() => expand.value, async (value:boolean) => {
@@ -89,6 +88,22 @@ const renderExeLabel = (option:{ label: string, value: string, icon: string}) =>
 };
 //---------------------------------应用程序设置end------------------------------------------
 
+
+//---------------------------------ai设置begin------------------------------------------
+
+const use_ai = ref(configStore.config?.ai_config.use_ai || false)
+const aiSupport = ref(configStore.config?.ai_config.default_ai || "kimi"); // 当前选中的值
+const key = ref()
+const defaultModel = ref()
+const maxConcurrency = ref(configStore.config?.ai_config.max_concurrency || 3)
+const onLine = ref(configStore.config?.ai_config.online || false)
+// 将字符串数组转换为对象数组
+const modelOptions = computed(() => {
+  return configStore.config?.ai_config.models[aiSupport.value]?.map(item => ({
+    label: item,
+    value: item
+  }));
+});
 watch(()=>use_ai.value,async (value)=>{
   if (configStore.config==undefined||value==undefined) return
   console.log("use_ai",value)
@@ -183,12 +198,22 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
     h(InlineSvg, { src: '../assets/svg/Delete24Regular.svg', class: 'w-4 h-4 mr-5 svg-button hover:text-red-600',onClick: handleSvgClick, })
   ]);
 };
+//---------------------------------ai设置end------------------------------------------
+
 </script>
 
 <template>
   <div>
     <n-scrollbar class="h-[calc(100vh-90px)]">
       <n-flex vertical>
+        <label class="text-2xl ml-5 font-bold text-gray-800">应用</label>
+        <div class="setting-card">
+          <div class="setting-card-row">
+            <label>是否开机自动启动</label>
+            <n-switch v-model:value="autoStart"/>
+          </div>
+        </div>
+
         <label class="text-2xl ml-5 font-bold text-gray-800">外观</label>
         <div class="setting-card">
           <div class="setting-card-row">
@@ -262,6 +287,7 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
           </div>
           <n-divider class="bg-cyan-700" />
         </div>
+
         <label class="text-2xl ml-5 font-bold text-gray-800">AI</label>
         <div class="setting-card">
           <div class="setting-card-row">

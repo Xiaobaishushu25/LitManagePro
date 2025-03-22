@@ -3,7 +3,6 @@ use crate::app_errors::AppResult;
 use crate::entities::document::Column;
 use crate::entities::prelude::{DocAndTags, Document, Documents};
 use crate::services::commands::doc::PartDoc;
-use anyhow::Context;
 use sea_orm::ActiveValue::Set;
 use sea_orm::QueryFilter;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, NotSet, QuerySelect};

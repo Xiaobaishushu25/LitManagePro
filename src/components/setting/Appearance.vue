@@ -56,7 +56,6 @@ watch(()=>defaultExe.value, async (value)=>{
 async function removeExeConfig(name:string){
   if (configStore.config==undefined) return
   configStore.config.exe_configs = configStore.config.exe_configs.filter(item => item.name !== name)
-  // await emit('update_exe_config',configStore.config!.exe_configs)
 }
 async function openDir(){
   try {
@@ -68,7 +67,7 @@ async function openDir(){
         extensions: ['exe']
       }]
     });
-    console.log(path)
+    if (path==null)return
     invoke<ExeConfig>("add_new_exe", {path: path}).then(
         (data) => {
           configStore.addNewExecution(data)

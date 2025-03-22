@@ -165,7 +165,9 @@ function updateDoc(){
     <div v-else>请选择一个文档。</div>
   </custom-modal>
   <div>
-    <n-scrollbar class="h-[calc(100vh-60px-30px)]">
+<!--    60px是两个标签栏高度，35px是底栏高度，30px是自定义的标题栏高度，按理说innerHeight是不包含系统那个标题栏的，
+        但是不知道为什么，还是要再减30px才行-->
+    <n-scrollbar class="h-[calc(100vh-60px-30px-30px)]">
       <n-card  title="详细信息">
         <div class="grid grid-cols-[55px_1fr] gap-4 items-center">
           <div class="text-right text-sm">标题:</div>

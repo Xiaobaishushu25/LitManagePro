@@ -49,14 +49,13 @@ const contextOptions = {
   y: 200
 }
 
-// 计算表格最大高度 高度是视口高度减去两个标签栏减去底栏
-// const maxHeight = computed(() => {
-//   return window.innerHeight - 60 - 30-35; // 对应 calc(100vh - 60px - 30px)
-// });
-
-const maxHeight = ref(window.innerHeight-60-30-35) // 对应 calc(100vh - 60px - 30px);
+// 计算表格最大高度 高度是视口高度减去两个标签栏减去底栏减去自定义的标题栏
+//60px是两个标签栏高度，35px是底栏高度，30px是自定义的标题栏高度，按理说innerHeight是不包含系统那个标题栏的，但是不知道为什么
+//还是要再减30px才行
+const maxHeight = ref(window.innerHeight-60-30-30-35) // 对应 calc(100vh - 60px - 30px);
 const handleResize = () => {
-  maxHeight.value = window.innerHeight - 60 - 30 - 35;
+  // maxHeight.value = window.innerHeight - 60 - 30 - 35;
+  maxHeight.value = window.innerHeight - 60 -30-30 - 35;
 };
 
 const handleBlur = () => {
@@ -156,7 +155,7 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
     renderExpand: (rowData: DocumentTags) => {
       return h('div', {
         style: 'white-space: normal;font-size:13px;margin-left:50px',
-        class: 'text-blue-600'
+        class: 'text-blue-400'
       },
           rowData.remark || '无备注')
     }
@@ -164,11 +163,12 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
   {
     title: '标题',
     key: 'title' ,
+    width: '70%',
     resizable:true,
     render: (rowData: DocumentTags) => {
       return h('div', {
             style: 'white-space:normal;font-size:16px',
-            class: 'font-bold'
+            class: ''
           },
           rowData.title)
     }
@@ -187,7 +187,13 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
       return rowA.year!.localeCompare(rowB.year)
     }
   },
-  { title: '刊物', key: 'journal',resizable:true},
+  { title: '刊物',
+    key: 'journal',
+    resizable:true,
+    ellipsis: {
+      tooltip: true
+    }
+  },
   // {
   //   title: '标签',
   //   key: 'tags',

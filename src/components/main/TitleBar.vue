@@ -14,14 +14,35 @@ const max_state_name = ref('maximize')
 
 onMounted(async ()=>{
   await WebviewWindow.getCurrent().isMaximized().then(res => {
-    console.log("getCurrentisMaximize",res)
     isMaximize.value = res
   })
+  window.addEventListener('resize', () => {
+    const isCurrentlyMaximized = isWindowMaximized();
+    if (isCurrentlyMaximized) {
+      isMaximize.value = true
+      console.log('窗口被最大化');
+    } else if (!isCurrentlyMaximized) {
+      isMaximize.value = false
+      console.log('窗口被恢复');
+    }
+  });
 })
+// 判断窗口是否处于最大化状态
+function isWindowMaximized() {
+  // 获取窗口的内宽度和屏幕的宽度
+  const innerWidth = window.innerWidth;
+  const screenWidth = window.screen.width;
+
+  // 获取窗口的外宽度（包括边框）
+  const outerWidth = window.outerWidth;
+
+  // 如果窗口的外宽度等于屏幕宽度，并且内宽度等于外宽度减去浏览器边框宽度
+  // 则认为窗口处于最大化状态
+  return outerWidth === screenWidth && innerWidth === outerWidth;
+}
 //---------------------------------------------窗口操作相关开始--------------------------------------------------------------
 watch(isMaximize, async (newValue) => {
   if (newValue==undefined)return
-  console.log("isMaximize",newValue)
   if(newValue){ //当前状态是最大化
     max_state_name.value = 'restore'
     await WebviewWindow.getCurrent().maximize()
@@ -111,13 +132,14 @@ async function showAndFocusWindow(label:string){
 
 <template>
   <div data-tauri-drag-region class="title-bar">
+    <div class="w-5"></div> <!-- 占位符，不知道为什么给app.ico设置左边距不好使，直接用这个占空了 -->
     <n-tooltip>
       <template #trigger>
-        <inline-svg src="../assets/svg/what.svg" class="w-4 h-4"></inline-svg>
+        <img src="../../assets/icon/app.ico" class="w-4 h-4" alt="ICO Icon">
       </template>
       v0.1.1
     </n-tooltip>
-    <label>天书</label>
+    <label class="pl-1">天书</label>
     <div class="pl-5">
       <n-dropdown trigger="click" :options="options" @select="handleSelect" :render-label="renderLabel">
         <inline-svg src="../assets/svg/MdMenu.svg" class="svg-button w-5 h-5"></inline-svg>

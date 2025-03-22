@@ -1,6 +1,6 @@
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
-use crate::config::{AiConfig, Config};
+use crate::config::{AiConfig};
 use reqwest::Client;
 use serde_json::{Value, json};
 use std::fmt;

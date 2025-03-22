@@ -8,7 +8,7 @@ const configStore = useConfigStore()
 </script>
 
 <template>
-  <TitleBar ></TitleBar>
+  <TitleBar></TitleBar>
   <div v-if="configStore.config">
     <n-tabs
         type="card"

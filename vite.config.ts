@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
-
+import AutoImport from 'unplugin-auto-import/vite'
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
@@ -10,11 +10,21 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [
       vue(),
+      // AutoImport({
+      //     resolvers: [NaiveUiResolver()],
+      // }),
       Components({
           resolvers: [NaiveUiResolver()]
       }),
   ],
-
+    // css: {
+    //     postcss: {
+    //         plugins: [
+    //             tailwindcss,
+    //             autoprefixer,
+    //         ],
+    //     },
+    // },
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent vite from obscuring rust errors

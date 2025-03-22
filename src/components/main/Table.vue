@@ -54,9 +54,8 @@ const contextOptions = {
 //   return window.innerHeight - 60 - 30-35; // 对应 calc(100vh - 60px - 30px)
 // });
 
-const maxHeight = ref(window.innerHeight - 60 - 30-35) // 对应 calc(100vh - 60px - 30px);
+const maxHeight = ref(window.innerHeight-60-30-35) // 对应 calc(100vh - 60px - 30px);
 const handleResize = () => {
-  console.log('resize', window.innerHeight)
   maxHeight.value = window.innerHeight - 60 - 30 - 35;
 };
 
@@ -150,24 +149,6 @@ watch(() => expandedAll.value, (newValue, _oldValue) => {
   }
 })
 const createColumns = (): DataTableColumns<DocumentTags> => [
-  // {
-  //   title: () => h(
-  //       'div',
-  //       { style: 'display: flex; align-items: center; gap: 5px;' },
-  //       [
-  //         h('span', '展开全部'),
-  //         h(NSwitch, {
-  //           modelValue: allExpanded.value,
-  //           'onUpdate:modelValue': (value: boolean) => {
-  //             allExpanded.value = value;
-  //             toggleAll(value);
-  //           },
-  //         }),
-  //       ]
-  //   ),
-  //   key: 'expandAll',
-  //   width: 150, // Adjust width as needed
-  // },
   {
     type: 'expand',
     width: 20,

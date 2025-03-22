@@ -58,7 +58,7 @@ const useConfigStore = defineStore('config', ()=>{
     function addSaveTags(ids:number[]){
         config.value?.ui_config.save_tag_groups.push(ids)
     }
-    // 保存最后使用的tags,应该在应用关闭时调用
+    // 保存最后使用的tags,必须在应用关闭时调用！！
     function saveLastUseTags(){
         config.value!.ui_config.last_use_tags[0] = tagStore.andTags.map(tag=>tag.id)
         config.value!.ui_config.last_use_tags[1] = tagStore.orTags.map(tag=>tag.id)

@@ -6,6 +6,7 @@ import {onMounted, onUnmounted} from "vue";
 import {listen} from "@tauri-apps/api/event";
 import {message} from "../message.ts";
 import {invoke} from "@tauri-apps/api/core";
+import TitleBar from "../components/main/TitleBar.vue";
 
 let unlistenMsg: () => void;
 onMounted(async ()=>{
@@ -30,6 +31,7 @@ onUnmounted(async ()=>{
 <template>
   <div class="h-screen w-full flex flex-col">
     <!-- 顶部标题栏 -->
+    <TitleBar></TitleBar>
 <!--    <WindowTitlebar class="flex-shrink-0  window-titlebar"></WindowTitlebar>-->
     <div class="flex-grow flex flex-col">
       <!-- 中间内容区域 -->

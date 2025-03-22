@@ -6,11 +6,6 @@ import {ref} from "vue";
 import useConfigStore from "../stroe/config.ts";
 
 const configStore = useConfigStore()
-// watch(()=>configStore.config,async (_newValue, oldValue)=>{
-//   if (oldValue==undefined){
-//     splitSize.value = configStore.config?.ui_config.split_size[0]||0.2;
-//   }
-// })
 const splitSize = ref(configStore.config?.ui_config.split_size[0]||0.2);
 const handleDragEnd = () => {
   //注意，这个配置改变config那边没监听到，但是最后保存时是没问题的。

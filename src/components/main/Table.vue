@@ -65,7 +65,6 @@ const handleBlur = () => {
 onMounted(async ()=>{
   unlistenFile = await listen('tauri://drag-drop', async (event:{ payload:{paths: string[]}})=>{
     let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
-    console.log(selectTagId)
     await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
   })
   unlistenParse = await listen('summary_doc', (event: {payload:[number,boolean]}) => {
@@ -346,7 +345,6 @@ function deleteDocs(){
   // let title = docsStore.currentSelectDoc!.title;
   // invoke('delete_docs', {id: docsStore.currentSelectDoc!.id}).then(_ => {
   invoke('delete_docs', {ids: ids}).then(_ => {
-    console.log(ids)
     selectedRows.value = []
     docsStore.deleteDocs(ids)
     message.success(`删除文档成功`)
@@ -393,7 +391,6 @@ const handleDragEnd = () => {
   //注意，这个配置改变config那边没监听到，但是最后保存时是没问题的。
   configStore.config!.ui_config.split_size[1] = parseFloat(splitSize.value.toFixed(2));
 };
-const scrollbarSize= ref(10)
 </script>
 
 <template>

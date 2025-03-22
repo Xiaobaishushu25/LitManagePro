@@ -105,7 +105,6 @@ const modelOptions = computed(() => {
 });
 watch(()=>use_ai.value,async (value)=>{
   if (configStore.config==undefined||value==undefined) return
-  console.log("use_ai",value)
   configStore.config.ai_config.use_ai = value
 })
 watch(()=>aiSupport.value, async (value)=>{{

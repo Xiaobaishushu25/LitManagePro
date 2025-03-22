@@ -24,7 +24,6 @@ const useConfigStore = defineStore('config', ()=>{
         }
         //JSON.stringify(newConfig)!=JSON.stringify(oldConfig)防止多次触发
         if (oldConfig!=undefined&&newConfig!=undefined&&JSON.stringify(newConfig)!=JSON.stringify(oldConfig)){
-            console.log("进来调用update_config")
             invoke('update_config', { config: newConfig }).then(() => {}).catch(() => {})
         }
     }, { immediate: true,deep : true });

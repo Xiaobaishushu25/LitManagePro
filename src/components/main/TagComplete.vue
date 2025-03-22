@@ -119,7 +119,6 @@ function saveConfigs(){
   message.success("标签组成功保存")
 }
 const handleSelect = (_key: string | number, option: TagRowOption) => {
-  console.log(option.rowData)
   //拿出所有的id，组成一个数组
   const tagIds = option.rowData.map(tag => tag.id)
   if (tagIds.length === 0){

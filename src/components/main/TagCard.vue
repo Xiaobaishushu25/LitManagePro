@@ -6,7 +6,6 @@ import {message} from "../../message.ts";
 import CustomModal from "../../util/CustomModal.vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
 import useConfigStore from "../../stroe/config.ts";
-import {WebviewWindow} from "@tauri-apps/api/webviewWindow";
 
 const store = useTagGroupsStore()
 const configStore = useConfigStore()
@@ -216,12 +215,27 @@ function deleteGroup(){
       <n-color-picker
           v-model:value="newTagBgColor"
           :swatches="[
-      '#FFFFFF',
-      '#18A058',
-      '#2080F0',
-      '#F0A020',
-      '#ba6d93',
-    ]"
+  '#FFFFFF',    // 纯白色
+  '#F8F9FA',    // 灰白色
+  '#E9ECEF',    // 浅灰色
+  '#DEE2E6',    // 灰色
+  '#CED4DA',    // 深灰色
+  '#ADB5BD',    // 暗灰色
+  '#18A058',    // 绿色
+  '#2080F0',    // 蓝色
+  '#F0A020',    // 橙色
+  '#ba6d93',    // 粉紫色
+  '#FF6B6B',    // 粉红色
+  '#4ECDC4',    // 浅绿色
+  '#45B7D1',    // 浅蓝色
+  '#96CEB4',    // 淡绿色
+  '#D1D8E0',    // 浅灰蓝色
+  '#FFEEAD',    // 浅黄色
+  '#FFB7B2',    // 浅红色
+  '#A5C9CA',    // 浅蓝绿色
+  '#C9ADA7',    // 浅红棕色
+  '#E0D5B8'     // 米色
+]"
       >
         <template #label>
           背景颜色
@@ -231,13 +245,28 @@ function deleteGroup(){
           v-model:value="newTagTextColor"
           :show-alpha="false"
           :swatches="[
-      '#000000',
-      '#FFFFFF',
-      '#18A058',
-      '#2080F0',
-      '#F0A020',
-      'rgba(208, 48, 80)',
-    ]"
+  '#000000',    // 黑色
+  '#FFFFFF',    // 白色
+  '#18A058',    // 绿色
+  '#2080F0',    // 蓝色
+  '#F0A020',    // 橙色
+  'rgba(208, 48, 80)', // 红色
+  '#6C757D',    // 中性灰
+  '#495057',    // 深中性灰
+  '#343A40',    // 更深中性灰
+  '#212529',    // 近黑色
+  '#FF6B6B',    // 粉红色
+  '#4ECDC4',    // 浅绿色
+  '#084956',    // 浅蓝色
+  '#17d87a',    // 淡绿色
+  '#1967cf',    // 浅灰蓝色
+  '#bd9f18',    // 浅黄色
+  '#805855',    // 浅红色
+  '#8d0b0b',    // 中性灰
+  '#A5C9CA',    // 浅蓝绿色
+  '#C9ADA7',    // 浅红棕色
+  '#E0D5B8'     // 米色
+]"
       >
         <template #label>
           文字颜色
@@ -263,7 +292,7 @@ function deleteGroup(){
               header-style="padding:5px 5px 5px 25px;font-size:17px;font-weight:bold;"
               content-style="padding:5px 5px 5px 15px;"
               v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name"
-              class="cursor-pointer group"
+              class="cursor-pointer group bg-gray-100 rounded-lg hover:bg-gray-300 shadow-md m-2"
               @mouseenter="hoverGroup(tags.tag_group.index, tags.tag_group.id, tags.tag_group.name)"
               @click="configStore.getTagGroupState(tags.tag_group.id).value=!configStore.getTagGroupState(tags.tag_group.id).value"
           >

@@ -104,7 +104,6 @@ function updateTags(){
   invoke('update_doc_tags', {docId: docsStore.currentSelectDoc?.id, tagIds: selectedTags.value})
       .then(_ => {})
       .catch(e => {message.error(e)})
-  console.log("update tag")
 }
 const authorEdit = ref()
 const titleEdit = ref()

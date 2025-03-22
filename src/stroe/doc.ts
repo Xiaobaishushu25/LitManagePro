@@ -35,10 +35,7 @@ const useDocStore = defineStore('docs', ()=>{
         }
     }
     function deleteDocs(ids: number[]){
-        console.log(ids)
-        console.log(docs.value!.length)
         docs.value = docs.value!.filter(doc => !ids.includes(doc.id));
-        console.log(docs.value!.length)
         if (ids.includes(currentSelectDoc.value!.id)){
             currentSelectDoc.value = undefined;
         }

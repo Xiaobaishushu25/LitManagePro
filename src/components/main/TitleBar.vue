@@ -20,10 +20,8 @@ onMounted(async ()=>{
     const isCurrentlyMaximized = isWindowMaximized();
     if (isCurrentlyMaximized) {
       isMaximize.value = true
-      console.log('窗口被最大化');
     } else if (!isCurrentlyMaximized) {
       isMaximize.value = false
-      console.log('窗口被恢复');
     }
   });
 })
@@ -172,7 +170,7 @@ async function showAndFocusWindow(label:string){
   flex-direction:row;
   height: 30px;
   user-select: none;
-  background-color: #ecece4;
+  background-color: #e8e8e5;
 }
 .window-button {
   width: 40px;

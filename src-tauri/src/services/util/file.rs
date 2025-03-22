@@ -72,7 +72,7 @@ fn clear_tmp_dir(tmp_dir: &str) -> std::io::Result<()> {
     Ok(())
 }
 #[cfg(test)]
-mod test{
+mod test {
     use std::fs::File;
 
     #[test]
@@ -81,7 +81,7 @@ mod test{
         // let path = "F:\\科研\\论文\\基于对抗样本的神经网络安全性问题研究综述_李紫珊.pdf";
         let path = "F:\\科研\\论文\\基于频域分析的可迁移对抗攻击算法研究_李腾蛟.pdf";
         // let path = "F:\\科研\\论文\\RTRGAN-崔宝杰.pdf";
-        if let Err(e) = lopdf::Document::load(path){
+        if let Err(e) = lopdf::Document::load(path) {
             println!("{:#}", e);
         }
         let file = File::open(path).unwrap();

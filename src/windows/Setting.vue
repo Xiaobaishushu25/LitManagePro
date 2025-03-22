@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import Appearance from "../components/setting/Appearance.vue";
 import useConfigStore from "../stroe/config.ts";
+import TitleBar from "../components/setting/TitleBar.vue";
 
 const configStore = useConfigStore()
 
 </script>
 
 <template>
+  <TitleBar ></TitleBar>
   <div v-if="configStore.config">
     <n-tabs
         type="card"

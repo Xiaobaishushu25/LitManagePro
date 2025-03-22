@@ -11,6 +11,8 @@
     "core:window:allow-start-resize-dragging",
     "core:window:allow-set-resizable",
     "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unminimize",
     "core:window:allow-close",
     "core:window:allow-start-dragging",
     "core:window:allow-destroy",
@@ -19,6 +21,9 @@
     "core:webview:allow-create-webview-window",
     "window-state:default",
     "dialog:allow-open",
-    "dialog:default"
+    "dialog:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

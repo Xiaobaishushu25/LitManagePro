@@ -40,6 +40,7 @@ declare module 'vue' {
     Table: typeof import('./src/components/main/Table.vue')['default']
     TagCard: typeof import('./src/components/main/TagCard.vue')['default']
     TagComplete: typeof import('./src/components/main/TagComplete.vue')['default']
+    TitleBar: typeof import('./src/components/main/TitleBar.vue')['default']
     Tree: typeof import('./src/components/main/Tree.vue')['default']
   }
 }

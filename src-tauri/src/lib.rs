@@ -6,7 +6,7 @@ use crate::services::commands::doc::{
 };
 use crate::services::commands::tag::{
     create_tag, create_tag_group, delete_doc_tag, delete_group, delete_tag, insert_doc_tag,
-    query_tag_groups, rename_tag_group, update_doc_tags,
+    query_tag_groups, rename_tag_group, reindex_tag_group, update_doc_tags,
 };
 use std::process::exit;
 use std::sync::Mutex;
@@ -44,6 +44,7 @@ pub async fn run() {
             delete_tag,
             create_tag_group,
             rename_tag_group,
+            reindex_tag_group,
             delete_group,
             get_config,
             save_config,

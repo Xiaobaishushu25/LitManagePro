@@ -44,6 +44,9 @@ dependencies:
   vue:
     specifier: ^3.5.13
     version: 3.5.13(typescript@5.6.3)
+  vue-draggable-plus:
+    specifier: ^0.6.0
+    version: 0.6.0(@types/sortablejs@1.15.8)
   vue-inline-svg:
     specifier: ^4.0.0
     version: 4.0.0(vue@3.5.13)
@@ -781,6 +784,10 @@ packages:
   /@types/lodash@4.17.15:
     resolution: {integrity: sha512-w/P33JFeySuhN6JLkysYUK2gEmy9kHHFN7E8ro0tkfmlDOgxBDzWEZ/J8cWA+fHqFevpswDTFZnDx+R9lbL6xw==}
     dev: true
+
+  /@types/sortablejs@1.15.8:
+    resolution: {integrity: sha512-b79830lW+RZfwaztgs1aVPgbasJ8e7AXtZYHTELNXZPsERt4ymJdjV4OccDbHQAvHrCcFpbF78jkm0R6h/pZVg==}
+    dev: false
 
   /@types/web-bluetooth@0.0.20:
     resolution: {integrity: sha512-g9gZnnXVq7gM7v3tJCWV/qw7w+KeOlSHAhgF9RytFyifW6AF61hdT2ucrYhPq9hLs5JIryeupHV3qGk95dH9ow==}
@@ -2206,6 +2213,18 @@ packages:
         optional: true
     dependencies:
       vue: 3.5.13(typescript@5.6.3)
+    dev: false
+
+  /vue-draggable-plus@0.6.0(@types/sortablejs@1.15.8):
+    resolution: {integrity: sha512-G5TSfHrt9tX9EjdG49InoFJbt2NYk0h3kgjgKxkFWr3ulIUays0oFObr5KZ8qzD4+QnhtALiRwIqY6qul4egqw==}
+    peerDependencies:
+      '@types/sortablejs': ^1.15.0
+      '@vue/composition-api': '*'
+    peerDependenciesMeta:
+      '@vue/composition-api':
+        optional: true
+    dependencies:
+      '@types/sortablejs': 1.15.8
     dev: false
 
   /vue-inline-svg@4.0.0(vue@3.5.13):

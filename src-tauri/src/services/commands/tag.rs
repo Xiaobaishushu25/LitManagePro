@@ -109,6 +109,19 @@ pub async fn delete_doc_tag(
         }
     }
 }
+/// 更新标签组的索引
+#[tauri::command]
+pub async fn reindex_tag_group(
+    tag_groups: Vec<TagGroup>,
+) -> Result<(), String> {
+    match TagGroupCurd::update_index(tag_groups).await {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            error!("更新标签组的索引失败：{}", e);
+            Err("更新标签组的索引失败".to_string())
+        }
+    }
+}
 #[tauri::command]
 pub async fn update_doc_tags(
     app_handle: tauri::AppHandle,

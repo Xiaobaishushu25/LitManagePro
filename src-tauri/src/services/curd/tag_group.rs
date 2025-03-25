@@ -4,7 +4,7 @@ use crate::entities::prelude::{ActiveTagGroup, TagGroup, TagGroups};
 use crate::entities::tag_group::Column;
 use log::error;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QuerySelect};
+use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, NotSet, QueryOrder, QuerySelect};
 
 pub struct TagGroupCurd;
 impl TagGroupCurd {
@@ -58,11 +58,23 @@ impl TagGroupCurd {
         }
         Ok(())
     }
+    pub async fn update_index(tag_groups: Vec<TagGroup>,) -> AppResult<()> {
+        let db = crate::entities::DB
+            .get()
+            .ok_or(Tip("数据库未初始化".into()))?;
+        for tag_group in tag_groups {
+            let new_index = tag_group.index;
+            let mut active_model = tag_group.into_active_model();
+            active_model.index = Set(new_index);
+            TagGroups::update(active_model).exec(db).await?;
+        }
+        Ok(())
+    }
     pub async fn query_tag_groups() -> AppResult<Vec<TagGroup>> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
-        let tag_groups = TagGroups::find().all(db).await?;
+        let tag_groups = TagGroups::find().order_by_asc(Column::Index).all(db).await?;
         Ok(tag_groups)
     }
 }

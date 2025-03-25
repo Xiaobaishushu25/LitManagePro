@@ -3,6 +3,7 @@ import {nextTick, onMounted, ref, watch} from "vue";
 import {invoke} from "@tauri-apps/api/core";
 import {Tag, TagAndGroups, TagGroup} from "./main-type.ts";
 import {message} from "../../message.ts";
+import { VueDraggable } from 'vue-draggable-plus'
 import CustomModal from "../../util/CustomModal.vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
 import useConfigStore from "../../stroe/config.ts";
@@ -167,6 +168,14 @@ function deleteGroup(){
     message.error(e)
   });
 }
+function handleDragEnd(){
+  // 遍历 store.tagGroups 并更新每个 tags.tag_group.index
+  store.tagGroups.forEach((item, index) => {
+    item.tag_group.index = index
+  })
+  const tagGroups = store.tagGroups.map(item => item.tag_group)
+  invoke('reindex_tag_group', {tagGroups: tagGroups}).then(_ => {}).catch(e => {message.error(e)})
+}
 </script>
 
 <template>
@@ -285,81 +294,80 @@ function deleteGroup(){
           </n-space>
         </n-grid-item>
         <n-grid-item>
-          <div class="light-green" />
-        </n-grid-item>
-        <n-grid-item>
-          <n-card
-              header-style="padding:5px 5px 5px 25px;font-size:17px;font-weight:bold;"
-              content-style="padding:5px 5px 5px 15px;"
-              v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name"
-              class="cursor-pointer group bg-gray-100 rounded-lg hover:bg-gray-300 shadow-md m-2"
-              @mouseenter="hoverGroup(tags.tag_group.index, tags.tag_group.id, tags.tag_group.name)"
-              @click="configStore.getTagGroupState(tags.tag_group.id).value=!configStore.getTagGroupState(tags.tag_group.id).value"
-          >
-            <template #header-extra>
-              <div class="hidden group-hover:block">
-                <n-flex class="flex items-center pr-4" :size="2">
-                  <n-tooltip trigger="hover" class="text-xs p-0">
-                    <template #trigger>
-                      <inline-svg
-                          src="../assets/svg/Rename24Regular.svg"
-                          class="svg-button"
-                          @click.stop="showRenameGroupModal=true"
-                      ></inline-svg>
-                    </template>
-                    重命名
-                  </n-tooltip>
-                  <n-tooltip trigger="hover" class="text-xs p-0">
-                    <template #trigger>
-                      <inline-svg
-                          src="../assets/svg/Delete24Regular.svg"
-                          class="svg-button hover:text-red-600 -rotate-90"
-                          @click.stop="showDeleteGroupModal=true"
-                      ></inline-svg>
-                    </template>
-                    删除标签组
-                  </n-tooltip>
-                  <n-tooltip trigger="hover" class="text-xs p-0">
-                    <template #trigger>
-                      <inline-svg
-                          src="../assets/svg/Delete24Regular.svg"
-                          class="svg-button hover:text-red-600 rotate-180"
-                          @click.stop="canTagDelete = !canTagDelete"
-                      ></inline-svg>
-                    </template>
-                    删除标签
-                  </n-tooltip>
-                  <n-tooltip trigger="hover" class="text-xs p-0">
-                    <template #trigger>
-                      <inline-svg
-                          src="../assets/svg/Add24Filled.svg"
-                          class="svg-button"
-                          @click.stop="toShowNewTagModal"
-                      ></inline-svg>
-                    </template>
-                    添加标签
-                  </n-tooltip>
-<!--                  <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>-->
-                </n-flex>
-              </div>
-            </template>
-            <n-collapse-transition :show="configStore.getTagGroupState(tags.tag_group.id).value">
-              <div class="flex flex-wrap gap-1 flex-row items-center">
-                <n-tag
-                    v-for="tag in tags.tags" :key="tag.id"
-                    :color="{ color: tag.bg_color, textColor: tag.text_color }"
-                    :disabled="isTagDisabled(tag.id)"
-                    :closable="canTagDelete"
-                    @click.stop=""
-                    @close.stop="deleteTag(tag.group_id,tag.id,tag.value)"
-                    @mousedown.stop="clickTag($event,tag.id, tag.value)"
-                    class="cursor-pointer"
-                >
-                  {{ tag.value }}
-                </n-tag>
-              </div>
-            </n-collapse-transition>
-          </n-card>
+          <VueDraggable ref="el" v-model="store.tagGroups" @end="handleDragEnd">
+            <n-card
+                header-style="padding:5px 5px 5px 25px;font-size:17px;font-weight:bold;"
+                content-style="padding:5px 5px 5px 15px;"
+                v-for="tags in store.tagGroups" :key="tags.tag_group.id" :title="tags.tag_group.name"
+                class="cursor-pointer group bg-gray-100 rounded-lg hover:bg-gray-300 shadow-md m-2"
+                @mouseenter="hoverGroup(tags.tag_group.index, tags.tag_group.id, tags.tag_group.name)"
+                @click="configStore.getTagGroupState(tags.tag_group.id).value=!configStore.getTagGroupState(tags.tag_group.id).value"
+            >
+              <template #header-extra>
+                <div class="hidden group-hover:block">
+                  <n-flex class="flex items-center pr-4" :size="2">
+                    <n-tooltip trigger="hover" class="text-xs p-0">
+                      <template #trigger>
+                        <inline-svg
+                            src="../assets/svg/Rename24Regular.svg"
+                            class="svg-button"
+                            @click.stop="showRenameGroupModal=true"
+                        ></inline-svg>
+                      </template>
+                      重命名
+                    </n-tooltip>
+                    <n-tooltip trigger="hover" class="text-xs p-0">
+                      <template #trigger>
+                        <inline-svg
+                            src="../assets/svg/Delete24Regular.svg"
+                            class="svg-button hover:text-red-600 -rotate-90"
+                            @click.stop="showDeleteGroupModal=true"
+                        ></inline-svg>
+                      </template>
+                      删除标签组
+                    </n-tooltip>
+                    <n-tooltip trigger="hover" class="text-xs p-0">
+                      <template #trigger>
+                        <inline-svg
+                            src="../assets/svg/Delete24Regular.svg"
+                            class="svg-button hover:text-red-600 rotate-180"
+                            @click.stop="canTagDelete = !canTagDelete"
+                        ></inline-svg>
+                      </template>
+                      删除标签
+                    </n-tooltip>
+                    <n-tooltip trigger="hover" class="text-xs p-0">
+                      <template #trigger>
+                        <inline-svg
+                            src="../assets/svg/Add24Filled.svg"
+                            class="svg-button"
+                            @click.stop="toShowNewTagModal"
+                        ></inline-svg>
+                      </template>
+                      添加标签
+                    </n-tooltip>
+                    <!--                  <n-switch v-model:value="configStore.getTagGroupState(tags.tag_group.id).value"></n-switch>-->
+                  </n-flex>
+                </div>
+              </template>
+              <n-collapse-transition :show="configStore.getTagGroupState(tags.tag_group.id).value">
+                <div class="flex flex-wrap gap-1 flex-row items-center">
+                  <n-tag
+                      v-for="tag in tags.tags" :key="tag.id"
+                      :color="{ color: tag.bg_color, textColor: tag.text_color }"
+                      :disabled="isTagDisabled(tag.id)"
+                      :closable="canTagDelete"
+                      @click.stop=""
+                      @close.stop="deleteTag(tag.group_id,tag.id,tag.value)"
+                      @mousedown.stop="clickTag($event,tag.id, tag.value)"
+                      class="cursor-pointer"
+                  >
+                    {{ tag.value }}
+                  </n-tag>
+                </div>
+              </n-collapse-transition>
+            </n-card>
+          </VueDraggable>
         </n-grid-item>
       </n-grid>
     </n-scrollbar>

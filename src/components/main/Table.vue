@@ -21,7 +21,7 @@ const configStore = useConfigStore()
 const watchAndTags = computed(() => tagStore.andTags)
 const watchOrTags = computed(() => tagStore.orTags)
 
-let unlistenFile: () => void;
+// let unlistenFile: () => void;
 let unlistenDoc: () => void;
 let unlistenDocUp: () => void;
 let unlistenParse: () => void;
@@ -63,10 +63,10 @@ const handleBlur = () => {
 };
 
 onMounted(async ()=>{
-  unlistenFile = await listen('tauri://drag-drop', async (event:{ payload:{paths: string[]}})=>{
-    let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
-    await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
-  })
+  // unlistenFile = await listen('tauri://drag-drop', async (event:{ payload:{paths: string[]}})=>{
+  //   let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
+  //   await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
+  // })
   unlistenParse = await listen('summary_doc', (event: {payload:[number,boolean]}) => {
     if (event.payload[1]){
       parseIngIds.value.push(event.payload[0])
@@ -100,7 +100,7 @@ onMounted(async ()=>{
 
 })
 onUnmounted(()=>{
-  unlistenFile()
+  // unlistenFile()
   unlistenDoc()
   unlistenDocUp()
   unlistenParse()

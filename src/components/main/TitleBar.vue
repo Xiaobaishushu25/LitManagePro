@@ -6,8 +6,12 @@ import {invoke} from "@tauri-apps/api/core";
 import {message} from "../../message.ts";
 import useConfigStore from "../../stroe/config.ts";
 import InlineSvg from "vue-inline-svg";
+import {open} from "@tauri-apps/plugin-dialog";
+import {ExeConfig} from "../../config-type.ts";
+import useTagGroupsStore from "../../stroe/tag.ts";
 
 const configStore = useConfigStore()
+const tagStore = useTagGroupsStore()
 
 const isMaximize = ref();
 const max_state_name = ref('maximize')
@@ -16,6 +20,7 @@ onMounted(async ()=>{
   await WebviewWindow.getCurrent().isMaximized().then(res => {
     isMaximize.value = res
   })
+  //这个作用是监听窗口大小变化来改变窗口最大化状态，主要是用于鼠标点击标题栏拖拽时会改变最大化状态的监听。
   window.addEventListener('resize', () => {
     const isCurrentlyMaximized = isWindowMaximized();
     if (isCurrentlyMaximized) {
@@ -30,12 +35,9 @@ function isWindowMaximized() {
   // 获取窗口的内宽度和屏幕的宽度
   const innerWidth = window.innerWidth;
   const screenWidth = window.screen.width;
-
   // 获取窗口的外宽度（包括边框）
   const outerWidth = window.outerWidth;
-
-  // 如果窗口的外宽度等于屏幕宽度，并且内宽度等于外宽度减去浏览器边框宽度
-  // 则认为窗口处于最大化状态
+  // 如果窗口的外宽度等于屏幕宽度，并且内宽度等于外宽度减去浏览器边框宽度 则认为窗口处于最大化状态
   return outerWidth === screenWidth && innerWidth === outerWidth;
 }
 //---------------------------------------------窗口操作相关开始--------------------------------------------------------------
@@ -69,12 +71,37 @@ async function window_close(){
 //---------------------------------------------下拉菜单相关开始--------------------------------------------------------------
 const options = [
   // { label: '设置', key: 'setting', icon: '../assets/svg/setting.svg' },
-  { label: '设置',
+  {
+    label: '设置',
     key: 'setting',
     iconPath: '../assets/svg/setting.svg',//注意这里面不能像n-select一样用icon，会出渲染问题
     props: {
       onClick: () => {
         open_setting()
+      }
+    }
+  },
+  {
+    type: 'divider',
+    key: 'd1'
+  },
+  {
+    label: '导入',
+    key: 'import',
+    iconPath: '../assets/svg/Import32.svg',//注意这里面不能像n-select一样用icon，会出渲染问题
+    props: {
+      onClick: () => {
+        openFileSelect()
+      }
+    }
+  },
+  {
+    label: '拖拽上传',
+    key: 'dragImport',
+    iconPath: '../assets/svg/DragFile32.svg',
+    props: {
+      onClick: () => {
+        openDragImport()
       }
     }
   },
@@ -104,6 +131,45 @@ async function open_setting(){
     resizable: true,
     dragDropEnabled: false,
     visible: false,
+  });
+  await webview.once('tauri://created', async function () {
+    await webview.show()
+  });
+  await webview.once('tauri://error', function (e) {
+    // an error happened creating the webview
+    console.error(e);
+  });
+}
+async function openFileSelect(){
+  try {
+    const paths = await open({
+      multiple: true,
+      directory: false, // 设置为 true 可以选择目录
+    });
+    if (paths==null)return
+    console.log(paths)
+    let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
+    await invoke('insert_docs', {paths: paths, tagsId: selectTagId})
+  } catch (error) {
+    message.error(`打开文件选择器时出错:${error}`)
+  }
+}
+async function openDragImport() {
+  let flag = await showAndFocusWindow('dragImport')
+  if (flag) return
+  const webview = new WebviewWindow('dragImport', {
+    url: '/#/dragImport',
+    center: true,
+    title: '拖拽上传',
+    width: 600,
+    height: 400,
+    minWidth: 200,
+    minHeight: 200,
+    decorations: false,
+    resizable: true,
+    dragDropEnabled: true,
+    visible: false,
+    alwaysOnTop: true
   });
   await webview.once('tauri://created', async function () {
     await webview.show()

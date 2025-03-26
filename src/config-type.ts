@@ -27,11 +27,27 @@ interface AiConfig {
     max_concurrency:number;
 }
 
+type ShortcutNode = Group | Item;
+
+interface Group {
+    name: string;
+    children: ShortcutNode[];
+}
+
+interface Item {
+    name: string;
+    shortcut: string;
+}
+// 类型保护函数
+export function isGroup(node: ShortcutNode): node is Group {
+    return (node as Group).children !== undefined;
+}
 interface Config {
     ui_config: UiConfig;
     app_config: AppConfig;
     ai_config: AiConfig;
     exe_configs: ExeConfig[];
+    shortcut_tree: ShortcutNode[];
 }
 
-export type { Config, UiConfig,ExeConfig, AiConfig}
+export type { Config, UiConfig,ExeConfig, AiConfig, ShortcutNode}

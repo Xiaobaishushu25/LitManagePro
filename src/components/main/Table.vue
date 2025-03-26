@@ -43,7 +43,6 @@ const contextMenuShow = ref(false)
 const contextOptions = {
   theme: 'flat',
   name:"",
-  code:"",
   zIndex: 3,
   x: 500,
   y: 200
@@ -164,6 +163,9 @@ const createColumns = (): DataTableColumns<DocumentTags> => [
     key: 'title' ,
     width: '70%',
     resizable:true,
+    ellipsis: {
+      tooltip: true
+    },
     render: (rowData: DocumentTags) => {
       return h('div', {
             style: 'white-space:normal;font-size:16px',
@@ -485,10 +487,6 @@ const handleDragEnd = () => {
       <span v-else>
         你确定要删除这<span class="text-orange-600 text-base">{{ selectedRows.length }}</span>条？删除后不可恢复，请谨慎操作。
       </span>
-<!--      <span>确定删除文件：</span>-->
-<!--      <span class="text-orange-600 text-base">{{ docsStore.currentSelectDoc?.title }}</span>-->
-<!--      <span>?</span>-->
-<!--      <p>删除后不可恢复，请谨慎操作。</p>-->
     </div>
   </custom-modal>
 </template>

@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "文献管理",
         "width": 1025,
         "height": 800,

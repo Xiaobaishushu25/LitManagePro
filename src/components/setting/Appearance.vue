@@ -202,9 +202,9 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
 
 <template>
   <div>
-    <n-scrollbar class="h-[calc(100vh-90px)]">
+    <n-scrollbar class="h-[calc(100vh-50px)]">
       <n-flex vertical>
-        <label class="text-2xl ml-5 font-bold text-gray-800">应用</label>
+        <label class="text-2xl ml-5 mt-4 font-bold text-gray-800">应用</label>
         <div class="setting-card">
           <div class="setting-card-row">
             <label>是否开机自动启动</label>

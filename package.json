@@ -19,6 +19,7 @@
     "@tauri-apps/plugin-window-state": "~2",
     "@tauri-controls/vue": "^0.4.0",
     "autoprefixer": "^10.4.20",
+    "hotkeys-js": "^3.13.9",
     "pinia": "^3.0.1",
     "pinia-shared-state": "^1.0.1",
     "postcss": "^8.5.3",

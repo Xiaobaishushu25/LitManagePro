@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, ref, watch} from "vue";
+import {h, onMounted, ref, watch,computed} from "vue";
 import {WebviewWindow} from "@tauri-apps/api/webviewWindow";
 import {saveWindowState, StateFlags} from "@tauri-apps/plugin-window-state";
 import {invoke} from "@tauri-apps/api/core";
@@ -7,8 +7,8 @@ import {message} from "../../message.ts";
 import useConfigStore from "../../stroe/config.ts";
 import InlineSvg from "vue-inline-svg";
 import {open} from "@tauri-apps/plugin-dialog";
-import {ExeConfig} from "../../config-type.ts";
 import useTagGroupsStore from "../../stroe/tag.ts";
+import {listen} from "@tauri-apps/api/event";
 
 const configStore = useConfigStore()
 const tagStore = useTagGroupsStore()
@@ -19,6 +19,12 @@ const max_state_name = ref('maximize')
 onMounted(async ()=>{
   await WebviewWindow.getCurrent().isMaximized().then(res => {
     isMaximize.value = res
+  })
+  await listen('导入文件', async (_event) => {
+    await openFileSelect()
+  })
+  await listen('打开设置', async (_event) => {
+    await open_setting()
   })
   //这个作用是监听窗口大小变化来改变窗口最大化状态，主要是用于鼠标点击标题栏拖拽时会改变最大化状态的监听。
   window.addEventListener('resize', () => {
@@ -69,15 +75,15 @@ async function window_close(){
 //---------------------------------------------窗口操作相关结束--------------------------------------------------------------
 
 //---------------------------------------------下拉菜单相关开始--------------------------------------------------------------
-const options = [
-  // { label: '设置', key: 'setting', icon: '../assets/svg/setting.svg' },
+const options = computed(() => [
   {
     label: '设置',
     key: 'setting',
-    iconPath: '../assets/svg/setting.svg',//注意这里面不能像n-select一样用icon，会出渲染问题
+    shortKey: configStore.shortcuts?.find(item => item.key === '打开设置')?.value,
+    iconPath: '../assets/svg/setting.svg',
     props: {
       onClick: () => {
-        open_setting()
+        open_setting();
       }
     }
   },
@@ -88,10 +94,11 @@ const options = [
   {
     label: '导入',
     key: 'import',
-    iconPath: '../assets/svg/Import32.svg',//注意这里面不能像n-select一样用icon，会出渲染问题
+    shortKey: configStore.shortcuts?.find(item => item.key === '导入文件')?.value,
+    iconPath: '../assets/svg/Import32.svg',
     props: {
       onClick: () => {
-        openFileSelect()
+        openFileSelect();
       }
     }
   },
@@ -101,15 +108,54 @@ const options = [
     iconPath: '../assets/svg/DragFile32.svg',
     props: {
       onClick: () => {
-        openDragImport()
+        openDragImport();
       }
     }
   },
-];
-const renderLabel = (option:{ label: string, value: string, iconPath: string}) => {
-  return h('div', { style: { display: 'flex', alignItems: 'center' } }, [
+]);
+// const options = [
+//   {
+//     label: '设置',
+//     key: 'setting',
+//     shortKey:configStore.shortcuts?.find(item => item.key === '打开设置')!.value,
+//     iconPath: '../assets/svg/setting.svg',//注意这里面不能像n-select一样用icon，会出渲染问题
+//     props: {
+//       onClick: () => {
+//         open_setting()
+//       }
+//     }
+//   },
+//   {
+//     type: 'divider',
+//     key: 'd1'
+//   },
+//   {
+//     label: '导入',
+//     key: 'import',
+//     shortKey:configStore.shortcuts?.find(item => item.key === '导入文件')!.value,
+//     iconPath: '../assets/svg/Import32.svg',//注意这里面不能像n-select一样用icon，会出渲染问题
+//     props: {
+//       onClick: () => {
+//         openFileSelect()
+//       }
+//     }
+//   },
+//   {
+//     label: '拖拽上传',
+//     key: 'dragImport',
+//     iconPath: '../assets/svg/DragFile32.svg',
+//     props: {
+//       onClick: () => {
+//         openDragImport()
+//       }
+//     }
+//   },
+// ];
+const renderLabel = (option:{ label: string, value: string,shortKey:string, iconPath: string}) => {
+  return h('div', { class: 'flex items-center w-52' }, [
     h(InlineSvg, { src: option.iconPath, class: 'w-4 h-4' }),
-    h('span', { style: { marginLeft: '8px' } }, option.label)
+    h('span', { style: { marginLeft: '8px' } }, option.label),
+    option.shortKey?h('span', { class: 'ml-auto bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-mono' }, option.shortKey):null,
   ]);
 };
 //目前没用到，目前是每个选项单独设置点击事件的的，后续看看有用没，需不需要封装

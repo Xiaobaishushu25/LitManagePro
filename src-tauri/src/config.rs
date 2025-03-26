@@ -29,6 +29,7 @@ pub struct Config {
     pub app_config: AppConfig,
     pub ai_config: AiConfig,
     pub exe_configs: Vec<ExeConfig>,
+    shortcut_tree: Vec<ShortcutNode>,
 }
 
 impl Config {
@@ -71,6 +72,7 @@ impl Default for Config {
             app_config: AppConfig::default(),
             ai_config: AiConfig::default(),
             exe_configs: vec![],
+            shortcut_tree: ShortcutNode::default_tree(),
         }
     }
 }
@@ -173,6 +175,43 @@ impl Default for AiConfig {
             online: false,
             max_concurrency: 3,
         }
+    }
+}
+
+// 定义快捷键树节点的枚举
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+enum ShortcutNode {
+    Group {
+        name: String,
+        children: Vec<ShortcutNode>,
+    },
+    Item {
+        name: String,
+        shortcut: String,
+    },
+}
+impl ShortcutNode{
+    fn default_tree()->Vec<Self>{
+        vec![
+            ShortcutNode::Group {
+                name: "常用".to_string(),
+                children: vec![
+                    ShortcutNode::Item {
+                        name: "打开设置".to_string(),
+                        shortcut: "Ctrl+P".to_string(),
+                    },
+                    ShortcutNode::Item {
+                        name: "导入文件".to_string(),
+                        shortcut: "Ctrl+I".to_string(),
+                    },
+                    ShortcutNode::Item {
+                        name: "打开文件夹".to_string(),
+                        shortcut: "Ctrl+Shift+O".to_string(),
+                    },
+                ]
+            }
+        ]
     }
 }
 
@@ -282,12 +321,17 @@ pub fn init_logger() -> WorkerGuard {
 }
 #[cfg(test)]
 mod test {
-    use crate::config::ExeConfig;
+    use crate::config::{Config, ExeConfig};
 
     #[test]
     fn test_new_exe() {
         let exe_config = ExeConfig::new("D:\\知云\\ZhiyunTranslator\\ZhiYunTranslator.exe");
         println!("{:?}", exe_config);
         // println!("{}", serde_json::to_string(&exe_config).unwrap());
+    }
+    #[test]
+    fn test_default_config(){
+        let config = Config::default();
+        println!("{:?}", config);
     }
 }

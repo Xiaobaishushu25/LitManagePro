@@ -2,18 +2,22 @@
 import RightBar from "../layouts/RightBar.vue";
 import MainContent from "../layouts/MainContent.vue";
 import Footer from "../layouts/Footer.vue";
-import {onMounted, onUnmounted} from "vue";
-import {listen} from "@tauri-apps/api/event";
+import {onMounted, onUnmounted,watch} from "vue";
+import {emitTo, listen} from "@tauri-apps/api/event";
 import {message} from "../message.ts";
 import {invoke} from "@tauri-apps/api/core";
 import TitleBar from "../components/main/TitleBar.vue";
+import hotkeys from "hotkeys-js";
+import useConfigStore from "../stroe/config.ts";
+
+let configStore = useConfigStore()
 
 let unlistenMsg: () => void;
+
 onMounted(async ()=>{
   unlistenMsg = await listen('backend_message', (event:{payload:string}) => {
     message.error(event.payload);
   })
-
   invoke<string[]>('first_run',{}).then(data => {
     data.forEach(item => {
       message.error(item);
@@ -22,9 +26,26 @@ onMounted(async ()=>{
     message.error(e);
   })
 })
-
+watch(()=>configStore.shortcuts, () => {
+  let shortcuts = configStore.shortcuts;
+  if (shortcuts==undefined||shortcuts.length==0)return
+  // 提取所有快捷键的 value 并去掉空字符串，形成一个字符串数组
+  const hotkeysList = shortcuts.filter(item => item.value).map(item => item.value).join(',');
+  hotkeys.unbind(); // 清除之前的监听
+  hotkeys(hotkeysList, function (event, handler) {
+    event.preventDefault();// 阻止默认行为，比如Ctrl+p是浏览器打印
+    // 找到对应的快捷键名称
+    const matchedShortcut = shortcuts.find(item => item.value === handler.key);
+    if (matchedShortcut) {
+      emitTo('main',matchedShortcut.key,{})
+    } else {
+      message.error('Unknown shortcut triggered: ' + handler.key);
+    }
+  });
+}, {immediate: true, deep: true });
 onUnmounted(async ()=>{
   unlistenMsg();
+  hotkeys.unbind();
 })
 </script>
 

@@ -31,7 +31,6 @@ const useConfigStore = defineStore('config', ()=>{
                     return [shortcutEntry];
                 }
             });
-            console.log(result)
             shortcuts.value = result||[];
         },
         { deep: true }

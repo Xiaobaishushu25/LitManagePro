@@ -30,6 +30,7 @@ let unlisten1: () => void;
 let unlisten2: () => void;
 
 const selectedRowIndex = ref(-1);
+//会监听docsStore.docs的currentSelectDoc变化自动改变，也会根据多选点击来改变
 const selectedRows = ref<DocumentTags[]>([]); // Store selected rows
 const lastClickedIndex = ref<number | null>(null); // Store the index of the last clicked row
 const parseIngIds = ref<number[]>([])
@@ -76,6 +77,7 @@ onMounted(async ()=>{
   unlisten2 = await listen('复制文件', () => {
     copyToClipboard()
   })
+  // 监听summary_doc事件，其中payload是[id,true]表示开始解析，[id,false]表示解析完成
   unlistenParse = await listen('summary_doc', (event: {payload:[number,boolean]}) => {
     if (event.payload[1]){
       parseIngIds.value.push(event.payload[0])
@@ -90,6 +92,7 @@ onMounted(async ()=>{
     docsStore.updateDoc(event.payload)
   })
   unlistenDocPathUp = await listen('docs_path_update', (event: {payload:Record<number, string>}) => {
+    let payload = event.payload;
     for (const key in payload) {
       const value = payload[key];
       // console.log(`Key: ${key}, Value: ${value}`);
@@ -141,13 +144,14 @@ watch(
     (newVal) => {
       // 使用唯一标识符比较（假设每个文档有唯一id）
       if (docsStore.docs==null||newVal==undefined) return
+      if (selectedRows.value.length==0){
+        //如果当前选中文档为空，则选中当前文档，其实这个判断有待商榷，好像不用加也可以，因为肯定不能多选的时候上下键切换
+        selectedRows.value = newVal ? [newVal] : []
+      }
       const index = docsStore.docs.findIndex(doc => doc.id === newVal.id)
       selectedRowIndex.value = index >= 0 ? index : -1
     },
-    {
-      deep: true,      // 深度监听对象内部变化
-      immediate: true  // 立即触发一次初始值计算
-    }
+    {deep: true, immediate: true}
 )
 watch(() => parseIngIds.value, (newValue, _oldValue) => {
   //不知道为什么第一次变化时old和new一样的，所以只能判断有没有解析列了
@@ -316,16 +320,18 @@ const handleKeyDown = async (e: KeyboardEvent) => {
   if (docsStore.docs == null) return;
   if (docsStore.docs!.length === 0) return;
   if (e.key === 'ArrowUp') { // Move up
-    selectedRows.value = []
+    selectedRows.value = []  //注意，这个不能移出去，因为只有上下箭头时才可以删除
     selectedRowIndex.value = (selectedRowIndex.value - 1 + docsStore.docs.length) % docsStore.docs.length;
     lastClickedIndex.value = selectedRowIndex.value;
   } else if (e.key === 'ArrowDown') { // Move down
-    selectedRows.value = []
+    selectedRows.value = []//注意，这个不能移出去，因为只有上下箭头时才可以删除
     selectedRowIndex.value = (selectedRowIndex.value + 1) % docsStore.docs.length;
     lastClickedIndex.value = selectedRowIndex.value;
   }
+  let doc = docsStore.docs[selectedRowIndex.value];
+  // selectedRows.value = [doc]
   // Update the selected document
-  docsStore.setCurrentSelectDoc(docsStore.docs[selectedRowIndex.value]);
+  docsStore.setCurrentSelectDoc(doc);
   // 等待 DOM 更新
   await nextTick()
   // 执行滚动

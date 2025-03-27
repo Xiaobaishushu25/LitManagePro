@@ -40,7 +40,6 @@ declare module 'vue' {
     NTree: typeof import('naive-ui')['NTree']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    ShortcutKey: typeof import('./src/components/setting/ShortcutKey.vue')['default']
     Table: typeof import('./src/components/main/Table.vue')['default']
     TagCard: typeof import('./src/components/main/TagCard.vue')['default']
     TagComplete: typeof import('./src/components/main/TagComplete.vue')['default']

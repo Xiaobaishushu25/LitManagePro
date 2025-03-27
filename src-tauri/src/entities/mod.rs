@@ -22,7 +22,8 @@ pub mod tag_group;
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::const_new();
 pub async fn init_db_coon() {
     let current_dir = CURRENT_DIR.clone();
-    let db_path = format!("{}/data/data.db", current_dir);
+    // let db_path = format!("{}/data/data.db", current_dir);
+    let db_path = CURRENT_DIR.join("data").join("data.db").to_string_lossy().to_string();
     let exist = match check_db_file(&db_path, &current_dir) {
         Ok(flag) => flag,
         Err(e) => {
@@ -56,13 +57,15 @@ pub async fn open_db_log() {
         .with_test_writer()
         .init();
 }
-pub fn check_db_file(path: &str, current_dir: &str) -> AppResult<bool> {
+// pub fn check_db_file(path: &str, current_dir: &str) -> AppResult<bool> {
+pub fn check_db_file(path: &str, current_dir: &PathBuf) -> AppResult<bool> {
     if PathBuf::from(path).exists() {
         info!("数据库存在");
         Ok(true)
     } else {
         info!("数据库不存在,创建数据库。");
-        let _ = fs::create_dir_all(format!("{}/data", current_dir))?;
+        // let _ = fs::create_dir_all(format!("{}/data", current_dir))?;
+        let _ = fs::create_dir_all(current_dir.join("data"))?;
         let _ = File::create(path)?;
         Ok(false)
     }

@@ -40,6 +40,12 @@ const useDocStore = defineStore('docs', ()=>{
             currentSelectDoc.value = undefined;
         }
     }
+    function updateDocPathById(id:number,new_path:string){
+        let doc = docs.value!.find(item => item.id == id);
+        if (doc){
+            doc.path = new_path;
+        }
+    }
     return {
         docs,
         currentSelectDoc,
@@ -47,7 +53,8 @@ const useDocStore = defineStore('docs', ()=>{
         setCurrentSelectDoc,
         addNewDoc,
         updateDoc,
-        deleteDocs
+        deleteDocs,
+        updateDocPathById
     }
 })
 export default useDocStore

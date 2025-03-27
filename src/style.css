@@ -2,12 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-    font-family: 'wenKai'; /* 自定义字体名称 */
-    src: url('../assets/font/LXGWWenKai-Regular.ttf') format('truetype'); /* 字体文件路径和格式 */
-    font-weight: normal; /* 字体粗细 */
-    font-style: normal; /* 字体样式 */
-}
+/*@font-face {*/
+/*    font-family: 'wenKai'; !* 自定义字体名称 *!*/
+/*    src: url('../assets/font/LXGWWenKai-Regular.ttf') format('truetype'); !* 字体文件路径和格式 *!*/
+/*    font-weight: normal; !* 字体粗细 *!*/
+/*    font-style: normal; !* 字体样式 *!*/
+/*}*/
 
 @layer base {
     html,

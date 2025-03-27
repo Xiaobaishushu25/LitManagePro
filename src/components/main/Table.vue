@@ -24,8 +24,10 @@ const watchOrTags = computed(() => tagStore.orTags)
 // let unlistenFile: () => void;
 let unlistenDoc: () => void;
 let unlistenDocUp: () => void;
+let unlistenDocPathUp: () => void;
 let unlistenParse: () => void;
 let unlisten1: () => void;
+let unlisten2: () => void;
 
 const selectedRowIndex = ref(-1);
 const selectedRows = ref<DocumentTags[]>([]); // Store selected rows
@@ -71,6 +73,9 @@ onMounted(async ()=>{
   unlisten1 = await listen('关闭/打开所有可展开行', () => {
     expandedAll.value = !expandedAll.value
   })
+  unlisten2 = await listen('复制文件', () => {
+    copyToClipboard()
+  })
   unlistenParse = await listen('summary_doc', (event: {payload:[number,boolean]}) => {
     if (event.payload[1]){
       parseIngIds.value.push(event.payload[0])
@@ -83,6 +88,13 @@ onMounted(async ()=>{
   })
   unlistenDocUp = await listen('doc_update', (event: {payload:DocumentTags}) => {
     docsStore.updateDoc(event.payload)
+  })
+  unlistenDocPathUp = await listen('docs_path_update', (event: {payload:Record<number, string>}) => {
+    for (const key in payload) {
+      const value = payload[key];
+      // console.log(`Key: ${key}, Value: ${value}`);
+      docsStore.updateDocPathById(Number(key), value)
+    }
   })
   if (configStore.config?.ui_config.table_expand ?? true) {
     watch(
@@ -106,8 +118,10 @@ onMounted(async ()=>{
 onUnmounted(()=>{
   // unlistenFile()
   unlisten1()
+  unlisten2()
   unlistenDoc()
   unlistenDocUp()
+  unlistenDocPathUp()
   unlistenParse()
   window.removeEventListener('blur', handleBlur);
   window.removeEventListener('resize', handleResize);
@@ -386,6 +400,17 @@ function openWithExe(exePath:string){
     message.error(e)
   })
 }
+function copyToClipboard(){
+  let docs = selectedRows.value;
+  if (docs.length === 0)return
+  let filePaths = docs.map(doc => doc.path);
+  console.log(filePaths)
+  invoke('copy_files_to_clipboard', {filePaths: filePaths}).then(_ => {
+    message.success(`成功复制到剪切板`)
+  }).catch(e => {
+    message.error(e)
+  })
+}
 function summaryByAi(){
   let docs = selectedRows.value;
   if (docs.length === 0)return
@@ -447,7 +472,21 @@ const handleDragEnd = () => {
                   <img :src="convertFileSrc(exe.icon_path)" alt="icon" class="w-4 h-4">
                 </template>
               </context-menu-item>
-              <context-menu-item label="打开文件所在目录" @click="openDir" />
+              <context-menu-item label="打开文件所在目录" @click="openDir"/>
+              <context-menu-item
+                  :label="selectedRows.length === 1 ? '复制' : `复制这${selectedRows.length}条文档`"
+                  shortcut="?"
+                  @click="copyToClipboard">
+                <template #icon>
+                  <inline-svg
+                      src="../assets/svg/DocumentCopy48Regular.svg"
+                      class="svg-button"
+                  ></inline-svg>
+                </template>
+                <template #shortcut>
+                  <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-mono">{{configStore.getShortcutByName('复制文件')}}</span>
+                </template>
+              </context-menu-item>
               <context-menu-sperator />
               <context-menu-item :label="selectedRows.length === 1 ? '用AI总结' : `用AI总结这${selectedRows.length}条文档`" @click="summaryByAi">
                 <template #icon>

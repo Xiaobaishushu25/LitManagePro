@@ -250,7 +250,7 @@ function updateDoc(){
           </n-tag>
         </div>
       </n-card>
-      <n-card title="核心思想" class="font-wenKai font-bold">
+      <n-card title="核心思想" class="font-bold">
         <editable-text v-model:value="remarkEdit" :on-save="updateDoc" content-class="text-base text-blue-600 font-bold" />
       </n-card>
       <n-card title="摘要">

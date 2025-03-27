@@ -103,10 +103,11 @@ const handleKeyDown = (e: KeyboardEvent) => {
   inputValue.value = keyCombo;
 };
 const isValidShortcut = (keyCombo: string): boolean => {
-  if (!keyCombo.includes("Ctrl") && !keyCombo.includes("Shift") && !keyCombo.includes("Alt")) {
-    message.warning("必须包含至少一个修饰键");
-    return false;
-  }
+  //还是允许单个键不加修饰键吧
+  // if (!keyCombo.includes("Ctrl") && !keyCombo.includes("Shift") && !keyCombo.includes("Alt")) {
+  //   message.warning("必须包含至少一个修饰键");
+  //   return false;
+  // }
   // 不能只包含修饰键
   // if (keyCombo === "Ctrl+" || keyCombo === "Shift+" || keyCombo === "Alt+") {
   if (keyCombo.endsWith('+')) {

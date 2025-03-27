@@ -3,7 +3,7 @@ import {
     createRouter,
     createWebHashHistory, RouteRecordRaw,
 } from 'vue-router'
-import MainWindow from "./windows/MainWindow.vue";
+import Main from "./windows/Main.vue";
 import Setting from "./windows/Setting.vue";
 import DragImport from "./windows/DragImport.vue";
 
@@ -16,7 +16,7 @@ const routes: Array<RouteRecordRaw> = [
     },
     {
         path: '/main',
-        component: MainWindow, // 主界面的布局组件
+        component: Main, // 主界面的布局组件
     },
     {
         path: '/setting',

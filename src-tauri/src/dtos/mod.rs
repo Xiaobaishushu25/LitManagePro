@@ -9,6 +9,18 @@ pub mod tag;
 /// 为甚么要设计成ProgressWrapper包着Mutex<Progress<'x>>呢？
 /// 一开始使用单独的Progress<'x>，但是需要更新的update函数需要&mut self，这样就不能多处引用了，
 /// 所以用了ProgressWrapper里面用Mutex包裹一下Progress<'x>来提供内部可变性，这样就可以在多个地方引用了。
+/// # Examples
+///
+/// ```rust
+/// use std::collections::HashMap;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     use std::sync::Arc;
+///     let progress_wrapper = Arc::new(ProgressWrapper::new("正在插入文档", 10));
+///     let _ = app_handle.emit("progress_event", progress_wrapper.clone().update("路径不存在", 1), );
+/// }
+/// ```
 #[derive(Debug)]
 pub struct ProgressWrapper<'x> {
     progress: Mutex<Progress<'x>>,

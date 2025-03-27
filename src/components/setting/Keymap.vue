@@ -122,8 +122,19 @@ const handleKeyDown = (e: KeyboardEvent) => {
       break;
   }
   // 如果当前按下的键不是修饰键，则添加到组合中
+  //https://github.com/jaywcjlove/hotkeys-js/issues/13
   if (displayKey !== "Ctrl" && displayKey !== "Shift" && displayKey !== "Alt") {
-    keyCombo += displayKey.toUpperCase();
+    if (displayKey === "ArrowDown") {
+      keyCombo += "Down";
+    } else if (displayKey === "ArrowUp") {
+      keyCombo += "Up";
+    } else if (displayKey === "ArrowLeft") {
+      keyCombo += "Left";
+    } else if (displayKey === "ArrowRight") {
+      keyCombo += "Right";
+    } else {
+      keyCombo += displayKey.toUpperCase();
+    }
   }
   shortCutValue.value = keyCombo;
   pattern.value = keyCombo;
@@ -143,7 +154,6 @@ function deleteShortCut(){
             <button>重置</button>
           </div>
         </div>
-        {{configStore.config!.shortcut_tree}}
         <label class="text-2xl ml-5 mt-4 font-bold text-gray-800">综合</label>
         <div class="setting-card">
           <div class="setting-card-row">
@@ -180,13 +190,14 @@ function deleteShortCut(){
             >
 <!--              todo-->
               <context-menu-item label="重置该快捷键"></context-menu-item>
-              <context-menu-item  label='删除该快捷键' @click.stop="deleteShortCut">
+              <context-menu-item  @click.stop="deleteShortCut" class="group">
                 <template #icon>
                   <inline-svg
                       src="../assets/svg/Delete24Regular.svg"
-                      class="svg-button text-red-600 hover:text-red-600"
+                      class="svg-button cursor-default group-hover:text-red-600"
                   ></inline-svg>
                 </template>
+                <template #label><span class="group-hover:text-red-600">删除该快捷键</span></template>
               </context-menu-item>
             </context-menu>
           </div>

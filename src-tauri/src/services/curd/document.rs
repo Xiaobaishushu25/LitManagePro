@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use log::error;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::document::Column;
@@ -91,6 +93,34 @@ impl DocumentCurd {
             doc.contributions = Set(doc_new.contributions);
             doc.remark = Set(doc_new.remark);
             Documents::update(doc).exec(db).await?;
+        }
+        Ok(())
+    }
+    /// 根据许多文档id更新对应文档路径
+    /// 本来想用Documents::update_many,看了下好像不适用，他这个不能精确控制根据id更新路径，所以就直接循环更新了
+    pub async fn update_paths_by_ids(files:&HashMap<i32,String>) -> AppResult<()> {
+        let db = crate::entities::DB
+            .get()
+            .ok_or(Tip("数据库未初始化".into()))?;
+        for (id,new_path) in files {
+            match Documents::find_by_id(*id).one(db).await {
+                Ok(Some(doc)) => {
+                    let mut doc = doc.into_active_model();
+                    doc.path = Set(new_path.to_string());
+                    match Documents::update(doc).exec(db).await{
+                        Ok(_) => {}
+                        Err(e) => {
+                            error!("更新文档路径出错:{:#}", e)
+                        }
+                    }
+                }
+                Ok(None) => {
+                    error!("更新文档路径但是文档不存在:{}", id);
+                }
+                Err(e) => {
+                    error!("更新文档路径出错:{:#}", e)
+                }
+            }
         }
         Ok(())
     }

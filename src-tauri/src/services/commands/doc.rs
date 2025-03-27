@@ -7,8 +7,9 @@ use crate::services::commands::doc::doc_util::{
 };
 use crate::services::curd::document::DocumentCurd;
 use log::{error, info};
-use std::path::PathBuf;
+use std::path::{PathBuf};
 use std::sync::{Arc, Mutex};
+use clipboard_rs::{Clipboard, ClipboardContext};
 use tauri::{AppHandle, Emitter, State};
 
 #[tauri::command]
@@ -24,7 +25,6 @@ pub async fn insert_docs(
 ) -> Result<(), String> {
     let flag = { config.lock().unwrap().ai_config.use_ai };
     let max_concurrency = { config.lock().unwrap().ai_config.max_concurrency };
-    info!("最大并发数量：{max_concurrency}");
     match handle_many_paths(flag, max_concurrency, app_handle, paths, tags_id).await {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -148,6 +148,30 @@ pub async fn open_with_exe(exe_path: String, file_path: String) -> Result<(), St
         }
     }
 }
+
+#[tauri::command]
+pub async fn copy_files_to_clipboard(file_paths: Vec<String>) -> Result<(), String> {
+    // 创建剪贴板上下文
+    match ClipboardContext::new(){
+        Ok(ctx) => {
+            // 将文件 URI 列表写入剪贴板
+            match ctx.set_files(file_paths){
+                Ok(_) => {
+                    info!("文件已复制到剪贴板");
+                    Ok(())
+                }
+                Err(e) => {
+                    error!("将文件 URI 列表写入剪贴板失败：{}", e);
+                    Err("将文件 URI 列表写入剪贴板失败".to_string())
+                }
+            }
+        }
+        Err(e) => {
+            error!("创建剪贴板上下文失败：{}", e);
+            Err("创建剪贴板上下文失败".to_string())
+        }
+    }
+}
 #[allow(dead_code)]
 mod doc_util {
     use crate::app_errors::AppError::Tip;
@@ -158,15 +182,52 @@ mod doc_util {
     use crate::services::ai::ONCE_AI;
     use crate::services::curd::doc_and_tag::DocAndTagCurd;
     use crate::services::curd::document::DocumentCurd;
-    use crate::services::util::file::extract_limit_pages;
+    use crate::services::util::file::{extract_limit_pages, organize_files};
     use log::{error, info};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
     use std::path::Path;
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
     use tauri::Emitter;
     use tokio::sync::Semaphore;
     use tracing::instrument;
 
+    /// 处理多个文件路径，执行文档插入、组织和更新操作
+    ///
+    /// # 功能描述
+    ///
+    /// 该函数主要负责处理传入的多个文件路径，执行以下操作：
+    /// 1. 插入文档到数据库
+    /// 2. 组织文件到按时间命名的文件夹
+    /// 3. 更新文档路径
+    /// 4. 发送进度更新和错误消息到前端
+    ///
+    /// # 操作过程
+    ///
+    /// 1. 创建信号量以限制最大并发数
+    /// 2. 初始化进度包装器并发送初始进度更新
+    /// 3. 遍历文件路径列表：
+    ///    a. 检查文件是否存在，跳过不存在的文件
+    ///    b. 跳过文件夹（目前不支持解析文件夹）
+    ///    c. 提取文件名并插入文档到数据库
+    ///    d. 如果有标签ID，插入文档和标签的关系
+    ///    e. 根据文件扩展名处理不同类型的文件（如PDF）
+    ///    f. 对于PDF文件，如果启用了AI，异步提取总结信息
+    ///    g. 更新进度和发送相关事件到前端
+    /// 4. 组织文件到按时间命名的文件夹
+    /// 5. 更新数据库中的文档路径
+    /// 6. 发送最终的进度更新和文档路径更新事件到前端
+    ///
+    /// # 参数
+    ///
+    /// * `use_ai` - 是否使用AI进行文档总结
+    /// * `max_concurrency` - 最大并发数
+    /// * `app_handle` - Tauri应用句柄，用于与前端通信
+    /// * `paths` - 文件路径列表
+    /// * `tags_id` - 标签ID列表
+    ///
+    /// # 返回值
+    ///
+    /// * `AppResult<()>` - 如果操作成功则返回`Ok(())`，否则返回错误，这个返回值可以忽略，因为信息都通过emit发送了。
     pub(crate) async fn handle_many_paths(
         use_ai: bool,
         max_concurrency: i32,
@@ -180,10 +241,11 @@ mod doc_util {
     ) -> AppResult<()> {
         // 创建一个信号量，限制最大并发数为 max_concurrency
         let semaphore = Arc::new(Semaphore::new(max_concurrency as usize));
-        let total = paths.len();
+        let total = paths.len() as i32;
         let app_handle = Arc::new(app_handle);
-        let progress_wrapper = Arc::new(ProgressWrapper::new("正在插入文档", total as i32));
+        let progress_wrapper = Arc::new(ProgressWrapper::new("正在插入文档", total));
         let _ = app_handle.emit("progress_event", progress_wrapper.get_progress());
+        let files = Arc::new(Mutex::new(HashMap::with_capacity(total as usize)));
         for path_s in paths {
             let path = Path::new(&path_s);
             if !path.exists() {
@@ -225,6 +287,7 @@ mod doc_util {
                             if let Some(ext) = path.extension() {
                                 match ext.to_str().unwrap() {
                                     "pdf" => {
+                                        files.lock().unwrap().insert(id, path_s.clone());
                                         // 处理PDF文件,提取作者名、标题、摘要等信息
                                         if use_ai {
                                             info!("正在总结PDF文件: {}", path.display());
@@ -308,7 +371,6 @@ mod doc_util {
                         "progress_event",
                         progress_wrapper.clone().update("出现错误", 1),
                     );
-                    // update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
                 }
             } else {
                 //文件夹的情况
@@ -319,7 +381,28 @@ mod doc_util {
                     "progress_event",
                     progress_wrapper.clone().update("出现错误", 1),
                 );
-                // update_progress(progress_id, app_handle.clone(), "出现错误", 1, count.clone(), total).await;
+            }
+        }
+        let progress_wrapper = Arc::new(ProgressWrapper::new("正在复制文档", total));
+        let mut files_guard = files.lock().unwrap().clone();
+        match organize_files(&mut files_guard).await{
+            Ok(_) => {
+                let _ = DocumentCurd::update_paths_by_ids(&files_guard).await;
+                let _ = app_handle.emit(
+                    "progress_event",
+                    progress_wrapper.clone().update("整理文档完成", total),
+                );
+                //只更新了路径，如果用let _ = app_handle.emit("doc_update", document_tags);前端更新性能差后端麻烦
+                let _ = app_handle
+                    .emit("docs_path_update",files_guard.clone());
+            }
+            Err(e) => {
+                error!("整理文档失败: {}", e);
+                let _ = app_handle.emit("backend_message", "整理文档失败");
+                let _ = app_handle.emit(
+                    "progress_event",
+                    progress_wrapper.clone().update("出现错误", total),
+                );
             }
         }
         Ok(())
@@ -392,6 +475,7 @@ mod doc_util {
 #[cfg(test)]
 mod doc_test {
     use crate::dtos::doc::PartDoc;
+    use crate::services::commands::doc::copy_files_to_clipboard;
 
     #[test]
     fn test_serde() {
@@ -425,5 +509,14 @@ mod doc_test {
                 }
             }
         }
+    }
+    #[tokio::test]
+    async fn test_copy() {
+        let paths = vec![
+            "F:\\科研\\论文\\基于对抗样本的神经网络安全性问题研究综述_李紫珊.pdf".to_string(),
+            "F:\\科研\\论文\\I-FGSM.pdf".to_string(),
+            // "F:科研/论文/I-FGSM.pdf".to_string(),
+        ];
+        println!("{:?}", copy_files_to_clipboard(paths).await);
     }
 }

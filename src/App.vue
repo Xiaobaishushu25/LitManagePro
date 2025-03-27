@@ -14,16 +14,40 @@ invoke<Config>('get_config',{}).then(data => {
 }).catch(e => {
   message.error(e);
 })
-
+// 阻止拖拽文件到窗口上浏览器默认打开的事件
+const handleDragEnter = (e: DragEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+};
+const handleDragLeave = (e: DragEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+};
+const handleDragOver = (e: DragEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+};
+const handleDrop = (e: DragEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+};
 onMounted(async () => {
   document.addEventListener('contextmenu', function(event) {
     event.preventDefault();
   });
+  window.addEventListener('dragenter', handleDragEnter);
+  window.addEventListener('dragleave', handleDragLeave);
+  window.addEventListener('dragover', handleDragOver);
+  window.addEventListener('drop', handleDrop);
 })
 
 // 暴露 store 实例
 onUnmounted(async ()=>{
   unlisten();
+  window.removeEventListener('dragenter', handleDragEnter);
+  window.removeEventListener('dragleave', handleDragLeave);
+  window.removeEventListener('dragover', handleDragOver);
+  window.removeEventListener('drop', handleDrop);
 })
 
 </script>

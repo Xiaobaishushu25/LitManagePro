@@ -18,9 +18,13 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer, Registry, fmt};
 
-pub static CURRENT_DIR: LazyLock<String> = LazyLock::new(|| {
-    let current_dir = &env::current_dir().expect("无法获取当前目录");
-    current_dir.to_string_lossy().to_string()
+// pub static CURRENT_DIR: LazyLock<String> = LazyLock::new(|| {
+//     let current_dir = &env::current_dir().expect("无法获取当前目录");
+//     current_dir.to_string_lossy().to_string()
+// });
+pub static CURRENT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
+    let current_dir = env::current_dir().expect("无法获取当前目录");
+    current_dir
 });
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,14 +42,15 @@ impl Config {
      */
     pub async fn load() -> Self {
         info!("load config...");
-        let path = format!("{}/data/config", CURRENT_DIR.clone());
+        // let path = format!("{}/data/config", CURRENT_DIR.clone());
+        let path = CURRENT_DIR.join("data").join("config");
         match check_config_file(&path, &CURRENT_DIR.clone()) {
             Ok(config) => {
                 info!("load config success{:?}", config);
                 config
             }
             Err(e) => {
-                panic!("创建或解析配置文件{}失败:{}", path, e)
+                panic!("创建或解析配置文件{}失败:{}", path.to_string_lossy(), e)
             }
         }
     }
@@ -56,7 +61,8 @@ impl Config {
      * 保存配置文件
      */
     pub async fn save_to_file(&self) -> AppResult<()> {
-        let path = format!("{}/data/config", CURRENT_DIR.clone());
+        // let path = format!("{}/data/config", CURRENT_DIR.clone());
+        let path = CURRENT_DIR.join("data").join("config");
         let mut config_file = OpenOptions::new()
             .write(true) // 以写入模式打开文件
             .truncate(true) // 清空文件内容
@@ -204,19 +210,19 @@ impl ShortcutNode{
                 children: vec![
                     ShortcutNode::Item {
                         name: "聚焦上标签栏".to_string(),
-                        shortcut: "".into(),
+                        shortcut: "Ctrl+Up".into(),
                     },
                     ShortcutNode::Item {
                         name: "聚焦下标签栏".to_string(),
-                        shortcut: "".to_string(),
+                        shortcut: "Ctrl+Down".to_string(),
                     },
                     ShortcutNode::Item {
                         name: "保存标签组".to_string(),
-                        shortcut: "".to_string(),
+                        shortcut: "Ctrl+S".to_string(),
                     },
                     ShortcutNode::Item {
                         name: "打开常用标签组".to_string(),
-                        shortcut: "".to_string(),
+                        shortcut: "Ctrl+Shift+Down".to_string(),
                     },
                 ]
             },
@@ -232,12 +238,16 @@ impl ShortcutNode{
                         shortcut: "".to_string(),
                     },
                     ShortcutNode::Item {
+                        name: "复制文件".to_string(),
+                        shortcut: "Ctrl+Shift+C".to_string(),
+                    },
+                    ShortcutNode::Item {
                         name: "用ai总结".to_string(),
                         shortcut: "".to_string(),
                     },
                     ShortcutNode::Item {
                         name: "关闭/打开所有可展开行".to_string(),
-                        shortcut: "".to_string(),
+                        shortcut: "Ctrl+Shift+B".to_string(),
                     },
                 ]
             }
@@ -245,8 +255,9 @@ impl ShortcutNode{
     }
 }
 
-fn check_config_file(path: &str, current_dir: &str) -> AppResult<Config> {
-    let mut config_file: File = if PathBuf::from(path).exists() {
+// fn check_config_file(path: &str, current_dir: &str) -> AppResult<Config> {
+fn check_config_file(path: &PathBuf, current_dir: &PathBuf) -> AppResult<Config> {
+    let mut config_file: File = if path.exists() {
         info!("配置存在");
         if let Ok(config) = serde_json::from_str::<Config>(&fs::read_to_string(path)?) {
             return Ok(config); //如果正确解析配置文件，直接返回
@@ -261,7 +272,8 @@ fn check_config_file(path: &str, current_dir: &str) -> AppResult<Config> {
         }
     } else {
         info!("配置不存在,创建配置。");
-        fs::create_dir_all(format!("{}/data", current_dir))?;
+        // fs::create_dir_all(format!("{}/data", current_dir))?;
+        fs::create_dir_all(current_dir.join("data"))?;
         File::create(path)?
     };
     //如果上面正确读取配置文件就已经返回了，到这里说明配置文件没有内容，需要初始化默认配置
@@ -275,7 +287,8 @@ fn check_config_file(path: &str, current_dir: &str) -> AppResult<Config> {
 /// 初始化日志
 pub fn init_logger() -> WorkerGuard {
     // 配置文件日志
-    let log_path = format!("{}/data/log", CURRENT_DIR.clone());
+    // let log_path = format!("{}/data/log", CURRENT_DIR.clone());
+    let log_path = CURRENT_DIR.join("data").join("log");
     fs::create_dir_all(&log_path).expect("无法创建日志目录");
 
     let local_time = OffsetTime::new(

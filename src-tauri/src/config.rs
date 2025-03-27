@@ -133,19 +133,7 @@ impl ExeConfig {
         })
     }
 }
-// impl PartialEq for Vec<ExeConfig>{
-//     fn eq(&self, other: &Self) -> bool {
-//         if self.len() != other.len() {
-//             return false;
-//         }
-//         for (a, b) in self.iter().zip(other.iter()) {
-//             if a != b {
-//                 return false;
-//             }
-//         }
-//         true
-//     }
-// }
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AiConfig {
     pub(crate) use_ai: bool,
@@ -158,6 +146,7 @@ pub struct AiConfig {
     //key为ai名称，value为ai的key
     pub keys: HashMap<String, String>,
     pub online: bool,
+    //最大并发数
     pub max_concurrency: i32,
 }
 impl Default for AiConfig {
@@ -171,7 +160,6 @@ impl Default for AiConfig {
                 vec!["moonshot-v1-8k".to_string(), "moonshot-v1-32k".into()],
             )]),
             keys: HashMap::new(),
-            // keys:HashMap::new(),
             online: false,
             max_concurrency: 3,
         }
@@ -206,8 +194,50 @@ impl ShortcutNode{
                         shortcut: "Ctrl+I".to_string(),
                     },
                     ShortcutNode::Item {
-                        name: "打开文件夹".to_string(),
-                        shortcut: "Ctrl+Shift+O".to_string(),
+                        name: "拖拽上传".to_string(),
+                        shortcut: "Ctrl+Shift+I".to_string(),
+                    },
+                ]
+            },
+            ShortcutNode::Group {
+                name: "文献检索".to_string(),
+                children: vec![
+                    ShortcutNode::Item {
+                        name: "聚焦上标签栏".to_string(),
+                        shortcut: "".into(),
+                    },
+                    ShortcutNode::Item {
+                        name: "聚焦下标签栏".to_string(),
+                        shortcut: "".to_string(),
+                    },
+                    ShortcutNode::Item {
+                        name: "保存标签组".to_string(),
+                        shortcut: "".to_string(),
+                    },
+                    ShortcutNode::Item {
+                        name: "打开常用标签组".to_string(),
+                        shortcut: "".to_string(),
+                    },
+                ]
+            },
+            ShortcutNode::Group {
+                name: "右键菜单".to_string(),
+                children: vec![
+                    ShortcutNode::Item {
+                        name: "用天书默认应用打开".to_string(),
+                        shortcut: "".into(),
+                    },
+                    ShortcutNode::Item {
+                        name: "打开文件所在目录".to_string(),
+                        shortcut: "".to_string(),
+                    },
+                    ShortcutNode::Item {
+                        name: "用ai总结".to_string(),
+                        shortcut: "".to_string(),
+                    },
+                    ShortcutNode::Item {
+                        name: "关闭/打开所有可展开行".to_string(),
+                        shortcut: "".to_string(),
                     },
                 ]
             }

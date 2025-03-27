@@ -178,8 +178,9 @@ function deleteShortCut(){
                 v-model:show="contextMenuShow"
                 :options="contextOptions"
             >
+<!--              todo-->
               <context-menu-item label="重置该快捷键"></context-menu-item>
-              <context-menu-item  label= '删除该快捷键' @click.stop="deleteShortCut">
+              <context-menu-item  label='删除该快捷键' @click.stop="deleteShortCut">
                 <template #icon>
                   <inline-svg
                       src="../assets/svg/Delete24Regular.svg"

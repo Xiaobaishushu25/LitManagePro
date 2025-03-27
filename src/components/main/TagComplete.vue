@@ -4,8 +4,9 @@ import useTagGroupsStore from "../../stroe/tag.ts";
 import {message} from "../../message.ts";
 import {DropdownOption, NFlex, NTag} from "naive-ui";
 import {Tag} from "./main-type.ts";
-import {Component, computed, h, resolveComponent} from "vue";
+import {ref, Component, computed, h, onMounted, resolveComponent,onUnmounted} from "vue";
 import useConfigStore from "../../stroe/config.ts";
+import {listen} from "@tauri-apps/api/event";
 
 // 定义 TagRowOption,每行的格式
 type TagRowOption = DropdownOption & {
@@ -14,6 +15,37 @@ type TagRowOption = DropdownOption & {
 
 const tagStore = useTagGroupsStore()
 const configStore = useConfigStore()
+
+let unlisten1: () => void;
+let unlisten2: () => void;
+let unlisten3: () => void;
+let unlisten4: () => void;
+
+const tagRef1 = ref()
+const tagRef2 = ref()
+const isDropdownVisible = ref(false);
+
+onMounted(async ()=>{
+  unlisten1 = await listen('聚焦上标签栏', () => {
+    console.log('聚焦上标签栏')
+    tagRef1?.value.focus()
+  })
+  unlisten2 = await listen('聚焦下标签栏', () => {
+    tagRef2?.value.focus()
+  })
+  unlisten3 = await listen('保存标签组', () => {
+    saveConfigs()
+  })
+  unlisten4 = await listen('打开常用标签组', () => {
+    isDropdownVisible.value = !isDropdownVisible.value
+  })
+})
+onUnmounted(()=>{
+  unlisten1()
+  unlisten2()
+  unlisten3()
+  unlisten4()
+})
 
 const fetchSuggestions = async (query: string) => {
   if (query === " ") { // 如果输入一个空格，则返回所有标签
@@ -125,8 +157,6 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
     return
   }
   tagStore.setAllAndTags(tagIds);
-  // console.log(tagIds)
-  // message.info(`[选择] ${option.rowData}`)
 }
 </script>
 
@@ -135,6 +165,7 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
     <div class="flex flex-col h-full">
       <n-flex class="w-full flex items-center">
         <auto-complete-tag
+            ref = "tagRef1"
             v-model:modelValue="tagStore.andTags"
             placeholder="按空格提示所有标签"
             :options="tagStore.allTags"
@@ -149,22 +180,25 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
                 @click.stop="saveConfigs"
             ></inline-svg>
           </template>
-            保存标签组
+            保存标签组 {{configStore.getShortcutByName("保存标签组")}}
         </n-tooltip>
         <n-dropdown
             trigger="click"
             :options="processedOptions"
             :render-label="renderDropdownLabel"
             :show-arrow="true"
+            v-model:show="isDropdownVisible"
             @select="handleSelect"
         >
           <inline-svg
               src="../assets/svg/DropDown24.svg"
               class="svg-button w-6 h-6 mr-2"
+              @click="isDropdownVisible = !isDropdownVisible"
           ></inline-svg>
         </n-dropdown>
       </n-flex>
       <auto-complete-tag
+          ref = "tagRef2"
           v-model:modelValue="tagStore.orTags"
           placeholder="按空格提示所有标签"
           :options="tagStore.allTags"

@@ -32,11 +32,16 @@ watch(()=>configStore.shortcuts, () => {
   // 提取所有快捷键的 value 并去掉空字符串，形成一个字符串数组
   const hotkeysList = shortcuts.filter(item => item.value).map(item => item.value).join(',');
   hotkeys.unbind(); // 清除之前的监听
+  hotkeys.filter = function(_event){
+    //https://github.com/jaywcjlove/hotkeys-js/issues/113 确保在输入框内也能触发快捷键
+    return true;
+  }
   hotkeys(hotkeysList, function (event, handler) {
     event.preventDefault();// 阻止默认行为，比如Ctrl+p是浏览器打印
     // 找到对应的快捷键名称
     const matchedShortcut = shortcuts.find(item => item.value === handler.key);
     if (matchedShortcut) {
+      console.log(`${matchedShortcut.key}快捷键触发`)
       emitTo('main',matchedShortcut.key,{})
     } else {
       message.error('Unknown shortcut triggered: ' + handler.key);

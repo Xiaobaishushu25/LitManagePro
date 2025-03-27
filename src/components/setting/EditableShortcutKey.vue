@@ -2,7 +2,6 @@
 import {nextTick, ref} from "vue";
 import {message} from "../../message.ts";
 import useConfigStore from "../../stroe/config.ts";
-import {isGroup, ShortcutNode} from "../../config-type.ts";
 
 const configStore = useConfigStore()
 const props = defineProps({
@@ -83,8 +82,19 @@ const handleKeyDown = (e: KeyboardEvent) => {
       break;
   }
   // 如果当前按下的键不是修饰键，则添加到组合中
+  //https://github.com/jaywcjlove/hotkeys-js/issues/13
   if (displayKey !== "Ctrl" && displayKey !== "Shift" && displayKey !== "Alt") {
-    keyCombo += displayKey.toUpperCase();
+    if (displayKey === "ArrowDown") {
+      keyCombo += "Down";
+    } else if (displayKey === "ArrowUp") {
+      keyCombo += "Up";
+    } else if (displayKey === "ArrowLeft") {
+      keyCombo += "Left";
+    } else if (displayKey === "ArrowRight") {
+      keyCombo += "Right";
+    } else {
+      keyCombo += displayKey.toUpperCase();
+    }
   }
   let item = configStore.shortcuts?.find(item => item.value == keyCombo)
   if (item){

@@ -56,8 +56,11 @@ const handleCloseTag = (index: number) => {
   const newValue = props.modelValue.filter((_, i) => i !== index)
   emit('update:modelValue', newValue)
 }
-// let keyArrow = false;
 const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Delete') {
+    clearAllTags();
+    return
+  }
   if (e.key === 'Backspace' && !inputValue.value) {
     const newValue = [...props.modelValue];
     newValue.pop();
@@ -95,6 +98,13 @@ const handleSearch = async (query: string) => {
 const clearAllTags = () => {
   emit('update:modelValue', []);
 };
+
+// 暴露 inputRef 给父组件
+defineExpose({
+  focus: () => {
+    inputRef.value?.focus()
+  }
+})
 </script>
 
 <template>
@@ -136,11 +146,16 @@ const clearAllTags = () => {
               @focus="handleFocus"
               @keydown="handleKeydown"
           />
-          <inline-svg
-              src="../assets/svg/Clear24Regular.svg"
-              class="svg-button w-4 h-4 mr-2 fill-gray-600 text-gray-600"
-              @click.stop="clearAllTags"
-          ></inline-svg>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <inline-svg
+                  src="../assets/svg/Clear24Regular.svg"
+                  class="svg-button w-4 h-4 mr-2 fill-gray-600 text-gray-600"
+                  @click.stop="clearAllTags"
+              ></inline-svg>
+            </template>
+            <div>清除所有标签(等同输入框内按Delete)</div>
+          </n-tooltip>
         </div>
       </template>
     </n-auto-complete>

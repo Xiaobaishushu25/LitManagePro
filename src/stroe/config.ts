@@ -31,6 +31,7 @@ const useConfigStore = defineStore('config', ()=>{
                     return [shortcutEntry];
                 }
             });
+            console.log(result)
             shortcuts.value = result||[];
         },
         { deep: true }
@@ -105,6 +106,9 @@ const useConfigStore = defineStore('config', ()=>{
     function addNewExecution(exe_config:ExeConfig){
         config.value?.exe_configs.push(exe_config)
     }
+    function getShortcutByName(name:string){
+        return shortcuts.value?.find(item => item.key === name)?.value
+    }
     function updateShortcut(name:string,shortcut:string){
         const updateShortcut = (nodes: ShortcutNode[], name: string, newShortcut: string) => {
             for (const node of nodes) {
@@ -132,6 +136,7 @@ const useConfigStore = defineStore('config', ()=>{
         getTagGroupState,
         addNewExecution,
         updateShortcut,
+        getShortcutByName,
     }
 }, {
     share: {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, ref, watch,computed} from "vue";
+import {h, onMounted, ref, watch, computed, onUnmounted} from "vue";
 import {WebviewWindow} from "@tauri-apps/api/webviewWindow";
 import {saveWindowState, StateFlags} from "@tauri-apps/plugin-window-state";
 import {invoke} from "@tauri-apps/api/core";
@@ -16,15 +16,22 @@ const tagStore = useTagGroupsStore()
 const isMaximize = ref();
 const max_state_name = ref('maximize')
 
+let unlisten1: () => void;
+let unlisten2: () => void;
+let unlisten3: () => void;
+
 onMounted(async ()=>{
   await WebviewWindow.getCurrent().isMaximized().then(res => {
     isMaximize.value = res
   })
-  await listen('导入文件', async (_event) => {
+  unlisten1 = await listen('导入文件', async (_event) => {
     await openFileSelect()
   })
-  await listen('打开设置', async (_event) => {
+  unlisten2 = await listen('打开设置', async (_event) => {
     await open_setting()
+  })
+  unlisten3 = await listen('拖拽上传', async (_event) => {
+    await openDragImport()
   })
   //这个作用是监听窗口大小变化来改变窗口最大化状态，主要是用于鼠标点击标题栏拖拽时会改变最大化状态的监听。
   window.addEventListener('resize', () => {
@@ -35,6 +42,11 @@ onMounted(async ()=>{
       isMaximize.value = false
     }
   });
+})
+onUnmounted(async ()=>{
+  unlisten1();
+  unlisten2();
+  unlisten3();
 })
 // 判断窗口是否处于最大化状态
 function isWindowMaximized() {
@@ -79,7 +91,7 @@ const options = computed(() => [
   {
     label: '设置',
     key: 'setting',
-    shortKey: configStore.shortcuts?.find(item => item.key === '打开设置')?.value,
+    shortKey: configStore.getShortcutByName("打开设置"),
     iconPath: '../assets/svg/setting.svg',
     props: {
       onClick: () => {
@@ -94,7 +106,7 @@ const options = computed(() => [
   {
     label: '导入',
     key: 'import',
-    shortKey: configStore.shortcuts?.find(item => item.key === '导入文件')?.value,
+    shortKey: configStore.getShortcutByName("导入文件"),
     iconPath: '../assets/svg/Import32.svg',
     props: {
       onClick: () => {
@@ -105,6 +117,7 @@ const options = computed(() => [
   {
     label: '拖拽上传',
     key: 'dragImport',
+    shortKey: configStore.getShortcutByName("拖拽上传"),
     iconPath: '../assets/svg/DragFile32.svg',
     props: {
       onClick: () => {

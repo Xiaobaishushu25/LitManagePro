@@ -6,7 +6,7 @@
 
 ## 项目简介
 
-天书 是一款专为研究人员和学者设计的轻量级文献管理软件。它摒弃了传统的文件夹分类方式，采用灵活的标签管理系统，让文献整理变得更加高效和直观。无论你是整理学术论文、研究报告还是阅读笔记，LiteLit 都能助你一臂之力。
+天书是一款专为研究生和博士生等科研人员设计的轻量级文献管理软件。它摒弃了传统的文件夹分类方式，采用灵活的标签管理系统，让文献整理变得更加高效和直观。无论你是整理学术论文、研究报告还是阅读笔记，LiteLit 都能助你一臂之力。
 
 ## 核心功能
 
@@ -23,17 +23,18 @@
 
 ## 快速开始
 
+### 下载
+
 ### 克隆项目
 
 ```bash
-git clone https://github.com/yourusername/litelit.git
+git clone https://github.com/Xiaobaishushu25/LitManagePro.git
 ```
 
 ### 安装依赖
-
+需要先安装`rust`和`node`环境。
 ```bash
-cd litelit
-cargo install
+npm install
 ```
 
 ### 运行项目
@@ -51,7 +52,7 @@ pnpm tauri dev
 
 ## 贡献指南
 
-欢迎各位开发者参与 LiteLit 的开发，共同完善这款文献管理工具。如需贡献代码或提出建议，请参考 [CONTRIBUTING.md](CONTRIBUTING.md) 文件。
+欢迎各位开发者参与天书的开发，共同完善这款文献管理工具。如需贡献代码或提出建议，请参考 [CONTRIBUTING.md](CONTRIBUTING.md) 文件。
 
 ## 许可证
 

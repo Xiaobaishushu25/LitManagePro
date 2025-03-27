@@ -190,11 +190,16 @@ const handleSelect = (_key: string | number, option: TagRowOption) => {
             v-model:show="isDropdownVisible"
             @select="handleSelect"
         >
-          <inline-svg
-              src="../assets/svg/DropDown24.svg"
-              class="svg-button w-6 h-6 mr-2"
-              @click="isDropdownVisible = !isDropdownVisible"
-          ></inline-svg>
+          <n-tooltip trigger="hover" >
+            <template #trigger>
+              <inline-svg
+                  src="../assets/svg/DropDown24.svg"
+                  class="svg-button w-6 h-6 mr-2"
+                  @click="isDropdownVisible = !isDropdownVisible"
+              ></inline-svg>
+            </template>
+            显示常用标签组 {{configStore.getShortcutByName("打开常用标签组")}}
+          </n-tooltip>
         </n-dropdown>
       </n-flex>
       <auto-complete-tag

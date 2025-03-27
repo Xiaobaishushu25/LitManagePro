@@ -25,6 +25,7 @@ const watchOrTags = computed(() => tagStore.orTags)
 let unlistenDoc: () => void;
 let unlistenDocUp: () => void;
 let unlistenParse: () => void;
+let unlisten1: () => void;
 
 const selectedRowIndex = ref(-1);
 const selectedRows = ref<DocumentTags[]>([]); // Store selected rows
@@ -66,6 +67,9 @@ onMounted(async ()=>{
   //   let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
   //   await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
   // })
+  unlisten1 = await listen('关闭/打开所有可展开行', () => {
+    expandedAll.value = !expandedAll.value
+  })
   unlistenParse = await listen('summary_doc', (event: {payload:[number,boolean]}) => {
     if (event.payload[1]){
       parseIngIds.value.push(event.payload[0])
@@ -100,6 +104,7 @@ onMounted(async ()=>{
 })
 onUnmounted(()=>{
   // unlistenFile()
+  unlisten1()
   unlistenDoc()
   unlistenDocUp()
   unlistenParse()
@@ -452,18 +457,28 @@ const handleDragEnd = () => {
               </context-menu-item>
               <context-menu-sperator />
               <context-menu-item
-                  :label="expandedAll ? '关闭所有可展开行' : '展开所有可展开行'"
                   @click="expandedAll = !expandedAll"
-              ></context-menu-item>
+              >
+                <template #label>
+                  {{expandedAll ? '关闭所有可展开行' : '展开所有可展开行'}}
+                  <span class="ml-auto bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-mono">{{configStore.getShortcutByName('关闭/打开所有可展开行')}}</span>
+                </template>
+              </context-menu-item>
               <context-menu-sperator />
               <context-menu-item label="管理标签"></context-menu-item>
               <context-menu-sperator />
-              <context-menu-item  :label="selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)`" class="cursor-pointer" @click.stop="showDocDeleteModal=true">
+              <context-menu-item
+                  class="group cursor-pointer"
+                  @click.stop="showDocDeleteModal = true"
+              >
                 <template #icon>
                   <inline-svg
                       src="../assets/svg/Delete24Regular.svg"
-                      class="svg-button text-red-600 hover:text-red-600"
+                      class="svg-button group-hover:text-red-600"
                   ></inline-svg>
+                </template>
+                <template #label>
+                  <span class="group-hover:text-red-600">{{ selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)` }}</span>
                 </template>
               </context-menu-item>
             </context-menu>

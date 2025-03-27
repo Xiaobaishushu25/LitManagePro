@@ -46,7 +46,8 @@ const contextOptions = {
   name:"",
   zIndex: 3,
   x: 500,
-  y: 200
+  y: 200,
+  minWidth:300,
 }
 
 // 计算表格最大高度 高度是视口高度减去两个标签栏减去底栏减去自定义的标题栏
@@ -432,6 +433,7 @@ const handleDragEnd = () => {
             <context-menu
                 v-model:show="contextMenuShow"
                 :options="contextOptions"
+
             >
               <context-menu-item label="用系统默认应用打开" @click="openBySystem"/>
               <context-menu-item label="用天书默认应用打开" @click="openByApp"/>
@@ -458,10 +460,13 @@ const handleDragEnd = () => {
               <context-menu-sperator />
               <context-menu-item
                   @click="expandedAll = !expandedAll"
+                  shortcut="?"
               >
                 <template #label>
                   {{expandedAll ? '关闭所有可展开行' : '展开所有可展开行'}}
-                  <span class="ml-auto bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-mono">{{configStore.getShortcutByName('关闭/打开所有可展开行')}}</span>
+                </template>
+                <template #shortcut>
+                  <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-mono">{{configStore.getShortcutByName('关闭/打开所有可展开行')}}</span>
                 </template>
               </context-menu-item>
               <context-menu-sperator />

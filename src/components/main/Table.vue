@@ -116,7 +116,10 @@ onMounted(async ()=>{
   window.addEventListener('blur', handleBlur);
   window.addEventListener('resize', handleResize);
   // window.addEventListener('resize', updateMaxHeight);
-
+  await nextTick(() => {
+    //todo 本来想在应用启动后焦点给到表格，这样就能直接上下键切换文献了，但是发现没用。
+    tableRef?.value.focus()
+  })
 })
 onUnmounted(()=>{
   // unlistenFile()
@@ -451,7 +454,7 @@ const handleDragEnd = () => {
                 :row-props="setRowProps"
                 :row-class-name="getRowClassName"
                 :row-key="(row:DocumentTags) => row.id"
-                style="font-size: 15px;user-select: none;width: calc(100% - 5px);"
+                style="font-size: 15px;user-select: none;"
                 :max-height="maxHeight"
                 :expanded-row-keys="expandedRowKeys"
                 :default-expand-all="configStore.config?.ui_config.table_expand ?? true"
@@ -494,7 +497,9 @@ const handleDragEnd = () => {
                 </template>
               </context-menu-item>
               <context-menu-sperator />
-              <context-menu-item :label="selectedRows.length === 1 ? '用AI总结' : `用AI总结这${selectedRows.length}条文档`" @click="summaryByAi">
+              <context-menu-item
+                  :label="selectedRows.length === 1 ? '用AI总结' : `用AI总结这${selectedRows.length}条文档`"
+                  @click="summaryByAi">
                 <template #icon>
                   <inline-svg
                       src="../assets/svg/ai.svg"
@@ -505,7 +510,7 @@ const handleDragEnd = () => {
               <context-menu-sperator />
               <context-menu-item
                   @click="expandedAll = !expandedAll"
-                  shortcut="?"
+                  class="outline-none context-menu-item"
               >
                 <template #label>
                   {{expandedAll ? '关闭所有可展开行' : '展开所有可展开行'}}
@@ -517,18 +522,19 @@ const handleDragEnd = () => {
               <context-menu-sperator />
               <context-menu-item label="管理标签"></context-menu-item>
               <context-menu-sperator />
+<!--              todo:使用键盘选中时不会变红，加上group-focu等一系列都试过了，都没效果-->
               <context-menu-item
-                  class="group cursor-pointer"
+                  class="group"
                   @click.stop="showDocDeleteModal = true"
               >
                 <template #icon>
                   <inline-svg
                       src="../assets/svg/Delete24Regular.svg"
-                      class="svg-button group-hover:text-red-600"
+                      class="svg-button group-hover:text-red-600 group-focus:text-red-600"
                   ></inline-svg>
                 </template>
                 <template #label>
-                  <span class="group-hover:text-red-600">{{ selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)` }}</span>
+                  <span class="group-hover:text-red-600 group-focus:text-red-600">{{ selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)` }}</span>
                 </template>
               </context-menu-item>
             </context-menu>

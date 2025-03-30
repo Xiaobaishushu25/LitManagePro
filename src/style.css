@@ -44,3 +44,7 @@
 .n-scrollbar > .n-scrollbar-rail.n-scrollbar-rail--vertical--right{
     right: 0;/*进度条紧贴右边边缘不要留空*/
 }
+/*右键菜单用键盘选中时不要显示轮廓*/
+.mx-context-menu-item.keyboard-focus {
+    outline: none!important;
+}

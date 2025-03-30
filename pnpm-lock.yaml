@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@imengyu/vue3-context-menu':
-    specifier: ^1.4.4
-    version: 1.4.4
+    specifier: ^1.4.6
+    version: 1.4.6
   '@tauri-apps/api':
     specifier: ^2.2.0
     version: 2.2.0
@@ -373,8 +373,8 @@ packages:
     dev: true
     optional: true
 
-  /@imengyu/vue3-context-menu@1.4.4:
-    resolution: {integrity: sha512-Zjh1BbrvcNbZvsWr9IJl9KQUomf50EeP2GT+mWk63sqatDZxG7ZFX1eltrwRyfSBr+SuFpMvdYv/yRxpBsyw6w==}
+  /@imengyu/vue3-context-menu@1.4.6:
+    resolution: {integrity: sha512-ClSzLEhJo29BxLURLvxAa/KQbJwmY5pkO+lKKkQdM7T8zcdho+5LsRfBmT1Q4PfIlb2Wt+BexCZB4z7LRigQIg==}
     dev: false
 
   /@isaacs/cliui@8.0.2:

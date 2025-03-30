@@ -7,7 +7,7 @@ import {ExeConfig} from "../../config-type.ts";
 import {h, ref, watch, computed, VNode, nextTick} from "vue";
 import InlineSvg from "vue-inline-svg";
 import {SelectOption} from "naive-ui";
-import {disable, enable} from "@tauri-apps/plugin-autostart";
+import {disable, enable, isEnabled} from "@tauri-apps/plugin-autostart";
 
 const configStore = useConfigStore()
 
@@ -21,6 +21,8 @@ watch(() => autoStart.value, async (value:boolean) => {
   }else {
     await disable()
   }
+  let x = await isEnabled()
+  console.log(x)
 })
 //------------------------------------app设置end------------------------------------------
 

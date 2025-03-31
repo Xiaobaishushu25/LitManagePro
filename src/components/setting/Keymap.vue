@@ -190,7 +190,7 @@ function deleteShortCut(){
             >
 <!--              todo-->
               <context-menu-item label="重置该快捷键"></context-menu-item>
-              <context-menu-item  @click.stop="deleteShortCut" class="group">
+              <context-menu-item  @click.stop="deleteShortCut" id="delete-menu-item" class="group">
                 <template #icon>
                   <inline-svg
                       src="../assets/svg/Delete24Regular.svg"

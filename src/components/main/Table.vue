@@ -522,19 +522,20 @@ const handleDragEnd = () => {
               <context-menu-sperator />
               <context-menu-item label="管理标签"></context-menu-item>
               <context-menu-sperator />
-<!--              todo:使用键盘选中时不会变红，加上group-focu等一系列都试过了，都没效果-->
+<!--              使用键盘选中时变红需要额外设置：https://github.com/imengyu/vue3-context-menu/issues/115#issuecomment-2764879969 -->
               <context-menu-item
+                  id="delete-menu-item"
                   class="group"
                   @click.stop="showDocDeleteModal = true"
               >
                 <template #icon>
                   <inline-svg
                       src="../assets/svg/Delete24Regular.svg"
-                      class="svg-button group-hover:text-red-600 group-focus:text-red-600"
+                      class="svg-button group-hover:text-red-600 "
                   ></inline-svg>
                 </template>
                 <template #label>
-                  <span class="group-hover:text-red-600 group-focus:text-red-600">{{ selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)` }}</span>
+                  <span class="group-hover:text-red-600">{{ selectedRows.length === 1 ? '删除' : `删除(已选中${selectedRows.length}条)` }}</span>
                 </template>
               </context-menu-item>
             </context-menu>

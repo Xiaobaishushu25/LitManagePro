@@ -48,3 +48,6 @@
 .mx-context-menu-item.keyboard-focus {
     outline: none!important;
 }
+#delete-menu-item .mx-context-menu-item.keyboard-focus {
+    color: red;
+}

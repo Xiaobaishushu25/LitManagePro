@@ -118,7 +118,7 @@ onMounted(async ()=>{
   // window.addEventListener('resize', updateMaxHeight);
   await nextTick(() => {
     //todo 本来想在应用启动后焦点给到表格，这样就能直接上下键切换文献了，但是发现没用。
-    tableRef?.value.focus()
+    tableRef.value?.$el.focus();
   })
 })
 onUnmounted(()=>{
@@ -349,11 +349,22 @@ const scrollToSelectedRow = () => {
 }
 // 行点击事件
 function setRowProps(row: DocumentTags,index: number) {
+  let lastClickTime = 0;
   return {
     style: {
       cursor: 'pointer'
     },
-    onClick:(e: MouseEvent) => rowClick(row, index, e),
+    onClick:(e: MouseEvent) => {
+      const now = Date.now();
+      // 300ms 内第二次点击视为双击前导点击，直接忽略
+      if (now - lastClickTime < 300) return;
+
+      lastClickTime = now;
+      if (e.detail === 1) {
+        rowClick(row, index, e);
+      }
+      // rowClick(row, index, e);
+    },
     onContextmenu: (e: MouseEvent) => {
       rowClick(row, index, e)
       e.preventDefault()
@@ -364,7 +375,8 @@ function setRowProps(row: DocumentTags,index: number) {
       })
     },
     onDblclick: () => {
-      openByApp()
+      lastClickTime = 0; // 双击后重置时间
+      openByApp();
     },
   };
 }

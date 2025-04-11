@@ -261,7 +261,7 @@ async function showAndFocusWindow(label:string){
       <template #trigger>
         <img src="../../assets/icon/app.ico" class="w-4 h-4" alt="ICO Icon">
       </template>
-      v0.1.3
+      v1.0.0
     </n-tooltip>
     <label class="pl-1">天书</label>
     <div class="pl-5">

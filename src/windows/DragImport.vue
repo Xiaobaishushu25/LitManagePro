@@ -42,9 +42,9 @@ onUnmounted(()=>{
   background-color: #f5f5f5;
 }
 
-.drag-upload-container:hover {
-  background-color: #e9e9e9;
-}
+/*.drag-upload-container:hover {
+  background-color: #4a914a40;
+}*/
 
 .drag-upload-content {
   width: 85%;

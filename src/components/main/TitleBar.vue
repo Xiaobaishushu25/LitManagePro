@@ -241,6 +241,7 @@ async function openDragImport() {
 async function showAndFocusWindow(label:string){
   const window = await WebviewWindow.getByLabel(label);
   if (window!=null) {
+
     await window.unminimize()
     await window.setFocus()
     return true

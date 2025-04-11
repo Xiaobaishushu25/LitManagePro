@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import {message, } from './message.ts';
 import {Config} from "./config-type.ts";
 import useConfigStore from "./stroe/config.ts";
+import {emitTo} from "@tauri-apps/api/event";
 
 const configStore = useConfigStore()
 
@@ -15,9 +16,10 @@ invoke<Config>('get_config',{}).then(data => {
   message.error(e);
 })
 // 阻止拖拽文件到窗口上浏览器默认打开的事件
-const handleDragEnter = (e: DragEvent) => {
+const handleDragEnter = async (e: DragEvent) => {
   e.preventDefault();
   e.stopPropagation();
+  await emitTo("main","拖拽上传")
 };
 const handleDragLeave = (e: DragEvent) => {
   e.preventDefault();
@@ -26,6 +28,9 @@ const handleDragLeave = (e: DragEvent) => {
 const handleDragOver = (e: DragEvent) => {
   e.preventDefault();
   e.stopPropagation();
+  // 阻止默认行为，并设置鼠标样式为 "not-allowed" (禁止) 后来发现这个会影响所有窗口，包括拖拽上传窗口
+  // e.dataTransfer.dropEffect = 'none'; // 设置拖放操作的效果为 "none"
+  // e.currentTarget.style.cursor = 'not-allowed'; // 设置鼠标样式
 };
 const handleDrop = (e: DragEvent) => {
   e.preventDefault();

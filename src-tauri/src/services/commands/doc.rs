@@ -85,6 +85,10 @@ pub async fn summarize_docs_by_ai(
     for document_tags in document_tags_list {
         let _ = app_handle.emit("progress_event", a_pro.update("正在总结文档", 0));
         let _ = app_handle.emit("summary_doc", (document_tags.id, true));
+        info!("正在总结文档：{}", document_tags.title);
+        //有的pdf会提取文字失败导致panic（https://github.com/jrmuizel/adobe-cmap-parser/issues/2）
+        // 然后前端会获得Failed to load resource: net::ERR_CONNECTION_REFUSED
+        //然后不知道为什么后端会再次运行这个函数（前端是没问题的，只调用了一次），导致再次触发一次panic。
         match update_paper_summary(&document_tags.path, document_tags.id).await {
             Ok(new_document_tags) => {
                 let _ = app_handle.emit("summary_doc", (document_tags.id, false));
@@ -302,6 +306,7 @@ mod doc_util {
                                                     progress_wrapper.update("正在解析文档", 0),
                                                 );
                                                 let _ = app_handle.emit("summary_doc", (id, true));
+                                                info!("正在总结1");
                                                 match update_paper_summary(&path_s, id).await {
                                                     Ok(document_tags) => {
                                                         let _ = app_handle

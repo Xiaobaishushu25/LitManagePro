@@ -9,8 +9,8 @@ use crate::services::commands::tag::{
     query_tag_groups, rename_tag_group, reindex_tag_group, update_doc_tags,
 };
 use std::process::exit;
-use std::sync::Mutex;
-use tauri::State;
+use std::sync::{mpsc, Mutex};
+use tauri::{Emitter, State};
 use tauri_plugin_autostart::MacosLauncher;
 use tracing::info;
 
@@ -27,7 +27,7 @@ pub async fn run() {
     //用于存储界面初始化之前的错误信息
     let mut err_msg = vec![];
     //_log_guard存活的周期内才能写入日志，所以需要返回给调用者。
-    let (_log_guard, config) = init_app(&mut err_msg).await;
+    let (_log_guard, config, rx) = init_app(&mut err_msg).await;
     info!("litManagePro ui start...");
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--flag1", "--flag2"])))
@@ -36,6 +36,7 @@ pub async fn run() {
         .plugin(tauri_plugin_os::init())
         .manage(Mutex::new(config))
         .manage(err_msg)
+        .manage(Mutex::new(Some(rx)))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             first_run,
@@ -70,7 +71,15 @@ pub async fn run() {
         .expect("error while running tauri application");
 }
 #[tauri::command]
-async fn first_run(state: State<'_, Vec<String>>) -> Result<Vec<String>, ()> {
+async fn first_run(app_handle: tauri::AppHandle,rx: State<'_, Mutex<Option<mpsc::Receiver<&'static str>>>>, state: State<'_, Vec<String>>) -> Result<Vec<String>, ()> {
+    let rx = rx.lock().unwrap().take().unwrap();
+    tokio::spawn(async move {
+        loop{
+            info!("接收到消息");
+            let msg = rx.recv().expect("通道接收信息发生error");
+            let _ = app_handle.emit_to("main","backend_message", msg);
+        }
+    });
     Ok(state.inner().clone())
 }
 #[tauri::command]

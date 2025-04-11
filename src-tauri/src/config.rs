@@ -7,8 +7,9 @@ use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::{env, fs, io, panic};
+use std::sync::mpsc::Sender;
 use time::UtcOffset;
 use time::macros::format_description;
 use tracing_appender::non_blocking::WorkerGuard;
@@ -285,7 +286,7 @@ fn check_config_file(path: &PathBuf, current_dir: &PathBuf) -> AppResult<Config>
 }
 
 /// 初始化日志
-pub fn init_logger() -> WorkerGuard {
+pub fn init_logger(tx:Sender<&'static str>) -> WorkerGuard {
     // 配置文件日志
     // let log_path = format!("{}/data/log", CURRENT_DIR.clone());
     let log_path = CURRENT_DIR.join("data").join("log");
@@ -335,10 +336,9 @@ pub fn init_logger() -> WorkerGuard {
         .with(file_layer)
         .with(EnvFilter::new("info"))
         .init();
-
-    // tracing::subscriber::set_global_default(subscriber)
-    //     .expect("设置日志订阅器失败");
-    panic::set_hook(Box::new(|info| {
+    
+    panic::set_hook(Box::new(move |info| {
+        tx.send("出现了一个错误，请查看日志获得更多信息").expect("通道发送消息失败");
         if let Some(location) = info.location() {
             // 打印 panic 信息和发生 panic 的位置
             error!(

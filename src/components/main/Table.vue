@@ -440,6 +440,15 @@ function summaryByAi(){
     message.error(e)
   })
 }
+function suggestTagsByAi(){
+  let docs = selectedRows.value;
+  if (docs.length === 0)return
+  // todo 待完善ai建议标签功能
+  // invoke('suggest_tags_by_ai', {}).then(_ => {
+  // }).catch(e => {
+  //   message.error(e)
+  // })
+}
 ///-------------------------------------右键事件---------------end---------
 const handleDragEnd = () => {
   //注意，这个配置改变config那边没监听到，但是最后保存时是没问题的。
@@ -512,6 +521,16 @@ const handleDragEnd = () => {
               <context-menu-item
                   :label="selectedRows.length === 1 ? '用AI总结' : `用AI总结这${selectedRows.length}条文档`"
                   @click="summaryByAi">
+                <template #icon>
+                  <inline-svg
+                      src="../assets/svg/ai.svg"
+                      class="svg-button"
+                  ></inline-svg>
+                </template>
+              </context-menu-item>
+              <context-menu-item
+                  label="用AI建议标签"
+                  @click="suggestTagsByAi">
                 <template #icon>
                   <inline-svg
                       src="../assets/svg/ai.svg"

@@ -3,8 +3,8 @@ use crate::app_errors::AppResult;
 use crate::entities::prelude::{Tag, TagGroup, Tags};
 use crate::services::curd::tag_group::TagGroupCurd;
 use sea_orm::ModelTrait;
-use serde::Serialize;
-#[derive(Debug, Clone, Serialize)]
+use serde::{Deserialize, Serialize};
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagAndGroups {
     tag_group: TagGroup,
     tags: Vec<Tag>,

@@ -131,6 +131,7 @@ pub async fn open_by_app(config: State<'_, Mutex<Config>>, path: String) -> Resu
         Err("请先设置默认的打开方式".to_string())
     }
 }
+/** 打开文档所在目录,注意传进来的是文件的路径，所以要读取父目录 **/
 #[tauri::command]
 pub async fn open_dir(path: String) -> Result<(), String> {
     match open::that(PathBuf::from(path).parent().unwrap()) {
@@ -193,7 +194,8 @@ mod doc_util {
     use std::sync::{Arc, Mutex};
     use tauri::Emitter;
     use tokio::sync::Semaphore;
-    use tracing::instrument;
+    use tracing::{instrument, Id};
+    use crate::dtos::tag::TagAndGroups;
 
     /// 处理多个文件路径，执行文档插入、组织和更新操作
     ///
@@ -456,6 +458,23 @@ mod doc_util {
             .map_err(|e| Tip(format!("更新文档出现错误:{}", e)))?;
         Ok(DocumentTags::from_doc_id(id).await)
     }
+    //todo 还没搞定
+    pub async fn suggest_tag_by_ai(path_s: &str,doc_id: i32,tag_and_groups: Vec<TagAndGroups> )->AppResult<TagAndGroups>{
+        let o_ai = ONCE_AI.get().unwrap().lock().await;
+        let ai = o_ai
+            .as_ref()
+            .ok_or(Tip("请正确配置AI来建议标签。".into()))?;
+        let content = extract_limit_pages(path_s, doc_id)
+            .await
+            .map_err(|e| Tip(format!("提取PDF{}内容失败: {}", path_s, e)))?;
+        let json_data = ai
+            .analyse_tags(content, doc_id, tag_and_groups)
+            .await
+            .map_err(|e| Tip(format!("AI分析{}失败: {}", path_s, e)))?;
+        let suggest_tags = serde_json::from_str::<TagAndGroups>(&json_data)
+            .map_err(|e| Tip(format!("解析{}JSON失败: {}", path_s, e)))?;
+        Ok(suggest_tags)
+    }
     async fn summarize_paper(
         // o_ai: Arc<&Option<AI>>,
         path_s: &str,
@@ -480,7 +499,10 @@ mod doc_util {
 #[cfg(test)]
 mod doc_test {
     use crate::dtos::doc::PartDoc;
+    use crate::dtos::tag::{get_tag_and_groups, TagAndGroups};
+    use crate::entities::init_db_coon;
     use crate::services::commands::doc::copy_files_to_clipboard;
+    use crate::services::commands::doc::doc_util::suggest_tag_by_ai;
 
     #[test]
     fn test_serde() {
@@ -523,5 +545,13 @@ mod doc_test {
             // "F:科研/论文/I-FGSM.pdf".to_string(),
         ];
         println!("{:?}", copy_files_to_clipboard(paths).await);
+    }
+    #[tokio::test]
+    async fn test_suggest_tags() {
+        init_db_coon().await;
+        let vec = get_tag_and_groups().await.unwrap();
+        println!("{:?}", vec);
+        suggest_tag_by_ai("D:\\天书\\data\\files\\2025-07\\APT-LLM Embedding-Based Anomaly Detection.pdf", 1, vec).await;
+        // suggest_tag_by_ai("F:\\科研\\论文\\基于对抗样本的神经网络安全性问题研究综述_李紫珊.pdf", 1)
     }
 }

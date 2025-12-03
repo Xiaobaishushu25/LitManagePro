@@ -9,13 +9,20 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use log::{error, info};
 
+/** 提取pdf文件内容**/
 pub async fn extract_limit_pages(path: &str, id: i32) -> AppResult<String> {
     let new_path = segment_pdf(path, id).await?;
     let content = extract_pdf(&new_path).await?;
     Ok(content)
 }
-/// 分页pdf
+/// 处理PDF文件，删除多余的页面并保存为新的PDF
 ///
+/// # 参数
+/// - `path`: 要处理的PDF文件路径
+/// - `id`: 用于生成输出文件名的ID
+///
+/// # 返回
+/// - 返回处理后的PDF文件路径(下一步就是读取这个pdf的内容并提取文字)
 async fn segment_pdf(path: &str, id: i32) -> AppResult<String> {
     let mut doc = Document::load(path).map_err(|e| Tip(format!("加载pdf失败{:#}", e)))?;
     let total_pages = doc.get_pages().keys().len();
@@ -102,6 +109,10 @@ pub async fn organize_files(files:&mut HashMap<i32,String>) -> AppResult<()> {
         }
     }
     Ok(())
+}
+pub fn get_file_path(id: i32) -> String {
+    let path = CURRENT_DIR.join("data").join("files").join(id.to_string());
+    path.to_string_lossy().to_string()
 }
 pub fn get_and_save_icon(path: &str, size: u16) -> AppResult<(String, String)> {
     let path = Path::new(path);

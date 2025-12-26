@@ -28,6 +28,55 @@ const newTagTextColor = ref('#000000')
 const newTagValue = ref('')
 
 
+const tagBgColorPool = [
+  '#FFFFFF', '#F8F9FA', '#E9ECEF', '#DEE2E6', '#CED4DA',
+  '#18A058', '#2080F0', '#F0A020', '#ba6d93', '#FF6B6B',
+  '#4ECDC4', '#45B7D1', '#96CEB4', '#D1D8E0', '#FFEEAD',
+  '#FFB7B2', '#A5C9CA', '#C9ADA7', '#E0D5B8'
+]
+
+const tagTextColorPool = [
+  '#000000', '#FFFFFF', '#18A058', '#2080F0', '#F0A020',
+  '#6C757D', '#495057', '#343A40', '#212529',
+  '#084956', '#1967cf', '#805855', '#8d0b0b'
+]
+function getRandomItem<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+function generateRandomTagColor() {
+  const bg = getRandomItem(tagBgColorPool)
+  // 尝试从文字色池里挑一个“够对比”的
+  let text = getRandomItem(tagTextColorPool)
+  if (getContrast(bg, text) < 300) {
+    // 对比度不够，退回黑白方案
+    text = isLightColor(bg) ? '#000000' : '#FFFFFF'
+  }
+  newTagBgColor.value = bg
+  newTagTextColor.value = text
+}
+function getContrast(bg: string, text: string) {
+  const toRGB = (hex: string) => {
+    const c = hex.replace('#', '')
+    return {
+      r: parseInt(c.slice(0, 2), 16),
+      g: parseInt(c.slice(2, 4), 16),
+      b: parseInt(c.slice(4, 6), 16),
+    }
+  }
+  const a = toRGB(bg)
+  const b = toRGB(text)
+  return Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b)
+}
+function isLightColor(hex: string) {
+  const color = hex.replace('#', '')
+  const r = parseInt(color.substring(0, 2), 16)
+  const g = parseInt(color.substring(2, 4), 16)
+  const b = parseInt(color.substring(4, 6), 16)
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000
+  return brightness > 160
+}
+
+
 onMounted(async ()=>{
   invoke<TagAndGroups[]>('query_tag_groups',{}).then(data =>{
     store.tagGroups = data;
@@ -35,6 +84,7 @@ onMounted(async ()=>{
 })
 
 function toShowNewTagModal(){
+  generateRandomTagColor()
   showNewTagModal.value = true;
   nextTick(() => {
     inputRef.value!.focus()
@@ -127,6 +177,10 @@ function deleteTag(group_id:number, id: number,name: string){
 function createNewTagGroup(){
   showGroupModal.value = false;
   let tagGroupName = newGroupName.value;
+  if (!tagGroupName){
+    message.error(`标签组名不能为空`)
+    return
+  }
   invoke<TagGroup>('create_tag_group', {
     groupName: tagGroupName,
   }).then(data => {
@@ -220,6 +274,13 @@ function handleDragEnd(){
     </template>
     <n-flex vertical>
       <n-tag class="w-fit" :color="{color: newTagBgColor, textColor: newTagTextColor}">{{ newTagValue }}</n-tag>
+      <n-button
+          size="small"
+          quaternary
+          @click="generateRandomTagColor"
+      >
+        🎲 换个颜色
+      </n-button>
       <n-input v-model:value="newTagValue" placeholder="请输入标签名" ref="inputRef" @keydown.enter.prevent="createNewTag"  />
       <n-color-picker
           v-model:value="newTagBgColor"
@@ -288,9 +349,17 @@ function handleDragEnd(){
     <n-scrollbar trigger="none">
       <n-grid :x-gap="0" :y-gap="5" :cols="1">
         <n-grid-item>
-          <n-space>
-            <n-input placeholder="请输入标签名" />
-            <n-button @click="showNewGroupModal">+</n-button>
+          <n-space justify="center" >
+            <n-button
+                type="primary"
+                strong
+                secondary
+                size="medium"
+                @click="showNewGroupModal"
+                class="mt-2 text-black"
+            >
+              新建标签组
+            </n-button>
           </n-space>
         </n-grid-item>
         <n-grid-item>

@@ -19,6 +19,8 @@
     "core:window:allow-destroy",
     "core:window:allow-start-dragging",
     "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-position",
     "core:webview:allow-create-webview-window",
     "window-state:default",
     "dialog:allow-open",

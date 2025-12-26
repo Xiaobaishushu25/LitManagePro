@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use log::error;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
@@ -8,6 +11,8 @@ use crate::services::commands::doc::PartDoc;
 use sea_orm::ActiveValue::Set;
 use sea_orm::QueryFilter;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, NotSet, QuerySelect};
+use crate::config::CURRENT_DIR;
+use crate::services::util::file::get_absolute_path;
 
 pub struct DocumentCurd;
 impl DocumentCurd {
@@ -67,6 +72,14 @@ impl DocumentCurd {
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
         // Documents::delete_many().filter(Column::Id.is_in(ids.clone())).exec(db).await.with_context(|| "删除文档失败")?;
+        // 获取所有要删除的文档的路径
+        let paths_to_delete: Vec<String> = Documents::find()
+            .filter(Column::Id.is_in(ids.clone()))
+            .all(db)
+            .await?
+            .into_iter()
+            .map(|doc| doc.path) // 假设 `path` 是 Option<String>
+            .collect();
         DocAndTags::delete_many()
             .filter(crate::entities::doc_and_tag::Column::DocId.is_in(ids.clone()))
             .exec(db)
@@ -76,6 +89,15 @@ impl DocumentCurd {
             .exec(db)
             .await
             .map_err(|e| Tip(format!("删除文档失败:{:#}", e)))?;
+        // 删除本地文件
+        for path in paths_to_delete {
+            let file_path = get_absolute_path(&path);
+            if file_path.exists() {
+                if let Err(e) = fs::remove_file(file_path) {
+                    error!("删除文件失败: {:#}", e);
+                }
+            }
+        }
         Ok(())
     }
     pub async fn update_detail(doc_new: Document) -> AppResult<()> {
@@ -96,17 +118,24 @@ impl DocumentCurd {
         }
         Ok(())
     }
-    /// 根据许多文档id更新对应文档路径
+    /// 根据许多文档id更新对应文档路径,注意要保存相对路径
     /// 本来想用Documents::update_many,看了下好像不适用，他这个不能精确控制根据id更新路径，所以就直接循环更新了
     pub async fn update_paths_by_ids(files:&HashMap<i32,String>) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
+        let files_path = Arc::new(CURRENT_DIR.join("data").join("files"));
         for (id,new_path) in files {
             match Documents::find_by_id(*id).one(db).await {
                 Ok(Some(doc)) => {
                     let mut doc = doc.into_active_model();
-                    doc.path = Set(new_path.to_string());
+                    let path_buf = PathBuf::from(new_path);
+                    // 获取文件的相对路径，以便跨设备同步（形如：“2025-08//file.pdf”）
+                    let relative_path = path_buf.strip_prefix(files_path.as_ref())
+                        .expect("Failed to strip prefix")
+                        .to_string_lossy();
+                    // doc.path = Set(new_path.to_string());
+                    doc.path = Set(relative_path.to_string());
                     match Documents::update(doc).exec(db).await{
                         Ok(_) => {}
                         Err(e) => {
@@ -143,11 +172,20 @@ impl DocumentCurd {
         }
         Ok(())
     }
+
+    /// 根据文档id查询文档
+    /// 注意要获取绝对路径
     pub async fn find_by_id(doc_id: i32) -> AppResult<Option<Document>> {
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
-        // Documents::find_by_id(doc_id).one(db).await?;
-        Ok(Documents::find_by_id(doc_id).one(db).await?)
+        match Documents::find_by_id(doc_id).one(db).await?{
+            Some(mut doc) => {
+                doc.path = get_absolute_path(&*doc.path).to_string_lossy().to_string();
+                Ok(Some(doc.into()))
+            }
+            None => {Ok( None)}
+        }
+        // Ok(Documents::find_by_id(doc_id).one(db).await?)
     }
 }

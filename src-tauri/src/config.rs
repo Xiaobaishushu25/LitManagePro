@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::{Arc, LazyLock};
+use std::sync::{LazyLock};
 use std::{env, fs, io, panic};
 use std::sync::mpsc::Sender;
 use time::UtcOffset;
@@ -18,14 +18,16 @@ use tracing_subscriber::fmt::time::OffsetTime;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer, Registry, fmt};
+use crate::services::util::get_hardware_id;
 
-// pub static CURRENT_DIR: LazyLock<String> = LazyLock::new(|| {
-//     let current_dir = &env::current_dir().expect("无法获取当前目录");
-//     current_dir.to_string_lossy().to_string()
-// });
+
 pub static CURRENT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     let current_dir = env::current_dir().expect("无法获取当前目录");
     current_dir
+});
+pub static HWID:LazyLock<String> = LazyLock::new(|| {
+    let hwid = get_hardware_id();
+    hwid
 });
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,7 +46,9 @@ impl Config {
     pub async fn load() -> Self {
         info!("load config...");
         // let path = format!("{}/data/config", CURRENT_DIR.clone());
-        let path = CURRENT_DIR.join("data").join("config");
+        let hwid = get_hardware_id();
+        // let path = CURRENT_DIR.join("data").join("config");
+        let path = CURRENT_DIR.join("data").join(HWID.as_str());
         match check_config_file(&path, &CURRENT_DIR.clone()) {
             Ok(config) => {
                 info!("load config success{:?}", config);
@@ -62,8 +66,8 @@ impl Config {
      * 保存配置文件
      */
     pub async fn save_to_file(&self) -> AppResult<()> {
-        // let path = format!("{}/data/config", CURRENT_DIR.clone());
-        let path = CURRENT_DIR.join("data").join("config");
+        // let path = CURRENT_DIR.join("data").join("config");
+        let path = CURRENT_DIR.join("data").join(HWID.as_str());
         let mut config_file = OpenOptions::new()
             .write(true) // 以写入模式打开文件
             .truncate(true) // 清空文件内容
@@ -161,10 +165,11 @@ impl Default for AiConfig {
         AiConfig {
             use_ai: false,
             default_ai: "kimi".to_string(),
-            default_model: HashMap::from([("kimi".to_string(), "moonshot-v1-8k".to_string())]),
+            // default_model: HashMap::from([("kimi".to_string(), "moonshot-v1-8k".to_string())]),
+            default_model: HashMap::from([("kimi".to_string(), "kimi-k2-0905-preview".to_string())]),
             models: HashMap::from([(
                 "kimi".to_string(),
-                vec!["moonshot-v1-8k".to_string(), "moonshot-v1-32k".into()],
+                vec!["kimi-k2-0905-preview".to_string(),"moonshot-v1-8k".to_string(), "moonshot-v1-32k".into()],
             )]),
             keys: HashMap::new(),
             online: false,
@@ -298,7 +303,8 @@ pub fn init_logger(tx:Sender<&'static str>) -> WorkerGuard {
     );
 
     let file_appender = RollingFileAppender::builder()
-        .filename_prefix("litManagePro") //意味着生成的日志文件名会以 "litManagePro" 开头。
+        // .filename_prefix("litManagePro") //意味着生成的日志文件名会以 "litManagePro" 开头。
+        .filename_prefix(HWID.as_str()) //意味着生成的日志文件名会以每台机器的硬件码开头。
         .filename_suffix("log") //生成的日志文件名会以 .log 结尾
         .build(log_path)
         .expect("无法初始化滚动文件追加器");
@@ -364,6 +370,7 @@ pub fn init_logger(tx:Sender<&'static str>) -> WorkerGuard {
 }
 #[cfg(test)]
 mod test {
+    use machineid_rs::{Encryption, HWIDComponent, IdBuilder};
     use crate::config::{Config, ExeConfig};
 
     #[test]
@@ -376,5 +383,15 @@ mod test {
     fn test_default_config(){
         let config = Config::default();
         println!("{:?}", config);
+    }
+    #[test]
+    fn test_get_hwid(){
+       let mut builder = IdBuilder::new(Encryption::SHA256);
+        builder.add_component(HWIDComponent::SystemID).add_component(HWIDComponent::CPUCores);
+        let hwid = builder.build("mykey").unwrap();
+        println!("{}", hwid);
+        if hwid=="24f960757b284d5f06ec35db508e74c80e0fae1a4626b73a1b850b00dfa878c1" {
+            println!("hwid ok")
+        }
     }
 }

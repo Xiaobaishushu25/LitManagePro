@@ -19,6 +19,7 @@ onMounted(async ()=>{
     message.error(event.payload);
   })
   invoke<string[]>('first_run',{}).then(data => {
+    //一开始运行，拿一些ui初始化前后端的错误信息展示（如果有）
     data.forEach(item => {
       message.error(item);
     })

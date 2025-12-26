@@ -30,7 +30,7 @@ pub async fn create_all_need_table(db: &DatabaseConnection) {
 }
 #[cfg(test)]
 mod test {
-    use crate::entities::prelude::{DocAndTags, Documents};
+    use crate::entities::prelude::{Documents};
     use crate::entities::table::create_table;
     use crate::entities::{DB, init_db_coon};
     #[tokio::test]

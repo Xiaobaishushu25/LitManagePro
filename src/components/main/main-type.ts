@@ -32,6 +32,11 @@ interface Document {
 interface DocumentTags extends Document {
     tags: Tag[];
 }
+
+interface TagResponse {
+    doc_id: number;
+    tagsId: number[];
+}
 // interface DocumentTags {
 //     index: number;
 //     id: number;
@@ -46,4 +51,4 @@ interface DocumentTags extends Document {
 //     tags: Tag[];
 // }
 
-export type {TagGroup,Tag,TagAndGroups,DocumentTags,Document};
+export type {TagGroup,Tag,TagAndGroups,DocumentTags,Document,TagResponse};

@@ -2,6 +2,8 @@
 import {WebviewWindow} from "@tauri-apps/api/webviewWindow";
 import {saveWindowState, StateFlags} from "@tauri-apps/plugin-window-state";
 
+//这个TitleBar只有最小化和关闭按钮，给一些工具窗口使用的
+
 // 定义 props，接收来自父组件的标题
 defineProps({
   title: {
@@ -15,6 +17,8 @@ async function window_minimize(){
 }
 async function window_close(){
   await saveWindowState(StateFlags.ALL);
+  // let label = WebviewWindow.getCurrent().label;
+  // console.log(`关闭${label}窗口`)
   await WebviewWindow.getCurrent().close();
 }
 </script>

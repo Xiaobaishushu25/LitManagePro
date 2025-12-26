@@ -4,20 +4,45 @@ import {onMounted,onUnmounted} from "vue";
 import {listen} from "@tauri-apps/api/event";
 import {invoke} from "@tauri-apps/api/core";
 import useTagGroupsStore from "../stroe/tag.ts";
+import {getCurrentWindow, LogicalPosition} from "@tauri-apps/api/window";
 
 const tagStore = useTagGroupsStore()
-
+let close = false;
 let unlistenFile: () => void;
+let unlistenEnter: () => void;
+let unlistenClose: () => void;
 
 onMounted(async ()=>{
   unlistenFile = await listen('tauri://drag-drop', async (event:{ payload:{paths: string[]}})=>{
     let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
-    console.log(event.payload.paths)
     await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
+  })
+  unlistenClose = await listen("close", async () => {
+    console.log("关闭上传窗口")
+    close = true
+  })
+  let window =getCurrentWindow();
+  unlistenEnter = await listen("drag-enter", async (event: any) => {
+    const { x, y } = event.payload;
+    // 偏移，避免挡住鼠标
+    await window.setPosition(
+        new LogicalPosition(x - 200, y - 100)
+    );
+    await window.show();
+    await window.setFocus();
+  });
+  await window.onCloseRequested(async (event) => {
+    if (!close){
+      console.log("想要关闭上传窗口？我直接隐藏！")
+      await window.hide()
+      event.preventDefault()
+    }
   })
 })
 onUnmounted(()=>{
   unlistenFile()
+  unlistenEnter()
+  unlistenClose()
 })
 </script>
 

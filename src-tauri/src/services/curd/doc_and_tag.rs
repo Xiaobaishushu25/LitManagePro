@@ -1,10 +1,12 @@
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::doc_and_tag::Column;
+use crate::entities::doc_and_tag::Column::{DocId, TagId};
 use crate::entities::document;
 use crate::entities::prelude::{DocAndTag, DocAndTags, Documents};
-use sea_orm::QueryFilter;
+use sea_orm::{DbErr, QueryFilter};
 use sea_orm::prelude::Expr;
+use sea_orm::sea_query::OnConflict;
 use sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QuerySelect};
 use tracing::instrument;
 
@@ -21,6 +23,10 @@ impl DocAndTagCurd {
         Ok(())
     }
     pub async fn insert_many(doc_id: i32, tag_ids: Vec<i32>) -> AppResult<()> {
+        // 空集合直接返回（很重要）
+        if tag_ids.is_empty() {
+            return Ok(());
+        }
         let db = crate::entities::DB
             .get()
             .ok_or(Tip("数据库未初始化".into()))?;
@@ -35,8 +41,26 @@ impl DocAndTagCurd {
             })
             .collect::<Vec<_>>();
         // DocAndTags::insert(model.into_active_model()).exec(db).await?;
-        DocAndTags::insert_many(models).exec(db).await?;
-        Ok(())
+        //数据库中已有 (doc_id, tag_id) → 直接跳过
+        match DocAndTags::insert_many(models)
+            .on_conflict(
+                OnConflict::columns([
+                    DocId,
+                    TagId,
+                ])
+                    .do_nothing()
+                    .to_owned(),
+            )
+            .exec(db)
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(DbErr::RecordNotInserted) => {
+                // 👈 所有记录都已存在，完全正常
+                Ok(())
+            }
+            Err(e) => Err(e.into()),
+        }
     }
     pub async fn update_many(doc_id: i32, tag_ids: Vec<i32>) -> AppResult<()> {
         let db = crate::entities::DB

@@ -1,3 +1,4 @@
+use sea_orm::QueryFilter;
 use crate::app_errors::AppError::Tip;
 use crate::app_errors::AppResult;
 use crate::entities::prelude::{DocAndTags, Tag, Tags};
@@ -63,6 +64,17 @@ impl TagCurd {
             tag.delete(db).await?;
         }
         Ok(())
+    }
+    /// 根据给定的标签id数组查标签。
+    pub async fn query_tags(tags_id: Vec<i32>) -> AppResult<Vec<Tag>> {
+        let db = crate::entities::DB
+            .get()
+            .ok_or(Tip("数据库未初始化".into()))?;
+            let tags = Tags::find()
+            .filter(Column::Id.is_in(tags_id))
+            .all(db)
+            .await?;
+            Ok(tags)
     }
     // pub async fn query_tags() -> AppResult<Vec<Tag>> {
     //     let db = crate::entities::DB

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, onUnmounted, ref, watch} from "vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
-import {DocumentTags} from "./main-type.ts";
+import {DocumentTags, TagResponse} from "./main-type.ts";
 import { h } from 'vue'
 import {DataTableColumn, DataTableColumns, NSpin} from "naive-ui";
 import {message} from "../../message.ts";
@@ -67,10 +67,6 @@ const handleBlur = () => {
 };
 
 onMounted(async ()=>{
-  // unlistenFile = await listen('tauri://drag-drop', async (event:{ payload:{paths: string[]}})=>{
-  //   let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
-  //   await invoke('insert_docs', {paths: event.payload.paths, tagsId: selectTagId})
-  // })
   unlisten1 = await listen('关闭/打开所有可展开行', () => {
     expandedAll.value = !expandedAll.value
   })
@@ -442,12 +438,15 @@ function summaryByAi(){
 }
 function suggestTagsByAi(){
   let docs = selectedRows.value;
-  if (docs.length === 0)return
-  // todo 待完善ai建议标签功能
-  // invoke('suggest_tags_by_ai', {}).then(_ => {
-  // }).catch(e => {
-  //   message.error(e)
-  // })
+  let doc = docs[docs.length-1]
+  console.log(doc)
+  invoke<TagResponse>('suggest_tag_by_ai', {pathS: doc.path,docId: doc.id,tagAndGroups:tagStore.tagGroups}).then(data => {
+    console.log(data)
+    message.success("成功获取ai建议标签")
+  }).catch(e => {
+    console.log("进入ai建议标签功能出错")
+    message.error(e)
+  })
 }
 ///-------------------------------------右键事件---------------end---------
 const handleDragEnd = () => {

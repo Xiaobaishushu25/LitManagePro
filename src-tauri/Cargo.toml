@@ -1,6 +1,6 @@
 [package]
 name = "litmanagepro"
-version = "1.0.0"
+version = "2.0.1"
 description = "现代化文献管理工具"
 authors = ["you"]
 edition = "2024"
@@ -51,6 +51,8 @@ image = "0.23.0"
 rand = "0.9.0"
 
 clipboard-rs = "0.2.4"
+
+machineid-rs = "1.2.4"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"

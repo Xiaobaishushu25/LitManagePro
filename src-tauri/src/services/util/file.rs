@@ -7,6 +7,7 @@ use image::{DynamicImage, RgbaImage};
 use lopdf::Document;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use log::{error, info};
 
 /** 提取pdf文件内容**/
@@ -44,11 +45,11 @@ async fn extract_pdf(path: &str) -> AppResult<String> {
     let bytes = std::fs::read(path)?;
     Ok(pdf_extract::extract_text_from_mem(&bytes)?)
 }
-/// 组织文件到按时间命名的文件夹中，并更新文件路径
+/// 复制文件到按时间命名的文件夹中，并更新文件路径
 ///
 /// # Arguments
 ///
-/// * `files` - 一个可变的 `HashMap`，键是文件 ID，值是文件的原始路径
+/// * `files` - 一个可变的 `HashMap`，键是文件 ID，值是文件的原始路径，复制成功后会更新为复制后的文件相对路径
 ///
 /// # Returns
 ///
@@ -73,7 +74,7 @@ async fn extract_pdf(path: &str) -> AppResult<String> {
 ///     if let Err(e) = organize_files(&mut files).await {
 ///         eprintln!("错误: {}", e);
 ///     } else {
-///         println!("所有文件已成功组织");
+///         println!("所有文件已成功复制");
 ///         // 打印更新后的文件路径
 ///         for (id, path) in &files {
 ///             println!("文件 {}: {}", id, path);
@@ -86,7 +87,8 @@ pub async fn organize_files(files:&mut HashMap<i32,String>) -> AppResult<()> {
     let current_date = time::OffsetDateTime::now_utc();
     let time_folder_name = format!("{:04}-{:02}", current_date.year(), current_date.month() as u8);
     // 创建目标文件夹路径
-    let target_dir = CURRENT_DIR.join("data").join("files").join(time_folder_name);
+    let files_path = Arc::new(CURRENT_DIR.join("data").join("files"));
+    let target_dir = files_path.join(time_folder_name);
     fs::create_dir_all(&target_dir)?;
     // 遍历文件并复制到目标文件夹
     for (id, file_path) in files.iter_mut() {
@@ -98,9 +100,14 @@ pub async fn organize_files(files:&mut HashMap<i32,String>) -> AppResult<()> {
                 let dest_path = target_dir.join(&file_name);
                 // 复制文件
                 fs::copy(source_path, &dest_path)?;
+                // 获取文件的相对路径，以便跨设备同步（形如：“2025-08//file.pdf”）
+                // let relative_path = dest_path.strip_prefix(files_path.as_ref())
+                //     .expect("Failed to strip prefix")
+                //     .to_string_lossy();
                 // 更新 HashMap 中的文件路径为新的路径
                 *file_path = dest_path.to_string_lossy().to_string();
-                info!("文件 {} 已复制到: {}", id, file_path);
+                // *file_path = relative_path.to_string();
+                info!("文件 {} 已复制到: {}", id, dest_path.to_string_lossy().to_string());
             } else {
                 error!("警告: 无法获取文件名: {}", file_path);
             }
@@ -110,10 +117,7 @@ pub async fn organize_files(files:&mut HashMap<i32,String>) -> AppResult<()> {
     }
     Ok(())
 }
-pub fn get_file_path(id: i32) -> String {
-    let path = CURRENT_DIR.join("data").join("files").join(id.to_string());
-    path.to_string_lossy().to_string()
-}
+
 pub fn get_and_save_icon(path: &str, size: u16) -> AppResult<(String, String)> {
     let path = Path::new(path);
     let name = path.file_stem().unwrap().to_str().unwrap();
@@ -130,6 +134,14 @@ pub fn get_and_save_icon(path: &str, size: u16) -> AppResult<(String, String)> {
         .save_with_format(save_path.clone(), image::ImageFormat::Png)
         .map_err(|e| Tip(format!("保存图标失败{:#}", e)))?;
     Ok((name.into(), save_path))
+}
+
+/// 获取文件的绝对路径
+/// 输入的路径是相对路径，即data文件夹下files文件夹内的文件，如：“2025-03//file.pdf”
+pub fn get_absolute_path(path: &str) -> PathBuf {
+    let path = Path::new(path);
+    info!("获取绝对路径: {}", path.to_string_lossy());
+    CURRENT_DIR.join("data").join("files").join(path)
 }
 fn clear_tmp_dir(tmp_dir: &PathBuf) -> std::io::Result<()> {
     // 检查目录是否存在
@@ -186,3 +198,4 @@ mod test {
         }
     }
 }
+

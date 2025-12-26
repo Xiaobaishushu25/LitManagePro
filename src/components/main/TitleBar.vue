@@ -8,7 +8,7 @@ import useConfigStore from "../../stroe/config.ts";
 import InlineSvg from "vue-inline-svg";
 import {open} from "@tauri-apps/plugin-dialog";
 import useTagGroupsStore from "../../stroe/tag.ts";
-import {listen} from "@tauri-apps/api/event";
+import {emitTo, listen} from "@tauri-apps/api/event";
 
 const configStore = useConfigStore()
 const tagStore = useTagGroupsStore()
@@ -21,6 +21,7 @@ let unlisten2: () => void;
 let unlisten3: () => void;
 
 onMounted(async ()=>{
+  await openDragImport(false)
   await WebviewWindow.getCurrent().isMaximized().then(res => {
     isMaximize.value = res
   })
@@ -82,7 +83,17 @@ async function window_close(){
   await invoke('save_config',{config: configStore.config}).then(_ => {}).catch(e => {
     message.error(`保存配置出错${e}`);
   })
-  await WebviewWindow.getCurrent().close();
+  let label = WebviewWindow.getCurrent().label;
+  if (label=='main') {//主窗口关闭前要把所有子窗口关闭
+    await emitTo("dragImport", 'close',{})
+    const windows = await WebviewWindow.getAll();
+    for (const w of windows) {
+      if (w.label !== 'main') {
+        await w.close(); // 真正销毁子窗口
+      }
+    }
+    await WebviewWindow.getCurrent().close();
+  }
 }
 //---------------------------------------------窗口操作相关结束--------------------------------------------------------------
 
@@ -126,44 +137,6 @@ const options = computed(() => [
     }
   },
 ]);
-// const options = [
-//   {
-//     label: '设置',
-//     key: 'setting',
-//     shortKey:configStore.shortcuts?.find(item => item.key === '打开设置')!.value,
-//     iconPath: '../assets/svg/setting.svg',//注意这里面不能像n-select一样用icon，会出渲染问题
-//     props: {
-//       onClick: () => {
-//         open_setting()
-//       }
-//     }
-//   },
-//   {
-//     type: 'divider',
-//     key: 'd1'
-//   },
-//   {
-//     label: '导入',
-//     key: 'import',
-//     shortKey:configStore.shortcuts?.find(item => item.key === '导入文件')!.value,
-//     iconPath: '../assets/svg/Import32.svg',//注意这里面不能像n-select一样用icon，会出渲染问题
-//     props: {
-//       onClick: () => {
-//         openFileSelect()
-//       }
-//     }
-//   },
-//   {
-//     label: '拖拽上传',
-//     key: 'dragImport',
-//     iconPath: '../assets/svg/DragFile32.svg',
-//     props: {
-//       onClick: () => {
-//         openDragImport()
-//       }
-//     }
-//   },
-// ];
 const renderLabel = (option:{ label: string, value: string,shortKey:string, iconPath: string}) => {
   return h('div', { class: 'flex items-center w-52' }, [
     h(InlineSvg, { src: option.iconPath, class: 'w-4 h-4' }),
@@ -213,9 +186,11 @@ async function openFileSelect(){
     message.error(`打开文件选择器时出错:${error}`)
   }
 }
-async function openDragImport() {
+async function openDragImport(visible:boolean=true) {
+  console.log('打开拖拽上传窗口')
   let flag = await showAndFocusWindow('dragImport')
   if (flag) return
+  console.log('创建拖拽上传窗口')
   const webview = new WebviewWindow('dragImport', {
     url: '/#/dragImport',
     center: true,
@@ -230,8 +205,14 @@ async function openDragImport() {
     visible: false,
     alwaysOnTop: true
   });
+  console.log(visible)
   await webview.once('tauri://created', async function () {
-    await webview.show()
+    if (visible) {
+      console.log('显示拖拽上传窗口')
+      await webview.show()
+    }else{
+      console.log('不show拖拽上传窗口')
+    }
   });
   await webview.once('tauri://error', function (e) {
     // an error happened creating the webview
@@ -241,7 +222,7 @@ async function openDragImport() {
 async function showAndFocusWindow(label:string){
   const window = await WebviewWindow.getByLabel(label);
   if (window!=null) {
-
+    await window.show()
     await window.unminimize()
     await window.setFocus()
     return true
@@ -261,7 +242,7 @@ async function showAndFocusWindow(label:string){
       <template #trigger>
         <img src="../../assets/icon/app.ico" class="w-4 h-4" alt="ICO Icon">
       </template>
-      v1.0.0
+      v2.0.1
     </n-tooltip>
     <label class="pl-1">天书</label>
     <div class="pl-5">

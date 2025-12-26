@@ -2,15 +2,14 @@ use crate::config::Config;
 use crate::dtos::ProgressWrapper;
 pub(crate) use crate::dtos::doc::{DocumentTags, PartDoc};
 use crate::entities::prelude::Document;
-use crate::services::commands::doc::doc_util::{
-    handle_many_paths, handle_query_docs_by_tags, update_paper_summary,
-};
+use crate::services::commands::doc::doc_util::{handle_many_paths, handle_query_docs_by_tags, suggest_tag, update_paper_summary};
 use crate::services::curd::document::DocumentCurd;
 use log::{error, info};
 use std::path::{PathBuf};
 use std::sync::{Arc, Mutex};
 use clipboard_rs::{Clipboard, ClipboardContext};
 use tauri::{AppHandle, Emitter, State};
+use crate::dtos::tag::TagAndGroups;
 
 #[tauri::command]
 pub async fn insert_docs(
@@ -105,6 +104,23 @@ pub async fn summarize_docs_by_ai(
     }
     Ok(())
 }
+
+#[tauri::command]
+pub async fn suggest_tag_by_ai(app_handle: AppHandle,path_s: &str,doc_id: i32,tag_and_groups: Vec<TagAndGroups> ) -> Result<(), String> {
+    info!("建议标签：{}", path_s);
+    match suggest_tag(path_s,doc_id,tag_and_groups).await {
+        Ok(doc_tags) => {
+            let _ = app_handle.emit("doc_update", doc_tags);
+            // println!("建议标签：{:?}", tag_and_groups);
+            Ok(())
+        }
+        Err(e) => {
+            let msg = format!("建议标签失败：{}", e);
+            error!("{}", msg);
+            Err(msg)
+        }
+    }
+}
 #[tauri::command]
 pub async fn open_by_system(path: String) -> Result<(), String> {
     match open::that(path) {
@@ -182,7 +198,7 @@ mod doc_util {
     use crate::app_errors::AppError::Tip;
     use crate::app_errors::AppResult;
     use crate::dtos::ProgressWrapper;
-    use crate::dtos::doc::{DocumentTags, PartDoc};
+    use crate::dtos::doc::{DocumentTags, PartDoc, TagResponse};
     use crate::entities::prelude::Document;
     use crate::services::ai::ONCE_AI;
     use crate::services::curd::doc_and_tag::DocAndTagCurd;
@@ -194,7 +210,7 @@ mod doc_util {
     use std::sync::{Arc, Mutex};
     use tauri::Emitter;
     use tokio::sync::Semaphore;
-    use tracing::{instrument, Id};
+    use tracing::{instrument};
     use crate::dtos::tag::TagAndGroups;
 
     /// 处理多个文件路径，执行文档插入、组织和更新操作
@@ -308,7 +324,6 @@ mod doc_util {
                                                     progress_wrapper.update("正在解析文档", 0),
                                                 );
                                                 let _ = app_handle.emit("summary_doc", (id, true));
-                                                info!("正在总结1");
                                                 match update_paper_summary(&path_s, id).await {
                                                     Ok(document_tags) => {
                                                         let _ = app_handle
@@ -458,8 +473,7 @@ mod doc_util {
             .map_err(|e| Tip(format!("更新文档出现错误:{}", e)))?;
         Ok(DocumentTags::from_doc_id(id).await)
     }
-    //todo 还没搞定
-    pub async fn suggest_tag_by_ai(path_s: &str,doc_id: i32,tag_and_groups: Vec<TagAndGroups> )->AppResult<TagAndGroups>{
+    pub async fn suggest_tag(path_s: &str,doc_id: i32,tag_and_groups: Vec<TagAndGroups>)->AppResult<DocumentTags>{
         let o_ai = ONCE_AI.get().unwrap().lock().await;
         let ai = o_ai
             .as_ref()
@@ -471,9 +485,11 @@ mod doc_util {
             .analyse_tags(content, doc_id, tag_and_groups)
             .await
             .map_err(|e| Tip(format!("AI分析{}失败: {}", path_s, e)))?;
-        let suggest_tags = serde_json::from_str::<TagAndGroups>(&json_data)
+        let suggest_tags = serde_json::from_str::<TagResponse>(&json_data)
             .map_err(|e| Tip(format!("解析{}JSON失败: {}", path_s, e)))?;
-        Ok(suggest_tags)
+        let document_tags = DocumentTags::from_doc_id_and_tags(doc_id, suggest_tags.tags_id.clone()).await;
+        DocAndTagCurd::insert_many(doc_id,suggest_tags.tags_id).await.expect("插入文档标签到数据库中失败");
+        Ok(document_tags)
     }
     async fn summarize_paper(
         // o_ai: Arc<&Option<AI>>,
@@ -499,10 +515,9 @@ mod doc_util {
 #[cfg(test)]
 mod doc_test {
     use crate::dtos::doc::PartDoc;
-    use crate::dtos::tag::{get_tag_and_groups, TagAndGroups};
+    use crate::dtos::tag::{get_tag_and_groups};
     use crate::entities::init_db_coon;
     use crate::services::commands::doc::copy_files_to_clipboard;
-    use crate::services::commands::doc::doc_util::suggest_tag_by_ai;
 
     #[test]
     fn test_serde() {
@@ -551,7 +566,7 @@ mod doc_test {
         init_db_coon().await;
         let vec = get_tag_and_groups().await.unwrap();
         println!("{:?}", vec);
-        suggest_tag_by_ai("D:\\天书\\data\\files\\2025-07\\APT-LLM Embedding-Based Anomaly Detection.pdf", 1, vec).await;
+        // suggest_tag_by_ai("D:\\天书\\data\\files\\2025-07\\APT-LLM Embedding-Based Anomaly Detection.pdf", 1, vec).await;
         // suggest_tag_by_ai("F:\\科研\\论文\\基于对抗样本的神经网络安全性问题研究综述_李紫珊.pdf", 1)
     }
 }

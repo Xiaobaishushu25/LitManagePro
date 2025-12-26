@@ -5,6 +5,7 @@ use reqwest::Client;
 use serde_json::{Value, json};
 use std::fmt;
 use std::sync::OnceLock;
+use log::{error, info};
 use tokio::sync::Mutex;
 use crate::dtos::tag::TagAndGroups;
 
@@ -58,6 +59,7 @@ impl AI {
             .default_model
             .get(default_ai)
             .ok_or(Tip(format!("未找到{}对应的默认模型", default_ai)))?;
+        info!("使用的模型是{}",model);
         Ok((default_ai, key, model, ai_config.online))
     }
     pub async fn analyse_paper(&self, paper_content: String, paper_id: i32) -> AppResult<String> {
@@ -108,11 +110,16 @@ impl AI {
             _ => panic!("Invalid supporter"),
         };
         let prompt = format!(
-            "请你准确地根据提供给你的论文内容、该论文的期刊会议信息、联网搜索信息和标签组以及每组内的标签，选出所有与论文内容符合的标签,组内若有多个同时符合的标签可多选。
-            必须把回答信息序列化为json字符串，key先插入一个id，值为{},然后分别是你选出的标签，标签之间用逗号隔开，不要有任何额外信息。请务必准确，如果提供给你的内容中找不到需要的数据时请联网搜索。
-            注意，不要在json字符串中包含任何控制符（如换行符等）。",
-            paper_id
-        );
+            "请你准确地根据提供给你的论文内容、期刊会议信息、联网搜索信息和标签组(含每组标签)，选出所有符合的标签id。
+             你必须非常非常谨慎，只有当论文内容**明确支持**某标签时才选择。
+             如果证据不充分，**千万不能选**。
+            必须只输出**一个**可被直接解析的 JSON 字符串，不要出现 ```json 或任何 Markdown。
+            JSON 格式严格如下：
+            {{\"doc_id\":{},\"tags_id\":[id1,id2,id3]}}
+            其中 tags_id 必须是**整数数组**，不要加引号。
+            不要输出任何额外字符或解释。", paper_id);
+        error!("使用的模型是:{}", self.model);
+
         let response = self.client
             .post(url)
             .header("Authorization", format!("Bearer {}", self.key))
@@ -121,8 +128,8 @@ impl AI {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": "你是专业的artificial intelligence论文分析助手，你更擅长中文和英文的对话。你会为用户提供有帮助，准确的回答。在不确定时，你会联网搜索最新的信息。"},
-                {"role": "system", "content": paper_content },
-                {"role": "system", "content": tag_and_groups },
+                {"role": "assistant", "content": format!("论文内容：{}", paper_content)},
+                {"role": "assistant", "content": format!("标签组数据：{}", serde_json::to_string(&tag_and_groups).unwrap())},
                 {"role": "user", "content": prompt}
             ],
             "stream": false,
@@ -139,7 +146,7 @@ impl AI {
         let content = value["choices"][0]["message"]["content"]
             .as_str()
             .ok_or(Tip(format!("content字段解析出错:{}", text)))?;
-        println!("{}", content);
+        println!("这是返回的字段{}", content);
         Ok(content.into())
     }
 }

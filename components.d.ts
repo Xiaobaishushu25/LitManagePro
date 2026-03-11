@@ -17,7 +17,9 @@ declare module 'vue' {
     NCard: typeof import('naive-ui')['NCard']
     NCollapseTransition: typeof import('naive-ui')['NCollapseTransition']
     NColorPicker: typeof import('naive-ui')['NColorPicker']
+    NConfigProvider: typeof import('naive-ui')['NConfigProvider']
     NDataTable: typeof import('naive-ui')['NDataTable']
+    NDialogProvider: typeof import('naive-ui')['NDialogProvider']
     NDivider: typeof import('naive-ui')['NDivider']
     NDropdown: typeof import('naive-ui')['NDropdown']
     NFlex: typeof import('naive-ui')['NFlex']
@@ -25,7 +27,10 @@ declare module 'vue' {
     NGridItem: typeof import('naive-ui')['NGridItem']
     NInput: typeof import('naive-ui')['NInput']
     NInputNumber: typeof import('naive-ui')['NInputNumber']
+    NMessageProvider: typeof import('naive-ui')['NMessageProvider']
     NModal: typeof import('naive-ui')['NModal']
+    NoteList: typeof import('./src/components/note/NoteList.vue')['default']
+    NoteTabsBar: typeof import('./src/components/note/NoteTabsBar.vue')['default']
     NProgress: typeof import('naive-ui')['NProgress']
     NScrollbar: typeof import('naive-ui')['NScrollbar']
     NSelect: typeof import('naive-ui')['NSelect']
@@ -45,5 +50,6 @@ declare module 'vue' {
     TagComplete: typeof import('./src/components/main/TagComplete.vue')['default']
     TitleBar: typeof import('./src/components/main/TitleBar.vue')['default']
     Tree: typeof import('./src/components/main/Tree.vue')['default']
+    VditorNote: typeof import('./src/components/note/VditorNote.vue')['default']
   }
 }

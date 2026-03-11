@@ -6,6 +6,7 @@ import {
 import Main from "./windows/Main.vue";
 import Setting from "./windows/Setting.vue";
 import DragImport from "./windows/DragImport.vue";
+import Note from "./windows/Note.vue";
 
 
 const routes: Array<RouteRecordRaw> = [
@@ -25,6 +26,10 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/dragImport',
         component: DragImport, // 工具界面的布局组件
+    },
+    {
+        path: '/note',
+        component: Note,
     },
 ]
 

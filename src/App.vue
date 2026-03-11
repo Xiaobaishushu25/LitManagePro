@@ -136,13 +136,26 @@ onUnmounted(async ()=>{
 </script>
 
 <template>
-  <div v-if="configStore.config">
-    <router-view v-slot="{ Component }">
-      <keep-alive>
-        <component :is="Component" />
-      </keep-alive>
-    </router-view>
-  </div>
+<!--  <div v-if="configStore.config">-->
+<!--    <router-view v-slot="{ Component }">-->
+<!--      <keep-alive>-->
+<!--        <component :is="Component" />-->
+<!--      </keep-alive>-->
+<!--    </router-view>-->
+<!--  </div>-->
+  <n-config-provider>
+    <n-dialog-provider>
+      <n-message-provider>
+        <div v-if="configStore.config">
+          <router-view v-slot="{ Component }">
+            <keep-alive>
+              <component :is="Component" />
+            </keep-alive>
+          </router-view>
+        </div>
+      </n-message-provider>
+    </n-dialog-provider>
+  </n-config-provider>
 </template>
 
 <style scoped>

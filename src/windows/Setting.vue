@@ -9,7 +9,7 @@ const configStore = useConfigStore()
 </script>
 
 <template>
-  <TitleBar title="设置"></TitleBar>
+  <TitleBar title="设置" :show-maximize="false"></TitleBar>
   <div v-if="configStore.config">
     <n-tabs
         type="card"

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 pub mod doc;
+pub mod note;
 pub mod tag;
 
 /// 进度条数据组件

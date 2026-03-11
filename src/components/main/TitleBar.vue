@@ -205,7 +205,6 @@ async function openDragImport(visible:boolean=true) {
     visible: false,
     alwaysOnTop: true
   });
-  console.log(visible)
   await webview.once('tauri://created', async function () {
     if (visible) {
       console.log('显示拖拽上传窗口')
@@ -219,6 +218,31 @@ async function openDragImport(visible:boolean=true) {
     console.error(e);
   });
 }
+
+async function openNewWindow(){
+  let flag = await showAndFocusWindow('newWindow')
+  if (flag) return
+  const webview = new WebviewWindow('newWindow', {
+    url: '/#/newWindow',
+    center: true,
+    title: '新窗口',
+    width: 800,
+    height: 600,
+    minWidth: 400,
+    minHeight: 300,
+    decorations: false,
+    resizable: true,
+    dragDropEnabled: false,
+    visible: false,
+  });
+  await webview.once('tauri://created', async function () {
+    await webview.show()
+  });
+  await webview.once('tauri://error', function (e) {
+    console.error(e);
+  });
+}
+
 async function showAndFocusWindow(label:string){
   const window = await WebviewWindow.getByLabel(label);
   if (window!=null) {
@@ -271,61 +295,5 @@ async function showAndFocusWindow(label:string){
 </template>
 
 <style>
-.title-bar{
-  align-items: center; /* 垂直居中 */
-  display: flex;
-  flex-direction:row;
-  height: 30px;
-  user-select: none;
-  background-color: #e8e8e5;
-}
-.window-button {
-  width: 40px;
-  height: 30px;
-  outline: none;
-  cursor: pointer;
-}
-
-.min path,
-.maximize path,
-.restore path,
-.close path {
-  transform-origin: center;
-}
-
-.min path {
-  transform: scale(0.5);
-}
-
-.maximize path {
-  transform: scale(0.6);
-  stroke: #0f0f0f;
-  stroke-width: 0.1;
-}
-
-.restore path {
-  transform: scale(0.5);
-  stroke-width: 0.2;
-}
-
-.close path {
-  transform: scale(0.6);
-  stroke-width: 20;
-  stroke: #0f0f0f;
-}
-
-.min:hover,
-.maximize:hover,
-.restore:hover {
-  background-color: #33303020;
-}
-
-.close:hover {
-  background-color: red;
-}
-
-.close:hover path {
-  fill: white;
-  stroke: white;
-}
+/*样式转移到/main/TitleBar.vue中了*/
 </style>

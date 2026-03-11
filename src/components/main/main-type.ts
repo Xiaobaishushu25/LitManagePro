@@ -50,5 +50,22 @@ interface TagResponse {
 //     path: string;
 //     tags: Tag[];
 // }
-
-export type {TagGroup,Tag,TagAndGroups,DocumentTags,Document,TagResponse};
+interface NoteResponseDto {
+    id: number
+    document_id: number
+    title?: string | null
+    content: string
+    created_at: string
+    updated_at: string
+}
+interface NoteTab {
+    tabId: string
+    noteId: number
+    original: NoteResponseDto
+    draft: NoteResponseDto
+    dirty: boolean
+    saving: boolean
+    loading: boolean
+    closable: boolean
+}
+export type {TagGroup,Tag,TagAndGroups,DocumentTags,Document,TagResponse,NoteResponseDto,NoteTab};

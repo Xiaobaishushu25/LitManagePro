@@ -13,6 +13,11 @@ pub use super::document::Entity as Documents;
 pub use super::document::Model as Document;
 
 #[allow(unused_imports)]
+pub use super::note::ActiveModel as ActiveNote;
+pub use super::note::Entity as Notes;
+pub use super::note::Model as Note;
+
+#[allow(unused_imports)]
 pub use super::doc_and_tag::ActiveModel as ActiveDocAndTag;
 pub use super::doc_and_tag::Entity as DocAndTags;
 pub use super::doc_and_tag::Model as DocAndTag;

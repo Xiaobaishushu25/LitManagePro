@@ -12,6 +12,7 @@ use crate::entities::table::create_all_need_table;
 
 pub mod doc_and_tag;
 pub mod document;
+pub mod note;
 pub mod prelude;
 pub mod table;
 pub mod tag;

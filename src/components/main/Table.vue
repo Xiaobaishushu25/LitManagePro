@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, onUnmounted, ref, watch} from "vue";
 import useTagGroupsStore from "../../stroe/tag.ts";
-import {DocumentTags, TagResponse} from "./main-type.ts";
+import {DocumentTags, NoteResponseDto, TagResponse} from "./main-type.ts";
 import { h } from 'vue'
 import {DataTableColumn, DataTableColumns, NSpin} from "naive-ui";
 import {message} from "../../message.ts";
@@ -12,6 +12,7 @@ import Detail from "./Detail.vue";
 import useConfigStore from "../../stroe/config.ts";
 import CustomModal from "../../util/CustomModal.vue";
 import TagComplete from "./TagComplete.vue";
+import {openNoteWindow} from "../../util/open-note-window.ts";
 
 const tagStore = useTagGroupsStore()
 const docsStore = useDocStore()
@@ -391,6 +392,17 @@ function deleteDocs(){
     message.error(e)
   })
 }
+async function createNewNote(){
+  const noteData: NoteResponseDto = {
+    id: -1,
+    document_id: docsStore.currentSelectDoc!.id,
+    title: "新建笔记",   // 可选字段示例1：填字符串
+    content: "", // 必填字符串
+    created_at: new Date().toISOString(), // 必填时间字符串（推荐ISO格式）
+    updated_at: new Date().toISOString(), // 必填时间字符串
+  };
+  await openNoteWindow(noteData)
+}
 function openBySystem(){
   if(docsStore.currentSelectDoc===undefined){return}
   invoke('open_by_system', {path: docsStore.currentSelectDoc!.path}).then(_ => {}).catch(e => {message.error(e)})
@@ -487,7 +499,6 @@ const handleDragEnd = () => {
             <context-menu
                 v-model:show="contextMenuShow"
                 :options="contextOptions"
-
             >
               <context-menu-item label="用系统默认应用打开" @click="openBySystem"/>
               <context-menu-item label="用天书默认应用打开" @click="openByApp"/>
@@ -514,6 +525,17 @@ const handleDragEnd = () => {
                 </template>
                 <template #shortcut>
                   <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-mono">{{configStore.getShortcutByName('复制文件')}}</span>
+                </template>
+              </context-menu-item>
+              <context-menu-sperator />
+              <context-menu-item
+                  label="新建笔记"
+                  @click="createNewNote">
+                <template #icon>
+                  <inline-svg
+                      src="../assets/svg/NewNote.svg"
+                      class="svg-button"
+                  ></inline-svg>
                 </template>
               </context-menu-item>
               <context-menu-sperator />

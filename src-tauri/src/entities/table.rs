@@ -1,4 +1,4 @@
-use crate::entities::prelude::{DocAndTags, Documents, TagGroups, Tags};
+use crate::entities::prelude::{DocAndTags, Documents, Notes, TagGroups, Tags};
 use log::{error, info};
 use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Schema};
 
@@ -22,6 +22,7 @@ pub async fn create_all_need_table(db: &DatabaseConnection) {
     create_table(db, TagGroups).await;
     create_table(db, Documents).await;
     create_table(db, DocAndTags).await;
+    create_table(db, Notes).await;
     // let _ = create_table(db, StockGroups).await;
     // let _ = create_table(db, GroupStockRs).await;
     // let _ = create_table(db, TransactionRecords).await;

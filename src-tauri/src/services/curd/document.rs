@@ -66,7 +66,7 @@ impl DocumentCurd {
     //     Ok(())
     // }
     /// 批量删除文档，同时删除文档和标签的关联关系
-    /// 由于有外键关系，所以需要先删除doc_and_tag表的关联关系，再删除文档
+    /// 由于有外键关系，所以需要先删除 doc_and_tag 表的关联关系，再删除文档
     pub async fn delete_many(ids: Vec<i32>) -> AppResult<()> {
         let db = crate::entities::DB
             .get()
@@ -80,21 +80,33 @@ impl DocumentCurd {
             .into_iter()
             .map(|doc| doc.path) // 假设 `path` 是 Option<String>
             .collect();
+            
+        // 删除每个文档对应的笔记
+        for doc_id in &ids {
+            if let Err(e) = crate::services::curd::note::NoteCurd::delete_by_document_id(*doc_id).await {
+                error!("删除文档 {} 的笔记失败：{:#}", doc_id, e);
+            }
+        }
+            
+        // 删除文档和标签的关联关系
         DocAndTags::delete_many()
             .filter(crate::entities::doc_and_tag::Column::DocId.is_in(ids.clone()))
             .exec(db)
             .await?;
+            
+        // 删除文档
         Documents::delete_many()
             .filter(Column::Id.is_in(ids.clone()))
             .exec(db)
             .await
             .map_err(|e| Tip(format!("删除文档失败:{:#}", e)))?;
+            
         // 删除本地文件
         for path in paths_to_delete {
             let file_path = get_absolute_path(&path);
             if file_path.exists() {
                 if let Err(e) = fs::remove_file(file_path) {
-                    error!("删除文件失败: {:#}", e);
+                    error!("删除文件失败：{:#}", e);
                 }
             }
         }

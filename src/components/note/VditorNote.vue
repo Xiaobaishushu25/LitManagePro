@@ -5,6 +5,7 @@ import "vditor/dist/index.css"
 import "katex/dist/katex.min.css"
 import { NButton, NInput } from "naive-ui"
 import {NoteResponseDto} from "../main/main-type.ts";
+import CustomModal from "../../util/CustomModal.vue";
 
 const props = defineProps<{
   note: NoteResponseDto | null
@@ -14,6 +15,7 @@ const emit = defineEmits<{
   (e: "update:title", value: string): void
   (e: "update:content", value: string): void
   (e: "save"): void
+  (e: "delete"): void
 }>()
 
 const editorRef = ref<HTMLElement | null>(null)
@@ -21,6 +23,7 @@ const vditor = ref<Vditor | null>(null)
 const content = ref("")
 const localTitle = ref("")
 const currentNoteId = ref<number | null>(null)
+const showDeleteModal = ref(false)
 
 let isSettingValue = false
 let mathInsertLock = false
@@ -76,6 +79,13 @@ function insertMath() {
 
 function handleSave() {
   emit("save")
+}
+function handleDelete() {
+  showDeleteModal.value = true
+}
+
+function confirmDelete() {
+  emit("delete")
 }
 
 onMounted(async () => {
@@ -235,8 +245,6 @@ onUnmounted(() => {
 
     <!-- 底部工具栏 -->
     <div class="editor-toolbar">
-
-      <!-- 标题 -->
       <div class="title-area">
         <NInput
             v-model:value="localTitle"
@@ -245,8 +253,6 @@ onUnmounted(() => {
             size="small"
         />
       </div>
-
-      <!-- 信息 -->
       <div class="meta-info">
         <span>创建：{{ formatTime(note?.created_at) }}</span>
         <span>修改：{{ formatTime(note?.updated_at) }}</span>
@@ -255,12 +261,27 @@ onUnmounted(() => {
 
       <!-- 按钮 -->
       <div class="actions">
+        <NButton type="error" size="small" @click="handleDelete">
+          删除
+        </NButton>
         <NButton type="primary" size="small" @click="handleSave">
           保存
         </NButton>
       </div>
 
     </div>
+    
+    <!-- 删除确认模态框 -->
+    <CustomModal
+        v-model:show="showDeleteModal"
+        title="删除笔记"
+        :onConfirm="confirmDelete"
+    >
+      <div>
+        <p>确定要删除笔记：<span class="text-orange-600 text-base">{{ localTitle || '无标题笔记' }}</span>？</p>
+        <p class="text-gray-500 text-sm mt-2">删除后不可恢复，请谨慎操作。</p>
+      </div>
+    </CustomModal>
 
   </div>
 </template>
@@ -318,7 +339,7 @@ onUnmounted(() => {
 }
 
 .title-area {
-  width: 260px;
+  width: 200px;
 }
 .meta-info {
   display: flex;

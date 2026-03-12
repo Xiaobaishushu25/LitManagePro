@@ -12,7 +12,6 @@ async function showAndFocusWindow(label: string) {
     }
     return false
 }
-
 export async function openNoteWindow(note: NoteResponseDto) {
     const exists = await showAndFocusWindow("note-workspace")
     if (exists) {
@@ -33,8 +32,7 @@ export async function openNoteWindow(note: NoteResponseDto) {
         visible: false
     })
 
-    webview.once("tauri://created", async () => {
-        console.log("窗口已创建2")
+    await webview.once("tauri://created", async () => {
         await webview.show()
         await webview.setFocus()
         // await emitTo("note-workspace", "open-note", note)
@@ -44,9 +42,7 @@ export async function openNoteWindow(note: NoteResponseDto) {
             unlisten()
         })
     })
-    console.log("窗口已创建3")
-
-    webview.once("tauri://error", (e) => {
+    await webview.once("tauri://error", (e) => {
         console.error("窗口创建失败:", e)
     })
 }

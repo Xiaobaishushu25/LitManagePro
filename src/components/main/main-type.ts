@@ -60,6 +60,7 @@ interface NoteResponseDto {
 }
 interface NoteTab {
     tabId: string
+    docId: number
     noteId: number
     original: NoteResponseDto
     draft: NoteResponseDto

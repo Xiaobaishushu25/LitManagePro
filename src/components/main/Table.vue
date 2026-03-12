@@ -29,6 +29,8 @@ let unlistenDocPathUp: () => void;
 let unlistenParse: () => void;
 let unlisten1: () => void;
 let unlisten2: () => void;
+let unlistenNoteSaved: () => void;
+let unlistenNoteDeleted: () => void;
 
 const selectedRowIndex = ref(-1);
 //会监听docsStore.docs的currentSelectDoc变化自动改变，也会根据多选点击来改变
@@ -54,6 +56,24 @@ const contextOptions = {
   minWidth:300,
 }
 
+// 当前文档的笔记列表
+const currentDocNotes = ref<NoteResponseDto[]>([])
+
+// 刷新当前文档的笔记列表
+async function refreshCurrentDocNotes() {
+  const doc = docsStore.currentSelectDoc;
+  if (doc && doc.id) {
+    try {
+      currentDocNotes.value = await invoke<NoteResponseDto[]>('get_notes_by_document_id', { documentId: doc.id });
+    } catch (e) {
+      console.error('获取笔记失败:', e);
+      currentDocNotes.value = [];
+    }
+  } else {
+    currentDocNotes.value = [];
+  }
+}
+
 // 计算表格最大高度 高度是视口高度减去两个标签栏减去底栏减去自定义的标题栏
 //60px是两个标签栏高度，35px是底栏高度，30px是自定义的标题栏高度，按理说innerHeight是不包含系统那个标题栏的，但是不知道为什么
 //还是要再减30px才行
@@ -74,7 +94,15 @@ onMounted(async ()=>{
   unlisten2 = await listen('复制文件', () => {
     copyToClipboard()
   })
-  // 监听summary_doc事件，其中payload是[id,true]表示开始解析，[id,false]表示解析完成
+  // 监听笔记保存事件
+  unlistenNoteSaved = await listen('note-saved', async () => {
+    await refreshCurrentDocNotes()
+  })
+  // 监听笔记删除事件
+  unlistenNoteDeleted = await listen('note-deleted', async () => {
+    await refreshCurrentDocNotes()
+  })
+  // 监听 summary_doc 事件，其中 payload 是 [id,true] 表示开始解析，[id,false] 表示解析完成
   unlistenParse = await listen('summary_doc', (event: {payload:[number,boolean]}) => {
     if (event.payload[1]){
       parseIngIds.value.push(event.payload[0])
@@ -107,7 +135,7 @@ onMounted(async ()=>{
         { immediate: true, deep: true }
     );
   }
-  //恢复上次使用的tag组
+  //恢复上次使用的 tag 组
   tagStore.setAllAndTags(configStore.config?.ui_config.last_use_tags[0]||[]);
   tagStore.setAllOrTags(configStore.config?.ui_config.last_use_tags[1]||[]);
   window.addEventListener('blur', handleBlur);
@@ -126,6 +154,8 @@ onUnmounted(()=>{
   unlistenDocUp()
   unlistenDocPathUp()
   unlistenParse()
+  unlistenNoteSaved()
+  unlistenNoteDeleted()
   window.removeEventListener('blur', handleBlur);
   window.removeEventListener('resize', handleResize);
   // window.removeEventListener('resize', updateMaxHeight);
@@ -138,11 +168,11 @@ watch([watchAndTags, watchOrTags], (_, _oldValue) => {
     docsStore.setAllDocs(data)
   }).catch(e=>{message.error(e)})
 },{immediate:true,deep:true})
-// 监听currentSelectDoc的变化
+// 监听 currentSelectDoc 的变化
 watch(
     () => docsStore.currentSelectDoc,
     (newVal) => {
-      // 使用唯一标识符比较（假设每个文档有唯一id）
+      // 使用唯一标识符比较（假设每个文档有唯一 id）
       if (docsStore.docs==null||newVal==undefined) return
       if (selectedRows.value.length==0){
         //如果当前选中文档为空，则选中当前文档，其实这个判断有待商榷，好像不用加也可以，因为肯定不能多选的时候上下键切换
@@ -152,6 +182,23 @@ watch(
       selectedRowIndex.value = index >= 0 ? index : -1
     },
     {deep: true, immediate: true}
+)
+// 监听当前选中文档变化，获取笔记列表
+watch(
+    () => docsStore.currentSelectDoc,
+    async (newVal) => {
+      if (newVal && newVal.id) {
+        try {
+          currentDocNotes.value = await invoke<NoteResponseDto[]>('get_notes_by_document_id', { documentId: newVal.id });
+        } catch (e) {
+          console.error('获取笔记失败:', e);
+          currentDocNotes.value = [];
+        }
+      } else {
+        currentDocNotes.value = [];
+      }
+    },
+    { deep: true, immediate: true }
 )
 watch(() => parseIngIds.value, (newValue, _oldValue) => {
   //不知道为什么第一次变化时old和new一样的，所以只能判断有没有解析列了
@@ -396,12 +443,21 @@ async function createNewNote(){
   const noteData: NoteResponseDto = {
     id: -1,
     document_id: docsStore.currentSelectDoc!.id,
-    title: "新建笔记",   // 可选字段示例1：填字符串
+    title: "新建笔记",   // 可选字段示例 1：填字符串
     content: "", // 必填字符串
-    created_at: new Date().toISOString(), // 必填时间字符串（推荐ISO格式）
+    created_at: new Date().toISOString(), // 必填时间字符串（推荐 ISO 格式）
     updated_at: new Date().toISOString(), // 必填时间字符串
   };
   await openNoteWindow(noteData)
+  // 新建笔记后，刷新当前文档的笔记列表
+  await refreshCurrentDocNotes()
+}
+
+// 打开笔记
+async function openNote(note: NoteResponseDto) {
+  await openNoteWindow(note)
+  // 打开笔记后，刷新当前文档的笔记列表（防止删除后还显示）
+  await refreshCurrentDocNotes()
 }
 function openBySystem(){
   if(docsStore.currentSelectDoc===undefined){return}
@@ -538,6 +594,25 @@ const handleDragEnd = () => {
                   ></inline-svg>
                 </template>
               </context-menu-item>
+              <context-menu-sperator />
+              <!-- 笔记列表子菜单 -->
+              <context-menu-group label="笔记列表">
+                <template v-if="currentDocNotes.length === 0">
+                  <context-menu-item label="暂无笔记" disabled />
+                </template>
+                <context-menu-item
+                    v-for="note in currentDocNotes"
+                    :key="note.id"
+                    :label="note.title || '无标题笔记'"
+                    @click="openNote(note)">
+                  <template #icon>
+                    <inline-svg
+                        src="../assets/svg/note.svg"
+                        class="svg-button"
+                    ></inline-svg>
+                  </template>
+                </context-menu-item>
+              </context-menu-group>
               <context-menu-sperator />
               <context-menu-item
                   :label="selectedRows.length === 1 ? '用AI总结' : `用AI总结这${selectedRows.length}条文档`"

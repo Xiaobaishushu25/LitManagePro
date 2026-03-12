@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {WebviewWindow} from "@tauri-apps/api/webviewWindow";
 import {saveWindowState, StateFlags} from "@tauri-apps/plugin-window-state";
-import { ref} from 'vue';
+import { ref, onMounted, onUnmounted} from 'vue';
 
-//这个TitleBar 有最小化、最大化和关闭按钮，给一些工具窗口使用的
+//这个 TitleBar 有最小化、最大化和关闭按钮，给一些工具窗口使用的
 
 // 定义 props，接收来自父组件的标题和配置
 const { title, showMaximize, showMinimize }= defineProps({
@@ -30,6 +30,40 @@ const isMaximized = ref(false);
 async function updateWindowStatus() {
   const currentWindow = WebviewWindow.getCurrent();
   isMaximized.value = await currentWindow.isMaximized();
+}
+
+onMounted(async ()=>{
+  // 初始化窗口状态
+  await updateWindowStatus();
+  
+  // 监听窗口大小变化来改变窗口最大化状态，主要是用于鼠标点击标题栏拖拽时会改变最大化状态的监听
+  window.addEventListener('resize', () => {
+    const isCurrentlyMaximized = isWindowMaximized();
+    if (isCurrentlyMaximized) {
+      isMaximized.value = true;
+    } else if (!isCurrentlyMaximized) {
+      isMaximized.value = false;
+    }
+  });
+})
+
+onUnmounted(()=>{
+  window.removeEventListener('resize', updateWindowStatusOnResize);
+})
+
+// 判断窗口是否处于最大化状态
+function isWindowMaximized() {
+  // 获取窗口的内宽度和屏幕的宽度
+  const innerWidth = window.innerWidth;
+  const screenWidth = window.screen.width;
+  // 获取窗口的外宽度（包括边框）
+  const outerWidth = window.outerWidth;
+  // 如果窗口的外宽度等于屏幕宽度，并且内宽度等于外宽度减去浏览器边框宽度 则认为窗口处于最大化状态
+  return outerWidth === screenWidth && innerWidth === outerWidth;
+}
+
+function updateWindowStatusOnResize() {
+  updateWindowStatus();
 }
 
 async function window_minimize(){

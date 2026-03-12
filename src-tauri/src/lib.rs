@@ -68,7 +68,10 @@ pub async fn run() {
             open_with_exe,
             copy_files_to_clipboard,
             exit_app,
-            create_note
+            create_note,
+            update_note,
+            get_notes_by_document_id,
+            delete_note
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

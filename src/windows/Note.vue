@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue"
-import { useDialog, useMessage } from "naive-ui"
+import { useDialog } from "naive-ui"
 import {emitTo, listen, type UnlistenFn} from "@tauri-apps/api/event"
 import {useNoteTabsStore} from "../stroe/note-tabs.ts";
 import {NoteResponseDto} from "../components/main/main-type.ts";
 import TitleBar from "../components/TitleBar.vue";
 import NoteTabsBar from "../components/note/NoteTabsBar.vue"
 import VditorNote from "../components/note/VditorNote.vue"
+import {invoke} from "@tauri-apps/api/core";
+import {message} from "../message.ts";
 
 
 const dialog = useDialog()
-const message = useMessage()
 const noteTabsStore = useNoteTabsStore()
 
 const tabs = computed(() => noteTabsStore.tabs)
@@ -31,23 +32,43 @@ function handleUpdateContent(value: string) {
   noteTabsStore.updateActiveDraft({ content: value })
 }
 
-async function fakeSaveApi(note: NoteResponseDto): Promise<NoteResponseDto> {
-  await new Promise(resolve => setTimeout(resolve, 300))
-  return {
-    ...note,
-    updated_at: new Date().toISOString()
+async function saveNote(note: NoteResponseDto): Promise<NoteResponseDto> {
+  try {
+    if (note.id === -1) {
+      return await invoke<NoteResponseDto>("create_note", {
+        dto: {
+          document_id: note.document_id,
+          title: note.title,
+          content: note.content
+        }
+      })
+    } else {
+      return await invoke<NoteResponseDto>("update_note", {
+        dto: {
+          id: note.id,
+          document_id: note.document_id,
+          title: note.title,
+          content: note.content
+        }
+      })
+    }
+  } catch (e) {
+    message.error(String(e))
+    throw e
   }
 }
 
 async function handleSaveActiveTab() {
   const tab = noteTabsStore.activeTab
   if (!tab) return
-
   try {
+    const oldNoteId = tab.noteId
     noteTabsStore.markSaving(tab.tabId, true)
-    const saved = await fakeSaveApi(tab.draft)
-    noteTabsStore.replaceNote(saved)
+    const saved = await saveNote(tab.draft)
+    noteTabsStore.replaceNote(oldNoteId, saved)
     message.success("保存成功")
+    // 发送事件通知主窗口刷新笔记列表
+    await emitTo("main", "note-saved", saved)
   } catch (error) {
     console.error(error)
     message.error("保存失败")
@@ -56,10 +77,28 @@ async function handleSaveActiveTab() {
   }
 }
 
+async function handleDeleteActiveTab() {
+  const tab = noteTabsStore.activeTab
+  if (!tab) return
+  try {
+    // 如果是已存在的笔记（id !== -1），则调用后端删除
+    if (tab.noteId !== -1) {
+      await invoke('delete_note', { id: tab.noteId })
+      // 发送事件通知主窗口刷新笔记列表（传递 document_id）
+      await emitTo("main", "note-deleted", { document_id: tab.draft.document_id })
+    }
+    // 关闭标签页
+    noteTabsStore.closeTab(tab.tabId)
+    message.success("删除成功")
+  } catch (error) {
+    console.error(error)
+    message.error("删除失败")
+  }
+}
+
 function handleCloseTab(tabId: string) {
   const tab = noteTabsStore.tabs.find(item => item.tabId === tabId)
   if (!tab) return
-
   if (!tab.dirty) {
     noteTabsStore.closeTab(tabId)
     return
@@ -73,8 +112,9 @@ function handleCloseTab(tabId: string) {
     onPositiveClick: async () => {
       try {
         noteTabsStore.markSaving(tab.tabId, true)
-        const saved = await fakeSaveApi(tab.draft)
-        noteTabsStore.replaceNote(saved)
+        const oldNoteId = tab.noteId
+        const saved = await saveNote(tab.draft)
+        noteTabsStore.replaceNote(oldNoteId, saved)
         noteTabsStore.closeTab(tabId)
         message.success("已保存并关闭")
       } catch (error) {
@@ -122,6 +162,7 @@ onUnmounted(() => {
           @update:title="handleUpdateTitle"
           @update:content="handleUpdateContent"
           @save="handleSaveActiveTab"
+          @delete="handleDeleteActiveTab"
       />
 
       <div v-else class="empty-state">

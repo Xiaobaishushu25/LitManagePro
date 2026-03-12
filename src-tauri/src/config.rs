@@ -96,10 +96,12 @@ pub struct UiConfig {
     tag_group_state: HashMap<i32, bool>,
     //保存的快捷tag组
     save_tag_groups: Vec<Vec<i32>>,
-    //最近使用的tag组，第一个是上栏的，第二个是下栏的
+    //最近使用的 tag 组，第一个是上栏的，第二个是下栏的
     last_use_tags: [Vec<i32>; 2],
-    //表格是否展开总结行(在有总结的情况时)
+    //表格是否展开总结行 (在有总结的情况时)
     table_expand: bool,
+    //最近打开的笔记 ID 列表
+    last_opened_notes: Vec<i32>,
 }
 impl Default for UiConfig {
     fn default() -> Self {
@@ -109,6 +111,7 @@ impl Default for UiConfig {
             save_tag_groups: vec![],
             last_use_tags: [vec![], vec![]],
             table_expand: true,
+            last_opened_notes: vec![],
         }
     }
 }
@@ -208,6 +211,19 @@ impl ShortcutNode{
                     ShortcutNode::Item {
                         name: "拖拽上传".to_string(),
                         shortcut: "Ctrl+Shift+I".to_string(),
+                    },
+                    ShortcutNode::Item {
+                        name: "打开笔记列表".to_string(),
+                        shortcut: "Ctrl+L".to_string(),
+                    },
+                ]
+            },
+            ShortcutNode::Group {
+                name: "笔记编辑".to_string(),
+                children: vec![
+                    ShortcutNode::Item {
+                        name: "保存笔记".to_string(),
+                        shortcut: "Ctrl+S".to_string(),
                     },
                 ]
             },

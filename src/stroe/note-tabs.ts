@@ -162,10 +162,12 @@ export const useNoteTabsStore = defineStore("note-tabs", () => {
     const openedNoteIds = computed<number[]>(() =>
         tabs.value.map(tab => tab.noteId)
     )
-    const openNote = (note: NoteResponseDto) => {
+    const openNote = (note: NoteResponseDto, options?: { setActive?: boolean }) => {
         const existing = tabs.value.find(tab => tab.noteId === note.id &&tab.docId===note.document_id)
         if (existing) {
-            activeTabId.value = existing.tabId
+            if (options?.setActive !== false) {
+                activeTabId.value = existing.tabId
+            }
             return existing
         }
         const tab: NoteTab = {
@@ -180,10 +182,14 @@ export const useNoteTabsStore = defineStore("note-tabs", () => {
             closable: true
         }
         tabs.value.push(tab)
-        activeTabId.value = tab.tabId
+        // 只有当 options.setActive 不为 false 时，才设置为激活
+        if (options?.setActive !== false) {
+            activeTabId.value = tab.tabId
+        }
         return tab
     }
     const openNotes = (notes: NoteResponseDto[]) => {
+        // @ts-ignore
         notes.forEach(openNote)
     }
     const setActiveTab = (tabId: string) => {

@@ -97,9 +97,16 @@ function handleClose(tabId: string, e: MouseEvent) {
   background: #e5e7eb;
 }
 
+.tab-item.active:hover {
+  background: linear-gradient(135deg, #5b6fd6 0%, #6a4190 100%);
+}
+
 .tab-item.active {
-  background: #ffffff;
-  border-color: #d1d5db;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  font-weight: 600;
 }
 
 .tab-main {

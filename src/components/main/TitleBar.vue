@@ -34,6 +34,9 @@ onMounted(async ()=>{
   unlisten3 = await listen('拖拽上传', async (_event) => {
     await openDragImport()
   })
+  const unlisten4 = await listen('打开笔记列表', async (_event) => {
+    await open_note_list()
+  })
   //这个作用是监听窗口大小变化来改变窗口最大化状态，主要是用于鼠标点击标题栏拖拽时会改变最大化状态的监听。
   window.addEventListener('resize', () => {
     const isCurrentlyMaximized = isWindowMaximized();
@@ -136,6 +139,17 @@ const options = computed(() => [
       }
     }
   },
+  {
+    label: '打开笔记列表',
+    key: 'openNoteList',
+    shortKey: configStore.getShortcutByName("打开笔记列表"),
+    iconPath: '../assets/svg/note.svg',
+    props: {
+      onClick: () => {
+        open_note_list();
+      }
+    }
+  },
 ]);
 const renderLabel = (option:{ label: string, value: string,shortKey:string, iconPath: string}) => {
   return h('div', { class: 'flex items-center w-52' }, [
@@ -218,31 +232,6 @@ async function openDragImport(visible:boolean=true) {
     console.error(e);
   });
 }
-
-async function openNewWindow(){
-  let flag = await showAndFocusWindow('newWindow')
-  if (flag) return
-  const webview = new WebviewWindow('newWindow', {
-    url: '/#/newWindow',
-    center: true,
-    title: '新窗口',
-    width: 800,
-    height: 600,
-    minWidth: 400,
-    minHeight: 300,
-    decorations: false,
-    resizable: true,
-    dragDropEnabled: false,
-    visible: false,
-  });
-  await webview.once('tauri://created', async function () {
-    await webview.show()
-  });
-  await webview.once('tauri://error', function (e) {
-    console.error(e);
-  });
-}
-
 async function showAndFocusWindow(label:string){
   const window = await WebviewWindow.getByLabel(label);
   if (window!=null) {
@@ -253,9 +242,32 @@ async function showAndFocusWindow(label:string){
   }
   return false
 }
+
+async function open_note_list(){
+  let flag = await showAndFocusWindow('note-list')
+  if (flag) return
+  const webview = new WebviewWindow('note-list', {
+    url: '/#/note-list',
+    center: true,
+    title: '笔记列表',
+    width: 800,
+    height: 600,
+    minWidth: 500,
+    minHeight: 400,
+    decorations: false,
+    resizable: true,
+    dragDropEnabled: false,
+    visible: false,
+  });
+  await webview.once('tauri://created', async function () {
+    await webview.show()
+    await webview.setFocus()
+  });
+  await webview.once('tauri://error', function (e) {
+    console.error(e);
+  });
+}
 //---------------------------------------------下拉菜单相关结束--------------------------------------------------------------
-
-
 
 </script>
 

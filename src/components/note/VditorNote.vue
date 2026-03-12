@@ -4,8 +4,10 @@ import Vditor from "vditor"
 import "vditor/dist/index.css"
 import "katex/dist/katex.min.css"
 import { NButton, NInput } from "naive-ui"
-import {NoteResponseDto} from "../main/main-type.ts";
-import CustomModal from "../../util/CustomModal.vue";
+import {NoteResponseDto} from "../main/main-type.ts"
+import CustomModal from "../../util/CustomModal.vue"
+import { invoke } from "@tauri-apps/api/core"
+import { message } from "../../message"
 
 const props = defineProps<{
   note: NoteResponseDto | null
@@ -82,6 +84,19 @@ function handleSave() {
 }
 function handleDelete() {
   showDeleteModal.value = true
+}
+function handleOpenDocument() {
+  if (!props.note?.document_id) {
+    message.error("笔记未关联文档")
+    return
+  }
+  invoke('open_note_document', { documentId: props.note.document_id })
+    .then(() => {
+      message.success("已打开文档")
+    })
+    .catch((err) => {
+      message.error(err)
+    })
 }
 
 function confirmDelete() {
@@ -261,6 +276,9 @@ onUnmounted(() => {
 
       <!-- 按钮 -->
       <div class="actions">
+        <NButton type="info" size="small" @click="handleOpenDocument">
+          打开文档
+        </NButton>
         <NButton type="error" size="small" @click="handleDelete">
           删除
         </NButton>

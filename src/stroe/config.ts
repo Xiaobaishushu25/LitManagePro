@@ -84,10 +84,21 @@ const useConfigStore = defineStore('config', ()=>{
     function addSaveTags(ids:number[]){
         config.value?.ui_config.save_tag_groups.push(ids)
     }
-    // 保存最后使用的tags,必须在应用关闭时调用！！
+    // 保存最后使用的 tags，必须在应用关闭时调用！！
     function saveLastUseTags(){
         config.value!.ui_config.last_use_tags[0] = tagStore.andTags.map(tag=>tag.id)
         config.value!.ui_config.last_use_tags[1] = tagStore.orTags.map(tag=>tag.id)
+    }
+    // 保存最后打开的笔记，必须在应用关闭时调用！！
+    function saveLastOpenedNotes(noteIds: number[]){
+        console.log("保存最后打开的笔记",noteIds)
+        if (config.value) {
+            config.value.ui_config.last_opened_notes = noteIds;
+        }
+    }
+    // 获取最后打开的笔记
+    function getLastOpenedNotes(): number[] {
+        return config.value?.ui_config.last_opened_notes || [];
     }
     function removeSaveTags(id_sum:number){
         // 找到和为 id_sum 的元素的索引
@@ -130,6 +141,8 @@ const useConfigStore = defineStore('config', ()=>{
         save_tags,
         shortcuts,
         saveLastUseTags,
+        saveLastOpenedNotes,
+        getLastOpenedNotes,
         addSaveTags,
         removeSaveTags,
         getTagGroupState,

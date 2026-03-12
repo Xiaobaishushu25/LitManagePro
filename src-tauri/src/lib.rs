@@ -4,7 +4,7 @@ use crate::services::commands::doc::{
     delete_docs, insert_docs, open_by_app, open_by_system, open_dir, open_with_exe,
     query_docs_by_tags, summarize_docs_by_ai, suggest_tag_by_ai, update_doc_detail,copy_files_to_clipboard,
 };
-use crate::services::commands::note::{create_note, delete_note, get_note_by_id, get_notes_by_document_id, update_note};
+use crate::services::commands::note::{create_note, delete_note, get_note_by_id, get_notes_by_document_id, update_note, open_note_document, get_all_notes};
 use crate::services::commands::tag::{
     create_tag, create_tag_group, delete_doc_tag, delete_group, delete_tag, insert_doc_tag,
     query_tag_groups, rename_tag_group, reindex_tag_group, update_doc_tags,
@@ -71,7 +71,10 @@ pub async fn run() {
             create_note,
             update_note,
             get_notes_by_document_id,
-            delete_note
+            get_note_by_id,
+            delete_note,
+            open_note_document,
+            get_all_notes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

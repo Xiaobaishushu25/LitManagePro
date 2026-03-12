@@ -7,6 +7,7 @@ import Main from "./windows/Main.vue";
 import Setting from "./windows/Setting.vue";
 import DragImport from "./windows/DragImport.vue";
 import Note from "./windows/Note.vue";
+import NoteList from "./windows/NoteList.vue";
 
 
 const routes: Array<RouteRecordRaw> = [
@@ -30,6 +31,10 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/note',
         component: Note,
+    },
+    {
+        path: '/note-list',
+        component: NoteList,
     },
 ]
 

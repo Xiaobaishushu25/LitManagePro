@@ -1,10 +1,12 @@
 interface UiConfig {
     split_size:number[],
-    // tag组是否打开，key为tag_group_name，value为boolean
+    // tag 组是否打开，key 为 tag_group_name，value 为 boolean
     tag_group_state: { [key: number]: boolean };
     save_tag_groups: number[][];
     last_use_tags:[number[], number[]];
     table_expand:boolean,
+    // 最近打开的笔记 ID 列表
+    last_opened_notes: number[];
 }
 interface AppConfig {
     auto_start:boolean,

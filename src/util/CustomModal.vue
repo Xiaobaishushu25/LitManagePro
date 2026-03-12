@@ -13,21 +13,27 @@
 ///     <n-input v-model:value="inputValue" :placeholder="placeholder" ref="inputRef" />
 ///   </div>
 /// </CustomModal>
-const props = defineProps({
-  show: {
-    type: Boolean,
-    required: true
-  },
-  title: {
-    type: String,
-    required: true
-  },
-  onConfirm: {
-    type: Function,
-    required: true
-  },
-});
+// const props = defineProps({
+//   show: {
+//     type: Boolean,
+//     required: true
+//   },
+//   title: {
+//     type: String,
+//     required: true
+//   },
+//   onConfirm: {
+//     type: Function,
+//     required: true
+//   },
+// });
+interface Props {
+  show: boolean
+  title: string
+  onConfirm?: () => void
+}
 
+const props = defineProps<Props>()
 const emit = defineEmits(['update:show']);
 
 const closeModal = () => {
@@ -35,7 +41,7 @@ const closeModal = () => {
 };
 
 const confirmAction = () => {
-  props.onConfirm();
+  props.onConfirm?.()
   closeModal();
 };
 

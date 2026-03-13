@@ -1,15 +1,39 @@
-# 天书 - 轻量级文献管理软件
+
+
+[//]: # (<p align="center">)
+
+[//]: # ()
+[//]: # (![Stars]&#40;https://img.shields.io/github/stars/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
+
+[//]: # (![Forks]&#40;https://img.shields.io/github/forks/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
+
+[//]: # (![License]&#40;https://img.shields.io/github/license/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
+
+[//]: # (![Repo Size]&#40;https://img.shields.io/github/repo-size/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
+
+[//]: # (![Last Commit]&#40;https://img.shields.io/github/last-commit/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
+
+[//]: # (![Platform]&#40;https://img.shields.io/badge/platform-Windows%20%7C%20Mac%20%7C%20Linux-blue&#41;)
+
+[//]: # (![Release]&#40;https://img.shields.io/github/v/release/Xiaobaishushu25/LitManagePro&#41;)
+
+[//]: # (</p>)
+
+
+<h1 align="center">天书-LitManagePro</h1>
+<p align="center">极简科研文献管理工具，面向研究生与科研工作者</p>
+<p align="center">
+  <img src="https://img.shields.io/github/stars/Xiaobaishushu25/LitManagePro?style=for-the-badge" />
+  <img src="https://img.shields.io/github/forks/Xiaobaishushu25/LitManagePro?style=for-the-badge" />
+  <img src="https://img.shields.io/github/v/release/Xiaobaishushu25/LitManagePro?style=for-the-badge" />
+</p>
 
 <p align="center">
-
-![Stars](https://img.shields.io/github/stars/Xiaobaishushu25/LitManagePro?style=flat-square)
-![Forks](https://img.shields.io/github/forks/Xiaobaishushu25/LitManagePro?style=flat-square)
-![License](https://img.shields.io/github/license/Xiaobaishushu25/LitManagePro?style=flat-square)
-![Repo Size](https://img.shields.io/github/repo-size/Xiaobaishushu25/LitManagePro?style=flat-square)
-![Last Commit](https://img.shields.io/github/last-commit/Xiaobaishushu25/LitManagePro?style=flat-square)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Mac%20%7C%20Linux-blue)
-![Release](https://img.shields.io/github/v/release/Xiaobaishushu25/LitManagePro)
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-4E7FFF?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/type-Literature%20Manager-7B61FF?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/status-Active-2EA44F?style=for-the-badge" />
 </p>
+
 ## 项目简介
 
 天书是一款专为研究生和博士生等科研人员设计的轻量级文献管理软件。它摒弃了传统的文件夹分类方式，采用灵活的标签管理系统，让文献整理变得更加高效和直观。无论你是整理学术论文、研究报告还是阅读笔记，LiteLit 都能助你一臂之力。

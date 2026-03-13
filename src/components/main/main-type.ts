@@ -28,6 +28,7 @@ interface Document {
     contributions?: string | null;
     remark?: string | null;
     path: string;
+    created_at: string;
 }
 interface DocumentTags extends Document {
     tags: Tag[];

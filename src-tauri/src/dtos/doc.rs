@@ -5,9 +5,10 @@ use crate::entities::prelude::{Document, Documents, Tag};
 use crate::services::curd::document::DocumentCurd;
 use crate::services::curd::tag::TagCurd;
 use sea_orm::{EntityTrait, ModelTrait};
+use sea_orm::prelude::DateTimeUtc;
 use serde::{Deserialize, Serialize};
 
-/// 文档和及其对应的标签的组合，注意，这个s并不是DocumentTag的复数，而是一个Document和多个Tag的意思
+/// 文档和及其对应的标签的组合，注意，这个 s 并不是 DocumentTag 的复数，而是一个 Document 和多个 Tag 的意思
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentTags {
     pub index: i32,
@@ -21,6 +22,7 @@ pub struct DocumentTags {
     pub contributions: Option<String>,
     pub remark: Option<String>,
     pub path: String,
+    pub created_at: DateTimeUtc,
     pub tags: Vec<Tag>,
 }
 
@@ -62,6 +64,7 @@ impl DocumentTags {
             contributions: document.contributions,
             remark: document.remark,
             path: document.path,
+            created_at: document.created_at,
             tags,
         }
     }
@@ -112,6 +115,7 @@ impl DocumentTags {
             contributions: document.contributions,
             remark: document.remark,
             path: document.path,
+            created_at: document.created_at,
             tags: tags1,
         }
     }

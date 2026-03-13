@@ -32,7 +32,6 @@ declare module 'vue' {
     NListItem: typeof import('naive-ui')['NListItem']
     NMessageProvider: typeof import('naive-ui')['NMessageProvider']
     NModal: typeof import('naive-ui')['NModal']
-    NoteList: typeof import('./src/components/note/NoteList.vue')['default']
     NoteTabsBar: typeof import('./src/components/note/NoteTabsBar.vue')['default']
     NoteTitleBar: typeof import('./src/components/note/NoteTitleBar.vue')['default']
     NProgress: typeof import('naive-ui')['NProgress']

@@ -113,6 +113,23 @@ const yearEdit = ref()
 const journalEdit = ref()
 const remarkEdit = ref()
 const contributionsEdit = ref()
+
+// 格式化时间为本地时间：2026-03-13 15:30:00
+function formatLocalTime(isoString: string): string {
+  if (!isoString) return ''
+  try {
+    const date = new Date(isoString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  } catch (e) {
+    return isoString
+  }
+}
 watch(() => docsStore.currentSelectDoc, () => {
   remarkEdit.value = docsStore.currentSelectDoc?.remark
   titleEdit.value = docsStore.currentSelectDoc?.title
@@ -138,7 +155,8 @@ function updateDoc(){
     abstract: abstractEdit.value,
     remark: remarkEdit.value,
     contributions: contributionsEdit.value,
-    path: docsStore.currentSelectDoc?.path
+    path: docsStore.currentSelectDoc?.path,
+    created_at: docsStore.currentSelectDoc?.created_at,
   }
   invoke('update_doc_detail', {doc:newDoc})
       .then(_ => {
@@ -208,6 +226,10 @@ function updateDoc(){
                 :on-save="updateDoc"
                 content-class="font-bold"
             />
+          </div>
+          <div class="text-right text-sm whitespace-nowrap">创建时间:</div>
+          <div class="text-left text-base text-gray-600">
+            {{ formatLocalTime(docsStore.currentSelectDoc?.created_at || '') }}
           </div>
         </div>
       </n-card>

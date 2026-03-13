@@ -1,5 +1,6 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use sea_orm::sqlx::types::chrono::Utc;
 
 #[derive(Clone, Debug, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "document")]
@@ -16,6 +17,7 @@ pub struct Model {
     pub contributions: Option<String>,
     pub remark: Option<String>,
     pub path: String,
+    pub created_at: DateTimeUtc,
 }
 impl Model {
     pub fn new(file_name: String, path: String) -> Self {
@@ -31,6 +33,7 @@ impl Model {
             contributions: None,
             remark: None,
             path,
+            created_at: Utc::now(),
         }
     }
 }

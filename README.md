@@ -1,9 +1,15 @@
 # 天书 - 轻量级文献管理软件
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/yourusername/litelit/Rust%20CI)
-![GitHub License](https://img.shields.io/github/license/yourusername/litelit)
-![GitHub Repo Size](https://img.shields.io/github/repo-size/yourusername/litelit)
+<p align="center">
 
+![Stars](https://img.shields.io/github/stars/Xiaobaishushu25/LitManagePro?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Xiaobaishushu25/LitManagePro?style=flat-square)
+![License](https://img.shields.io/github/license/Xiaobaishushu25/LitManagePro?style=flat-square)
+![Repo Size](https://img.shields.io/github/repo-size/Xiaobaishushu25/LitManagePro?style=flat-square)
+![Last Commit](https://img.shields.io/github/last-commit/Xiaobaishushu25/LitManagePro?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Mac%20%7C%20Linux-blue)
+![Release](https://img.shields.io/github/v/release/Xiaobaishushu25/LitManagePro)
+</p>
 ## 项目简介
 
 天书是一款专为研究生和博士生等科研人员设计的轻量级文献管理软件。它摒弃了传统的文件夹分类方式，采用灵活的标签管理系统，让文献整理变得更加高效和直观。无论你是整理学术论文、研究报告还是阅读笔记，LiteLit 都能助你一臂之力。
@@ -15,10 +21,12 @@
 - **快捷标签组**：自定义标签组合，一键保存，快速筛选，提高文献管理效率。
 - **AI 摘要生成**：集成 AI 模块，自动总结文献核心内容，快速了解文献主旨。
 - **核心信息提取**：自动提取文献的关键信息，包括作者、刊物、时间等，无需手动输入。
+- **强大的笔记功能**：所见、所得，一键保存笔记，轻松记录笔记，支持导出为 PDF和Markdown。
 
 ## 软件截图
 1. 主界面：![img.png](readme-img/img.png)
 2. 设置：![img.png](readme-img/img2.png)
+3. 笔记：![img.png](readme-img/img3.png)
 
 ## 技术栈
 

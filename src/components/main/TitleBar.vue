@@ -278,7 +278,7 @@ async function open_note_list(){
       <template #trigger>
         <img src="../../assets/icon/app.ico" class="w-4 h-4" alt="ICO Icon">
       </template>
-      v2.0.1
+      v3.0.2
     </n-tooltip>
     <label class="pl-1">天书</label>
     <div class="pl-5">

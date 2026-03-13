@@ -106,6 +106,7 @@ function confirmDelete() {
 onMounted(async () => {
   await nextTick()
   vditor.value = new Vditor(editorRef.value!, {
+    cdn: '/vditor',
     height: "100%",
     minHeight: 500,
     mode: "ir",

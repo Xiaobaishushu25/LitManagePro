@@ -1,25 +1,4 @@
 
-
-[//]: # (<p align="center">)
-
-[//]: # ()
-[//]: # (![Stars]&#40;https://img.shields.io/github/stars/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
-
-[//]: # (![Forks]&#40;https://img.shields.io/github/forks/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
-
-[//]: # (![License]&#40;https://img.shields.io/github/license/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
-
-[//]: # (![Repo Size]&#40;https://img.shields.io/github/repo-size/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
-
-[//]: # (![Last Commit]&#40;https://img.shields.io/github/last-commit/Xiaobaishushu25/LitManagePro?style=flat-square&#41;)
-
-[//]: # (![Platform]&#40;https://img.shields.io/badge/platform-Windows%20%7C%20Mac%20%7C%20Linux-blue&#41;)
-
-[//]: # (![Release]&#40;https://img.shields.io/github/v/release/Xiaobaishushu25/LitManagePro&#41;)
-
-[//]: # (</p>)
-
-
 <h1 align="center">天书-LitManagePro</h1>
 <p align="center">极简科研文献管理工具，面向研究生与科研工作者</p>
 <p align="center">

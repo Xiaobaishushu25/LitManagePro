@@ -2,9 +2,9 @@
 <h1 align="center">天书-LitManagePro</h1>
 <p align="center">极简科研文献管理工具，面向研究生与科研工作者</p>
 <p align="center">
-  <img src="https://img.shields.io/github/stars/Xiaobaishushu25/LitManagePro?style=for-the-badge" />
-  <img src="https://img.shields.io/github/forks/Xiaobaishushu25/LitManagePro?style=for-the-badge" />
-  <img src="https://img.shields.io/github/v/release/Xiaobaishushu25/LitManagePro?style=for-the-badge" />
+  <img src="https://img.shields.io/github/stars/Xiaobaishushu25/LitManagePro?style=for-the-badge&v=1" />
+  <img src="https://img.shields.io/github/forks/Xiaobaishushu25/LitManagePro?style=for-the-badge&v=1" />
+  <img src="https://img.shields.io/github/v/release/Xiaobaishushu25/LitManagePro?style=for-the-badge&v=1" />
 </p>
 
 <p align="center">

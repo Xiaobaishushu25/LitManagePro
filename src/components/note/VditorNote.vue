@@ -64,12 +64,10 @@ function syncEditorFromProps(note: NoteResponseDto | null) {
 
 function insertMath() {
   if (!vditor.value || mathInsertLock) return
-
   mathInsertLock = true
   setTimeout(() => {
     mathInsertLock = false
   }, 120)
-
   const selected = vditor.value.getSelection()
   if (selected && selected.trim()) {
     vditor.value.deleteValue()
@@ -106,7 +104,7 @@ function confirmDelete() {
 onMounted(async () => {
   await nextTick()
   vditor.value = new Vditor(editorRef.value!, {
-    cdn: '/vditor',
+    cdn: '/vditor',// 使用本地资源（把node_modules中vditor的dist复制到本地保存），不然dev模式下没问题，但是打包后编辑器找不到资源
     height: "100%",
     minHeight: 500,
     mode: "ir",
@@ -128,9 +126,9 @@ onMounted(async () => {
       math: {
         engine: "KaTeX"
       },
-      mermaid: {
-        enable: true
-      }
+      // mermaid: {
+      //   enable: true
+      // }
     },
     toolbarConfig: {
       pin: true,
@@ -289,7 +287,7 @@ onUnmounted(() => {
       </div>
 
     </div>
-    
+
     <!-- 删除确认模态框 -->
     <CustomModal
         v-model:show="showDeleteModal"

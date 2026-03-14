@@ -49,7 +49,7 @@ async function updateWindowStatus() {
 onMounted(async ()=>{
   // 初始化窗口状态
   await updateWindowStatus();
-  
+
   // 监听窗口大小变化来改变窗口最大化状态，主要是用于鼠标点击标题栏拖拽时会改变最大化状态的监听
   window.addEventListener('resize', () => {
     const isCurrentlyMaximized = isWindowMaximized();
@@ -126,10 +126,6 @@ async function confirmCloseWithoutSave(){
   await performClose();
 }
 
-// 取消关闭
-function cancelClose(){
-  showCloseConfirm.value = false;
-}
 </script>
 
 
@@ -163,26 +159,13 @@ function cancelClose(){
   </div>
 
   <!-- 关闭确认弹窗 -->
+  <!-- 关闭确认弹窗 -->
   <CustomModal
       v-model:show="showCloseConfirm"
       title="提示"
+      :onConfirm="confirmCloseWithoutSave"
   >
     <div>当前有未保存的笔记，确定要直接关闭吗？未保存的内容将会丢失。</div>
-    <template #action>
-      <n-flex justify="end">
-        <n-button size="small" @click="cancelClose">
-          取消
-        </n-button>
-        <n-button
-            size="small"
-            type="error"
-            class="text-black"
-            @click="confirmCloseWithoutSave"
-        >
-          直接关闭
-        </n-button>
-      </n-flex>
-    </template>
   </CustomModal>
 </template>
 

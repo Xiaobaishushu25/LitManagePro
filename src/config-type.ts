@@ -7,6 +7,8 @@ interface UiConfig {
     table_expand:boolean,
     // 最近打开的笔记 ID 列表
     last_opened_notes: number[];
+    // 编辑器模式："ir" (即时渲染), "wysiwyg" (所见即所得), "sv" (分屏)
+    editor_mode: "ir" | "wysiwyg" | "sv";
 }
 interface AppConfig {
     auto_start:boolean,

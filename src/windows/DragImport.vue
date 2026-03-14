@@ -21,7 +21,7 @@ onMounted(async ()=>{
     console.log("关闭上传窗口")
     close = true
   })
-  let window =getCurrentWindow();
+  let window = getCurrentWindow();
   unlistenEnter = await listen("drag-enter", async (event: any) => {
     const { x, y } = event.payload;
     // 偏移，避免挡住鼠标

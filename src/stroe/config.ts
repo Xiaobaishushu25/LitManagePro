@@ -35,7 +35,7 @@ const useConfigStore = defineStore('config', ()=>{
         },
         { deep: true }
     );
-    //注意，由于这个store是多个页面共享的，每个页面都会监听到变化，要注意多次触发的问题
+    //注意，由于这个store是多个页面共享的，每个页面都会监听到变化，要注意多次触发的问题，其实还是有多次触发的问题
     watch(() => config.value, (newConfig, oldConfig) => {
         //每个页面都会监听到变化，所以防止多次触发
         if (JSON.stringify(newConfig)==JSON.stringify(oldConfig))return
@@ -67,9 +67,15 @@ const useConfigStore = defineStore('config', ()=>{
     });
 
     // 监听 tagGroupStates 的变化并更新 config
-    watch(tagGroupStates, (newStates, _oldStates) => {
+    // watch(tagGroupStates, (newStates, _oldStates) => {
+    //     if (config.value?.ui_config) {
+    //         config.value.ui_config.tag_group_state = newStates;
+    //     }
+    // }, { deep: true });
+    //v3.0.2 gpt建议优化：reactive 对象引用相同 可能导致循环触发 不知道对不对先改了
+    watch(tagGroupStates, (newStates) => {
         if (config.value?.ui_config) {
-            config.value.ui_config.tag_group_state = newStates;
+            config.value.ui_config.tag_group_state = { ...newStates };
         }
     }, { deep: true });
 

@@ -105,6 +105,7 @@ async function window_close(){
       }
     }
     await appWindow.close()
+    await invoke('exit_app', {})
   }
 }
 

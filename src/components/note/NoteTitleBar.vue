@@ -127,16 +127,8 @@ const currentWindow = WebviewWindow.getCurrent();
 
 let unlistenClose: (() => void) | null = null;
 
-
-/* ---------------- window state ---------------- */
-
 const isMaximized = ref(false);
-
-/* ---------------- modal state ---------------- */
-
 const showCloseConfirm = ref(false);
-
-/* ---------------- computed ---------------- */
 
 const hasUnsavedNotes = computed(() => {
   return noteTabsStore.tabs.some(tab => tab.dirty);

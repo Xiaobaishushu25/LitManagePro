@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import Appearance from "../components/setting/Appearance.vue";
-import useConfigStore from "../stroe/config.ts";
 import TitleBar from "../components/TitleBar.vue";
 import Keymap from "../components/setting/Keymap.vue";
 
-const configStore = useConfigStore()
 
 </script>
 

@@ -102,6 +102,8 @@ pub struct UiConfig {
     table_expand: bool,
     //最近打开的笔记 ID 列表
     last_opened_notes: Vec<i32>,
+    //编辑器模式："ir" (即时渲染), "wysiwyg" (所见即所得), "sv" (分屏)
+    editor_mode: String,
 }
 impl Default for UiConfig {
     fn default() -> Self {
@@ -112,6 +114,7 @@ impl Default for UiConfig {
             last_use_tags: [vec![], vec![]],
             table_expand: true,
             last_opened_notes: vec![],
+            editor_mode: "ir".to_string(),
         }
     }
 }

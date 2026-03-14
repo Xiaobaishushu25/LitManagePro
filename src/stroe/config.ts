@@ -35,6 +35,7 @@ const useConfigStore = defineStore('config', ()=>{
         },
         { deep: true }
     );
+    //todo 解决重复触发的问题
     //注意，由于这个store是多个页面共享的，每个页面都会监听到变化，要注意多次触发的问题，其实还是有多次触发的问题
     watch(() => config.value, (newConfig, oldConfig) => {
         //每个页面都会监听到变化，所以防止多次触发

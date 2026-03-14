@@ -1,25 +1,117 @@
 <script setup lang="ts">
-import {WebviewWindow} from "@tauri-apps/api/webviewWindow";
-import {saveWindowState, StateFlags} from "@tauri-apps/plugin-window-state";
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+/**
+ * ------------------------------------------------------------
+ * TitleBar Window Control & Safe Close Logic
+ * ------------------------------------------------------------
+ * 该组件负责：
+ * 1. 自定义窗口 TitleBar（最小化 / 最大化 / 关闭）
+ * 2. 保存窗口状态（位置、大小等）
+ * 3. 保存最后打开的笔记
+ * 4. 拦截所有窗口关闭行为，防止未保存内容丢失
+ * ------------------------------------------------------------
+ * 关闭拦截机制
+ * ------------------------------------------------------------
+ *
+ * Tauri 中所有关闭操作都会触发 `onCloseRequested` 事件，例如：
+ * - 点击系统关闭按钮
+ * - Alt + F4
+ * - Dock / 任务栏关闭
+ * - 调用 `window.close()`
+ *
+ * 因此我们统一在 `onCloseRequested` 中进行拦截。
+ * 关闭流程如下：
+ * 用户关闭窗口
+ *        │
+ *        ▼
+ * onCloseRequested 触发
+ *        │
+ *        ├── 如果 forceClose = true
+ *        │      说明是程序主动关闭 → 允许关闭
+ *        │
+ *        └── 如果存在未保存笔记
+ *               │
+ *               ├─ event.preventDefault() 阻止关闭
+ *               ├─ bringWindowToFront()
+ *               │      (防止窗口最小化或在后台)
+ *               └─ 显示确认弹窗
+ *
+ * 用户点击确认关闭
+ *        │
+ *        ▼
+ * confirmCloseWithoutSave()
+ *        │
+ *        ├─ forceClose = true
+ *        ├─ 保存窗口状态
+ *        ├─ 保存最后打开笔记
+ *        └─ currentWindow.close()
+ *
+ * 再次触发 onCloseRequested
+ *        │
+ *        ▼
+ * 因为 forceClose = true
+ *        │
+ *        ▼
+ * 允许窗口真正关闭
+ * ------------------------------------------------------------
+ * forceClose 作用
+ * ------------------------------------------------------------
+ * 用于区分：
+ * - 用户触发关闭（需要拦截）
+ * - 程序主动关闭（允许关闭）
+ *
+ * 因为 `currentWindow.close()` 也会再次触发 `onCloseRequested`，
+ * 如果没有 forceClose 标志，会导致无限拦截循环。
+ * ------------------------------------------------------------
+ * bringWindowToFront()
+ * ------------------------------------------------------------
+ * 当用户从系统层关闭窗口时（例如 Alt+F4 / 任务栏关闭）：
+ * 如果窗口当前：
+ * - 被最小化
+ * - 在后台
+ *
+ * 用户可能看不到弹窗。
+ * 因此需要：
+ * - unminimize()
+ * - show()
+ * - setFocus()
+ * 强制将窗口恢复并置于前台。
+ * ------------------------------------------------------------
+ * 保存数据
+ * ------------------------------------------------------------
+ * 在真正关闭窗口前执行：
+ * 1. saveOpenedNotes()
+ *    保存当前打开的笔记 ID
+ * 2. saveWindowState(StateFlags.ALL)
+ *    保存窗口位置、大小、最大化状态
+ * 这样下次启动可以恢复用户工作环境。
+ *
+ * ------------------------------------------------------------
+ * 维护提示
+ * ------------------------------------------------------------
+ * 如果未来修改关闭逻辑，需要注意：
+ * 1. 不要移除 forceClose 机制
+ *    否则会导致 close 事件死循环
+ * 2. 所有关闭路径必须统一走 closeWindow()
+ * 3. 如果增加自动保存逻辑，需要在 closeWindow() 之前执行
+ *
+ * ------------------------------------------------------------
+ */
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { saveWindowState, StateFlags } from "@tauri-apps/plugin-window-state";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useNoteTabsStore } from "../../stroe/note-tabs";
+import useConfigStore from "../../stroe/config";
 import CustomModal from "../../util/CustomModal.vue";
-import useConfigStore from "../../stroe/config.ts";
 
-// 这个 TitleBar 是笔记窗口专用的，关闭时会检查是否有未保存的笔记
-
-// 定义 props，接收来自父组件的标题和配置
-const { title, showMaximize, showMinimize }= defineProps({
+const { title, showMaximize, showMinimize } = defineProps({
   title: {
     type: String,
     required: true
   },
-  // 是否显示最大化按钮，默认 true
   showMaximize: {
     type: Boolean,
     default: true
   },
-  // 是否显示最小化按钮，默认 true
   showMinimize: {
     type: Boolean,
     default: true
@@ -27,138 +119,153 @@ const { title, showMaximize, showMinimize }= defineProps({
 });
 
 const noteTabsStore = useNoteTabsStore();
-const configStore = useConfigStore()
+const configStore = useConfigStore();
 
-// 检查是否有未保存的笔记
+const forceClose = ref(false);
+
+const currentWindow = WebviewWindow.getCurrent();
+
+let unlistenClose: (() => void) | null = null;
+
+
+/* ---------------- window state ---------------- */
+
+const isMaximized = ref(false);
+
+/* ---------------- modal state ---------------- */
+
+const showCloseConfirm = ref(false);
+
+/* ---------------- computed ---------------- */
+
 const hasUnsavedNotes = computed(() => {
   return noteTabsStore.tabs.some(tab => tab.dirty);
 });
 
-// 窗口状态
-const isMaximized = ref(false);
-
-// 关闭确认弹窗
-const showCloseConfirm = ref(false);
-
-// 更新窗口状态
-async function updateWindowStatus() {
-  const currentWindow = WebviewWindow.getCurrent();
+/* ---------------- window state ---------------- */
+//用于判断当前是不是最大化的窗口
+async function updateWindowState() {
   isMaximized.value = await currentWindow.isMaximized();
 }
 
-onMounted(async ()=>{
-  // 初始化窗口状态
-  await updateWindowStatus();
-
-  // 监听窗口大小变化来改变窗口最大化状态，主要是用于鼠标点击标题栏拖拽时会改变最大化状态的监听
-  window.addEventListener('resize', () => {
-    const isCurrentlyMaximized = isWindowMaximized();
-    if (isCurrentlyMaximized) {
-      isMaximized.value = true;
-    } else if (!isCurrentlyMaximized) {
-      isMaximized.value = false;
-    }
-  });
-})
-
-onUnmounted(()=>{
-  window.removeEventListener('resize', updateWindowStatusOnResize);
-})
-
-// 判断窗口是否处于最大化状态
-function isWindowMaximized() {
-  // 获取窗口的内宽度和屏幕的宽度
-  const innerWidth = window.innerWidth;
-  const screenWidth = window.screen.width;
-  // 获取窗口的外宽度（包括边框）
-  const outerWidth = window.outerWidth;
-  // 如果窗口的外宽度等于屏幕宽度，并且内宽度等于外宽度减去浏览器边框宽度 则认为窗口处于最大化状态
-  return outerWidth === screenWidth && innerWidth === outerWidth;
+function handleResize() {
+  updateWindowState();
 }
 
-function updateWindowStatusOnResize() {
-  updateWindowStatus();
+/* ---------------- window actions ---------------- */
+async function windowMinimize() {
+  await currentWindow.minimize();
 }
-
-async function window_minimize(){
-  await WebviewWindow.getCurrent().minimize()
-}
-
-async function window_maximize(){
-  const currentWindow = WebviewWindow.getCurrent();
+async function windowMaximize() {
   if (isMaximized.value) {
     await currentWindow.unmaximize();
   } else {
     await currentWindow.maximize();
   }
-  await updateWindowStatus();
+  await updateWindowState();
 }
-
-// 点击关闭按钮时，先检查是否有未保存的笔记
-async function handleWindowClose(){
-  if (hasUnsavedNotes.value) {
-    // 有未保存的笔记，显示确认弹窗
-    showCloseConfirm.value = true;
+/* ---------------- save opened notes ---------------- */
+function saveOpenedNotes() {
+  const openedNoteIds = noteTabsStore.openedNoteIds;
+  if (openedNoteIds?.length) {
+    configStore.saveLastOpenedNotes(openedNoteIds);
+    console.log("保存最后打开的笔记:", openedNoteIds);
   } else {
-    // 窗口关闭时，保存最后打开的笔记
-    const openedNoteIds = noteTabsStore.openedNoteIds
-    if (openedNoteIds && openedNoteIds.length > 0) {
-      configStore.saveLastOpenedNotes(openedNoteIds)
-      console.log('已保存最后打开的笔记:', openedNoteIds)
-    } else {
-      // 如果没有打开的笔记，清空保存的列表
-      configStore.saveLastOpenedNotes([])
-    }
-    // 没有未保存的笔记，直接关闭
-    await performClose();
+    configStore.saveLastOpenedNotes([]);
   }
 }
 
-// 执行关闭窗口
-async function performClose(){
+/* ---------------- close logic ---------------- */
+async function closeWindow() {
+  saveOpenedNotes();
+  forceClose.value = true;
   await saveWindowState(StateFlags.ALL);
-  await WebviewWindow.getCurrent().close();
+  await currentWindow.close();
 }
 
-// 确认关闭（不保存）
-async function confirmCloseWithoutSave(){
+async function handleWindowClose() {
+  if (hasUnsavedNotes.value) {
+    showCloseConfirm.value = true;
+    return;
+  }
+  await closeWindow();
+}
+async function confirmCloseWithoutSave() {
   showCloseConfirm.value = false;
-  await performClose();
+  forceClose.value = true;
+  await closeWindow();
 }
 
-</script>
+async function bringWindowToFront() {
+  const minimized = await currentWindow.isMinimized();
 
+  if (minimized) {
+    await currentWindow.unminimize();
+  }
+
+  await currentWindow.show();
+  await currentWindow.setFocus();
+}
+
+/* ---------------- lifecycle ---------------- */
+onMounted(async () => {
+  await updateWindowState();
+  window.addEventListener("resize", handleResize);
+  unlistenClose = await currentWindow.onCloseRequested(
+      async (event) => {
+        // 如果是程序主动关闭，不拦截
+        if (forceClose.value) {
+          return;
+        }
+        if (hasUnsavedNotes.value) {
+          event.preventDefault();
+          await bringWindowToFront();
+          showCloseConfirm.value = true;
+        } else {
+          forceClose.value = true;
+          await closeWindow();
+        }
+      }
+  );
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", handleResize);
+  if (unlistenClose) {
+    unlistenClose();
+  }
+});
+</script>
 
 <template>
   <div data-tauri-drag-region class="title-bar">
-    <div class="w-5"></div> <!-- 占位符，不知道为什么给 app.ico 设置左边距不好使，直接用这个占空了 -->
-    <img src="../../assets/icon/app.ico" class="w-4 h-4" alt="ICO Icon">
-    <label class="pl-1">{{title}}</label>
+    <div class="w-5"></div>
+    <img src="../../assets/icon/app.ico" class="w-4 h-4" />
+    <label class="pl-1">{{ title }}</label>
     <div class="ml-auto flex gap-0">
-      <!-- 最小化按钮 -->
       <inline-svg
           v-if="showMinimize"
           src="../assets/svg/minimize.svg"
           class="window-button min"
-          @click.left="window_minimize"
-      ></inline-svg>
-      <!-- 最大化/还原按钮 -->
+          @click.left="windowMinimize"
+      />
       <inline-svg
           v-if="showMaximize"
-          :src="isMaximized ? '../assets/svg/restore.svg' : '../assets/svg/maximize.svg'"
-          class="window-button restore maximize"
-          @click.left="window_maximize"
-      ></inline-svg>
-      <!-- 关闭按钮 -->
+          :src="isMaximized
+          ? '../assets/svg/restore.svg'
+          : '../assets/svg/maximize.svg'"
+          :class="[ 'window-button', isMaximized ? 'restore' : 'maximize' ]"
+          @click.left="windowMaximize"
+      />
       <inline-svg
           src="../assets/svg/close.svg"
           class="window-button close"
           @click.left="handleWindowClose"
-      ></inline-svg>
+      />
     </div>
+
   </div>
 
-  <!-- 关闭确认弹窗 -->
   <!-- 关闭确认弹窗 -->
   <CustomModal
       v-model:show="showCloseConfirm"
@@ -169,61 +276,6 @@ async function confirmCloseWithoutSave(){
   </CustomModal>
 </template>
 
-<style>
-.title-bar{
-  align-items: center; /* 垂直居中 */
-  display: flex;
-  flex-direction:row;
-  height: 30px;
-  user-select: none;
-  background-color: #e8e8e5;
-}
-.window-button {
-  width: 40px;
-  height: 30px;
-  outline: none;
-}
+<style scoped>
 
-.min path,
-.maximize path,
-.restore path,
-.close path {
-  transform-origin: center;
-}
-
-.min path {
-  transform: scale(0.5);
-}
-
-.maximize path {
-  transform: scale(0.6);
-  stroke: #0f0f0b;
-  stroke-width: 0.1;
-}
-
-.restore path {
-  transform: scale(0.5);
-  stroke-width: 0.2;
-}
-
-.close path {
-  transform: scale(0.6);
-  stroke-width: 20;
-  stroke: #0f0f0b;
-}
-
-.min:hover,
-.maximize:hover,
-.restore:hover {
-  background-color: #33303020;
-}
-
-.close:hover {
-  background-color: red;
-}
-
-.close:hover path {
-  fill: white;
-  stroke: white;
-}
 </style>

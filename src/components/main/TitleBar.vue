@@ -13,94 +13,103 @@ import {emitTo, listen} from "@tauri-apps/api/event";
 const configStore = useConfigStore()
 const tagStore = useTagGroupsStore()
 
-const isMaximize = ref();
+/* ---------------- window state ---------------- */
+
+const appWindow = WebviewWindow.getCurrent()
+
+const isMaximize = ref<boolean | undefined>()
 const max_state_name = ref('maximize')
 
 let unlisten1: () => void;
 let unlisten2: () => void;
 let unlisten3: () => void;
+let unlisten4: () => void;
+let unlistenResize: () => void;
+
+/* ---------------- mounted ---------------- */
 
 onMounted(async ()=>{
   await openDragImport(false)
-  await WebviewWindow.getCurrent().isMaximized().then(res => {
-    isMaximize.value = res
+  isMaximize.value = await appWindow.isMaximized()
+  /* 监听窗口大小变化（替代 resize hack） */
+  unlistenResize = await appWindow.onResized(async ()=>{
+    const state = await appWindow.isMaximized()
+    if(state !== isMaximize.value){
+      isMaximize.value = state
+    }
   })
-  unlisten1 = await listen('导入文件', async (_event) => {
+  /* 全局快捷键事件 */
+  unlisten1 = await listen('导入文件', async () => {
     await openFileSelect()
   })
-  unlisten2 = await listen('打开设置', async (_event) => {
+  unlisten2 = await listen('打开设置', async () => {
     await open_setting()
   })
-  unlisten3 = await listen('拖拽上传', async (_event) => {
+  unlisten3 = await listen('拖拽上传', async () => {
     await openDragImport()
   })
-  const unlisten4 = await listen('打开笔记列表', async (_event) => {
+  unlisten4 = await listen('打开笔记列表', async () => {
     await open_note_list()
   })
-  //这个作用是监听窗口大小变化来改变窗口最大化状态，主要是用于鼠标点击标题栏拖拽时会改变最大化状态的监听。
-  window.addEventListener('resize', () => {
-    const isCurrentlyMaximized = isWindowMaximized();
-    if (isCurrentlyMaximized) {
-      isMaximize.value = true
-    } else if (!isCurrentlyMaximized) {
-      isMaximize.value = false
-    }
-  });
+
 })
-onUnmounted(async ()=>{
-  unlisten1();
-  unlisten2();
-  unlisten3();
+
+/* ---------------- unmount ---------------- */
+
+onUnmounted(()=>{
+  unlisten1?.()
+  unlisten2?.()
+  unlisten3?.()
+  unlisten4?.()
+  unlistenResize?.()
+
 })
-// 判断窗口是否处于最大化状态
-function isWindowMaximized() {
-  // 获取窗口的内宽度和屏幕的宽度
-  const innerWidth = window.innerWidth;
-  const screenWidth = window.screen.width;
-  // 获取窗口的外宽度（包括边框）
-  const outerWidth = window.outerWidth;
-  // 如果窗口的外宽度等于屏幕宽度，并且内宽度等于外宽度减去浏览器边框宽度 则认为窗口处于最大化状态
-  return outerWidth === screenWidth && innerWidth === outerWidth;
-}
-//---------------------------------------------窗口操作相关开始--------------------------------------------------------------
+
+/* ---------------- window state sync ---------------- */
+
 watch(isMaximize, async (newValue) => {
-  if (newValue==undefined)return
-  if(newValue){ //当前状态是最大化
+  if (newValue === undefined) return
+  if(newValue){
     max_state_name.value = 'restore'
-    await WebviewWindow.getCurrent().maximize()
+    await appWindow.maximize()
   }else{
     max_state_name.value = 'maximize'
-    await WebviewWindow.getCurrent().unmaximize()
+    await appWindow.unmaximize()
   }
-}, {immediate: true})
+
+},{immediate:true})
+
+/* ---------------- window control ---------------- */
 
 async function window_minimize(){
-  await WebviewWindow.getCurrent().minimize()
+  await appWindow.minimize()
 }
+
 function window_maximize(){
-  isMaximize.value =!isMaximize.value
+  isMaximize.value = !isMaximize.value
 }
+
 async function window_close(){
-  await saveWindowState(StateFlags.ALL);
+  await saveWindowState(StateFlags.ALL)
   configStore.saveLastUseTags()
-  await invoke('save_config',{config: configStore.config}).then(_ => {}).catch(e => {
+  await invoke('save_config',{config: configStore.config}).catch(e => {
     message.error(`保存配置出错${e}`);
   })
-  let label = WebviewWindow.getCurrent().label;
-  if (label=='main') {//主窗口关闭前要把所有子窗口关闭
+  let label = appWindow.label
+  if (label=='main') {
     await emitTo("dragImport", 'close',{})
-    const windows = await WebviewWindow.getAll();
+    const windows = await WebviewWindow.getAll()
     for (const w of windows) {
       if (w.label !== 'main') {
-        await w.close(); // 真正销毁子窗口
+        await w.close()
       }
     }
-    await WebviewWindow.getCurrent().close();
+    await appWindow.close()
   }
 }
-//---------------------------------------------窗口操作相关结束--------------------------------------------------------------
 
-//---------------------------------------------下拉菜单相关开始--------------------------------------------------------------
+/* ---------------- dropdown menu ---------------- */
+
 const options = computed(() => [
   {
     label: '设置',
@@ -151,6 +160,7 @@ const options = computed(() => [
     }
   },
 ]);
+
 const renderLabel = (option:{ label: string, value: string,shortKey:string, iconPath: string}) => {
   return h('div', { class: 'flex items-center w-52' }, [
     h(InlineSvg, { src: option.iconPath, class: 'w-4 h-4' }),
@@ -158,10 +168,13 @@ const renderLabel = (option:{ label: string, value: string,shortKey:string, icon
     option.shortKey?h('span', { class: 'ml-auto bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-mono' }, option.shortKey):null,
   ]);
 };
-//目前没用到，目前是每个选项单独设置点击事件的的，后续看看有用没，需不需要封装
+
 function handleSelect(value: string) {
   console.log(value)
 }
+
+/* ---------------- windows ---------------- */
+
 async function open_setting(){
   let flag = await showAndFocusWindow('setting')
   if (flag) return
@@ -178,33 +191,28 @@ async function open_setting(){
     dragDropEnabled: false,
     visible: false,
   });
-  await webview.once('tauri://created', async function () {
+  await webview.once('tauri://created', async () => {
     await webview.show()
   });
-  await webview.once('tauri://error', function (e) {
-    // an error happened creating the webview
-    console.error(e);
-  });
 }
+
 async function openFileSelect(){
   try {
     const paths = await open({
       multiple: true,
-      directory: false, // 设置为 true 可以选择目录
+      directory: false,
     });
     if (paths==null)return
-    console.log(paths)
     let selectTagId = tagStore.currentSelectTags.map(tag => tag.id)
     await invoke('insert_docs', {paths: paths, tagsId: selectTagId})
   } catch (error) {
     message.error(`打开文件选择器时出错:${error}`)
   }
 }
-async function openDragImport(visible:boolean=true) {
-  console.log('打开拖拽上传窗口')
+
+async function openDragImport(visible:boolean=true){
   let flag = await showAndFocusWindow('dragImport')
   if (flag) return
-  console.log('创建拖拽上传窗口')
   const webview = new WebviewWindow('dragImport', {
     url: '/#/dragImport',
     center: true,
@@ -219,21 +227,16 @@ async function openDragImport(visible:boolean=true) {
     visible: false,
     alwaysOnTop: true
   });
-  await webview.once('tauri://created', async function () {
+  await webview.once('tauri://created', async () => {
     if (visible) {
-      console.log('显示拖拽上传窗口')
       await webview.show()
-    }else{
-      console.log('不show拖拽上传窗口')
     }
   });
-  await webview.once('tauri://error', function (e) {
-    // an error happened creating the webview
-    console.error(e);
-  });
+
 }
+
 async function showAndFocusWindow(label:string){
-  const window = await WebviewWindow.getByLabel(label);
+  const window = await WebviewWindow.getByLabel(label)
   if (window!=null) {
     await window.show()
     await window.unminimize()
@@ -259,16 +262,12 @@ async function open_note_list(){
     dragDropEnabled: false,
     visible: false,
   });
-  await webview.once('tauri://created', async function () {
+  await webview.once('tauri://created', async () => {
     await webview.show()
     await webview.setFocus()
   });
-  await webview.once('tauri://error', function (e) {
-    console.error(e);
-  });
-}
-//---------------------------------------------下拉菜单相关结束--------------------------------------------------------------
 
+}
 </script>
 
 <template>

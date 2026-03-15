@@ -27,6 +27,9 @@ onMounted(async ()=>{
     message.error(e);
   })
 })
+//订阅配置更新事件
+configStore.updateConfig()
+
 watch(()=>configStore.shortcuts, () => {
   let shortcuts = configStore.shortcuts;
   if (shortcuts==undefined||shortcuts.length==0)return

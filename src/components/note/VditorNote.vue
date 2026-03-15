@@ -106,138 +106,219 @@ function confirmDelete() {
   emit("delete")
 }
 //
-type EditorPositionState = {
+type EditorMode = "ir" | "sv" | "wysiwyg"
+
+type SelectionSnapshot = {
+  startPath: number[]
+  startOffset: number
+  endPath: number[]
+  endOffset: number
+}
+
+type ModeViewState = {
   scrollTop: number
-  selectionStart: number
-  selectionEnd: number
+  scrollRatio: number
   hadFocus: boolean
+  contentHash: number
+  selection: SelectionSnapshot | null
+  updatedAt: number
+}
+
+type PreviewViewState = {
+  scrollTop: number
+  scrollRatio: number
+  visible: boolean
+  previewOnly: boolean
+  updatedAt: number
+}
+
+type NoteViewState = {
+  lastMode: EditorMode
+  modes: Partial<Record<EditorMode, ModeViewState>>
+  preview: PreviewViewState | null
   updatedAt: number
 }
 
 let positionSaveTimer: number | null = null
+let layoutRestoreTimer: number | null = null
 let unbindPositionEvents: (() => void) | null = null
+let unbindLayoutEvents: (() => void) | null = null
 let restoreToken = 0
 
-function buildPositionKey(noteId: number | null) {
-  return noteId ? `vditor-note-position-${noteId}` : "vditor-note-position-empty"
-}
-
-// 你当前固定 mode: "ir"，所以直接拿 IR 的编辑区
-function getIrEditorElement(): HTMLPreElement | null {
-  return (
-      editorRef.value?.querySelector(
-          ".vditor-ir > pre.vditor-reset[contenteditable='true']"
-      ) ?? null
-  )
-}
-
-// 计算当前选区在整篇内容里的 start/end 偏移
-function getSelectionOffsets(editor: HTMLElement) {
-  const selection = window.getSelection()
-  if (!selection || selection.rangeCount === 0) {
-    return { start: 0, end: 0 }
+function clearPositionSaveTimer() {
+  if (positionSaveTimer) {
+    window.clearTimeout(positionSaveTimer)
+    positionSaveTimer = null
   }
+}
+
+function clearLayoutRestoreTimer() {
+  if (layoutRestoreTimer) {
+    window.clearTimeout(layoutRestoreTimer)
+    layoutRestoreTimer = null
+  }
+}
+
+function buildViewStateKey(noteId: number | null) {
+  return noteId ? `vditor-note-view-${noteId}` : "vditor-note-view-empty"
+}
+
+function getInternalVditor(): any {
+  return (vditor.value as any)?.vditor ?? null
+}
+
+function getCurrentMode(): EditorMode {
+  return (vditor.value?.getCurrentMode?.() ??
+      (configStore.config?.ui_config.editor_mode || "ir")) as EditorMode
+}
+
+function getModeEditorElement(mode: EditorMode = getCurrentMode()): HTMLElement | null {
+  return getInternalVditor()?.[mode]?.element ?? null
+}
+
+function getModeEditorShell(mode: EditorMode = getCurrentMode()): HTMLElement | null {
+  const editor = getModeEditorElement(mode)
+  if (!editor) return null
+  return mode === "sv" ? editor : ((editor.parentElement as HTMLElement | null) ?? editor)
+}
+
+function getPreviewContainer(): HTMLElement | null {
+  return getInternalVditor()?.preview?.element ?? null
+}
+
+function isVisibleElement(el: HTMLElement | null | undefined) {
+  return !!el && getComputedStyle(el).display !== "none"
+}
+
+function isPreviewVisible() {
+  return isVisibleElement(getPreviewContainer())
+}
+
+function isPreviewOnly() {
+  const preview = getPreviewContainer()
+  const shell = getModeEditorShell()
+  return !!preview && isVisibleElement(preview) && (!shell || !isVisibleElement(shell))
+}
+
+function hasFocusWithin(editor: HTMLElement) {
+  const active = document.activeElement
+  return !!active && (active === editor || editor.contains(active))
+}
+
+function hashString(text: string) {
+  let h = 0
+  for (let i = 0; i < text.length; i++) {
+    h = (h * 31 + text.charCodeAt(i)) | 0
+  }
+  return h
+}
+
+function getMarkdownHash() {
+  return hashString(vditor.value?.getValue?.() ?? content.value ?? "")
+}
+
+function getScrollRatio(el: HTMLElement) {
+  const max = el.scrollHeight - el.clientHeight
+  return max > 0 ? el.scrollTop / max : 0
+}
+
+function setScrollByRatio(el: HTMLElement, ratio: number) {
+  const max = el.scrollHeight - el.clientHeight
+  el.scrollTop = max > 0 ? max * Math.min(1, Math.max(0, ratio)) : 0
+}
+
+function readNoteViewState(noteId: number | null): NoteViewState | null {
+  if (!noteId) return null
+  const raw = localStorage.getItem(buildViewStateKey(noteId))
+  if (!raw) return null
+
+  try {
+    return JSON.parse(raw) as NoteViewState
+  } catch {
+    return null
+  }
+}
+
+function writeNoteViewState(noteId: number | null, state: NoteViewState) {
+  if (!noteId) return
+  localStorage.setItem(buildViewStateKey(noteId), JSON.stringify(state))
+}
+
+function getNodePath(root: Node, node: Node): number[] | null {
+  const path: number[] = []
+  let current: Node | null = node
+
+  while (current && current !== root) {
+    const parent = current.parentNode
+    if (!parent) return null
+
+    const index = Array.from(parent.childNodes).indexOf(current)
+    if (index < 0) return null
+
+    path.unshift(index)
+    current = parent
+  }
+
+  return current === root ? path : null
+}
+
+function resolveNodePath(root: Node, path: number[]) {
+  let current: Node = root
+
+  for (const index of path) {
+    const next = current.childNodes[index]
+    if (!next) return null
+    current = next
+  }
+
+  return current
+}
+
+function clampOffset(node: Node, offset: number) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return Math.min(offset, node.textContent?.length ?? 0)
+  }
+  return Math.min(offset, node.childNodes.length)
+}
+
+function captureSelection(root: HTMLElement): SelectionSnapshot | null {
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) return null
 
   const range = selection.getRangeAt(0)
-  const container = range.commonAncestorContainer
+  const common = range.commonAncestorContainer
 
-  if (!(container === editor || editor.contains(container))) {
-    return { start: 0, end: 0 }
+  if (!(common === root || root.contains(common))) {
+    return null
   }
 
-  const preSelectionRange = range.cloneRange()
+  const startPath = getNodePath(root, range.startContainer)
+  const endPath = getNodePath(root, range.endContainer)
 
-  if (editor.childNodes[0] && editor.childNodes[0].childNodes[0]) {
-    preSelectionRange.setStart(editor.childNodes[0].childNodes[0], 0)
-  } else {
-    preSelectionRange.selectNodeContents(editor)
-  }
+  if (!startPath || !endPath) return null
 
-  preSelectionRange.setEnd(range.startContainer, range.startOffset)
-
-  const start = preSelectionRange.toString().length
   return {
-    start,
-    end: start + range.toString().length,
+    startPath,
+    startOffset: range.startOffset,
+    endPath,
+    endOffset: range.endOffset,
   }
 }
 
-// 按字符偏移恢复选区/光标
-function setSelectionOffsets(editor: HTMLElement, start: number, end: number = start) {
-  start = Math.max(0, start)
-  end = Math.max(0, end)
+function restoreSelection(root: HTMLElement, snapshot?: SelectionSnapshot | null) {
+  if (!snapshot) return
 
-  if (!editor.childNodes.length) {
-    const emptyRange = document.createRange()
-    emptyRange.selectNodeContents(editor)
-    emptyRange.collapse(false)
-
-    const emptySelection = window.getSelection()
-    emptySelection?.removeAllRanges()
-    emptySelection?.addRange(emptyRange)
-    return
-  }
-
-  let charIndex = 0
-  let line = 0
-  let pNode: ChildNode | null = editor.childNodes[line] ?? null
-  let foundStart = false
-  let stop = false
+  const startNode = resolveNodePath(root, snapshot.startPath)
+  const endNode = resolveNodePath(root, snapshot.endPath)
+  if (!startNode || !endNode) return
 
   const range = document.createRange()
-  range.setStart(pNode || editor, 0)
-  range.collapse(true)
 
-  while (!stop && pNode) {
-    const textLength = pNode.textContent?.length ?? 0
-    const nextCharIndex = charIndex + textLength
-
-    if (!foundStart && start >= charIndex && start <= nextCharIndex) {
-      if (start === 0) {
-        range.setStart(pNode, 0)
-      } else {
-        const firstChild = pNode.childNodes[0]
-        if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
-          range.setStart(firstChild, start - charIndex)
-        } else if (pNode.nextSibling) {
-          range.setStartBefore(pNode.nextSibling)
-        } else {
-          range.setStartAfter(pNode)
-        }
-      }
-
-      foundStart = true
-
-      if (start === end) {
-        stop = true
-        break
-      }
-    }
-
-    if (foundStart && end >= charIndex && end <= nextCharIndex) {
-      if (end === 0) {
-        range.setEnd(pNode, 0)
-      } else {
-        const firstChild = pNode.childNodes[0]
-        if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
-          range.setEnd(firstChild, end - charIndex)
-        } else if (pNode.nextSibling) {
-          range.setEndBefore(pNode.nextSibling)
-        } else {
-          range.setEndAfter(pNode)
-        }
-      }
-      stop = true
-    }
-
-    charIndex = nextCharIndex
-    line += 1
-    pNode = editor.childNodes[line] ?? null
-  }
-
-  if (!stop) {
-    range.selectNodeContents(editor)
-    range.collapse(false)
+  try {
+    range.setStart(startNode, clampOffset(startNode, snapshot.startOffset))
+    range.setEnd(endNode, clampOffset(endNode, snapshot.endOffset))
+  } catch {
+    return
   }
 
   const selection = window.getSelection()
@@ -245,34 +326,55 @@ function setSelectionOffsets(editor: HTMLElement, start: number, end: number = s
   selection?.addRange(range)
 }
 
-function saveEditorPosition(noteId: number | null = currentNoteId.value) {
-  if (!noteId) return
+function saveCurrentViewState(noteId: number | null = currentNoteId.value) {
+  if (!noteId || !vditor.value) return
 
-  const editor = getIrEditorElement()
-  if (!editor) return
+  const mode = getCurrentMode()
+  const editor = getModeEditorElement(mode)
+  const preview = getPreviewContainer()
+  const now = Date.now()
 
-  const { start, end } = getSelectionOffsets(editor)
+  const state: NoteViewState =
+      readNoteViewState(noteId) ?? {
+        lastMode: mode,
+        modes: {},
+        preview: null,
+        updatedAt: now,
+      }
 
-  const state: EditorPositionState = {
-    scrollTop: editor.scrollTop,
-    selectionStart: start,
-    selectionEnd: end,
-    hadFocus: document.activeElement === editor,
-    updatedAt: Date.now(),
+  state.lastMode = mode
+  state.updatedAt = now
+
+  if (editor) {
+    state.modes[mode] = {
+      scrollTop: editor.scrollTop,
+      scrollRatio: getScrollRatio(editor),
+      hadFocus: hasFocusWithin(editor),
+      contentHash: getMarkdownHash(),
+      selection: captureSelection(editor),
+      updatedAt: now,
+    }
   }
 
-  localStorage.setItem(buildPositionKey(noteId), JSON.stringify(state))
+  state.preview = preview
+      ? {
+        scrollTop: preview.scrollTop,
+        scrollRatio: getScrollRatio(preview),
+        visible: isPreviewVisible(),
+        previewOnly: isPreviewOnly(),
+        updatedAt: now,
+      }
+      : null
+
+  writeNoteViewState(noteId, state)
 }
 
-function scheduleSaveEditorPosition(noteId: number | null = currentNoteId.value) {
+function scheduleSaveCurrentViewState(noteId: number | null = currentNoteId.value) {
   if (!noteId) return
 
-  if (positionSaveTimer) {
-    window.clearTimeout(positionSaveTimer)
-  }
-
+  clearPositionSaveTimer()
   positionSaveTimer = window.setTimeout(() => {
-    saveEditorPosition(noteId)
+    saveCurrentViewState(noteId)
   }, 120)
 }
 
@@ -282,59 +384,175 @@ async function waitEditorStable() {
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 }
 
-async function restoreEditorPosition(noteId: number | null = currentNoteId.value) {
-  if (!noteId) return
-  const editor = getIrEditorElement()
+async function restoreCurrentViewState(noteId: number | null = currentNoteId.value) {
+  if (!noteId || !vditor.value) return
+
+  const state = readNoteViewState(noteId)
+  if (!state) return
+
+  const mode = getCurrentMode()
+  const editor = getModeEditorElement(mode)
   if (!editor) return
-  const raw = localStorage.getItem(buildPositionKey(noteId))
-  if (!raw) return
-  let state: EditorPositionState
-  try {
-    state = JSON.parse(raw) as EditorPositionState
-  } catch {
-    return
+
+  const sameModeState = state.modes[mode]
+  const fallbackState = state.modes[state.lastMode]
+
+  // 当前 mode 有自己的状态：精确恢复
+  if (sameModeState) {
+    editor.scrollTop = sameModeState.scrollTop ?? 0
+
+    if (sameModeState.hadFocus) {
+      editor.focus()
+
+      // 只有内容哈希一致时才恢复选区，避免内容变更后错位
+      if (sameModeState.contentHash === getMarkdownHash()) {
+        restoreSelection(editor, sameModeState.selection)
+      }
+    }
+
+    requestAnimationFrame(() => {
+      editor.scrollTop = sameModeState.scrollTop ?? 0
+    })
   }
-  // 先恢复阅读位置
-  editor.scrollTop = state.scrollTop ?? 0
-  // 上次离开时在编辑，才恢复光标/选区
-  if (state.hadFocus) {
-    editor.focus()
-    setSelectionOffsets(
-        editor,
-        state.selectionStart ?? 0,
-        state.selectionEnd ?? state.selectionStart ?? 0
-    )
+  // 当前 mode 以前没进过：按上次 mode 的滚动比例回一个“接近位置”
+  else if (fallbackState) {
+    setScrollByRatio(editor, fallbackState.scrollRatio ?? 0)
   }
-  // focus / selection 有可能把滚动条再带跑一次，所以最后再写回一次
-  requestAnimationFrame(() => {
-    editor.scrollTop = state.scrollTop ?? 0
-  })
+
+  // 预览区滚动单独恢复
+  const preview = getPreviewContainer()
+  if (preview && isPreviewVisible() && state.preview) {
+    requestAnimationFrame(() => {
+      if (typeof state.preview?.scrollTop === "number") {
+        preview.scrollTop = state.preview.scrollTop
+      } else {
+        setScrollByRatio(preview, state.preview?.scrollRatio ?? 0)
+      }
+    })
+  }
 }
 
-function bindEditorPositionEvents() {
-  const editor = getIrEditorElement()
-  if (!editor) return
-  const handler = () => scheduleSaveEditorPosition()
-  editor.addEventListener("scroll", handler, { passive: true })
-  editor.addEventListener("input", handler)
-  editor.addEventListener("keyup", handler)
-  editor.addEventListener("mouseup", handler)
+function bindViewStateEvents() {
+  unbindPositionEvents?.()
+
+  const editor = getModeEditorElement()
+  const preview = getPreviewContainer()
+  const handler = () => scheduleSaveCurrentViewState()
+
+  const cleanups: Array<() => void> = []
+
+  if (editor) {
+    editor.addEventListener("scroll", handler, { passive: true })
+    editor.addEventListener("input", handler)
+    editor.addEventListener("keyup", handler)
+    editor.addEventListener("mouseup", handler)
+
+    cleanups.push(() => editor.removeEventListener("scroll", handler))
+    cleanups.push(() => editor.removeEventListener("input", handler))
+    cleanups.push(() => editor.removeEventListener("keyup", handler))
+    cleanups.push(() => editor.removeEventListener("mouseup", handler))
+  }
+
+  if (preview) {
+    preview.addEventListener("scroll", handler, { passive: true })
+    cleanups.push(() => preview.removeEventListener("scroll", handler))
+  }
+
   unbindPositionEvents = () => {
-    editor.removeEventListener("scroll", handler)
-    editor.removeEventListener("input", handler)
-    editor.removeEventListener("keyup", handler)
-    editor.removeEventListener("mouseup", handler)
+    cleanups.forEach((fn) => fn())
   }
 }
+
+function isLayoutTriggerTarget(target: HTMLElement | null) {
+  if (!target) return false
+  return Boolean(
+      target.closest('[data-type="edit-mode"]') ||
+      target.closest('[data-type="preview"]') ||
+      target.closest('[data-type="both"]') ||
+      target.closest("[data-mode]")
+  )
+}
+
+function isLayoutCommitTarget(target: HTMLElement | null) {
+  if (!target) return false
+  return Boolean(
+      target.closest('[data-type="preview"]') ||
+      target.closest('[data-type="both"]') ||
+      target.closest("[data-mode]")
+  )
+}
+
+function scheduleLayoutRestoreAfterSwitch(waitPreview = false) {
+  clearLayoutRestoreTimer()
+  isSwitchingMode = true
+
+  const previewDelay = Number(getInternalVditor()?.options?.preview?.delay ?? 200)
+  const delay = waitPreview ? previewDelay + 40 : 60
+
+  layoutRestoreTimer = window.setTimeout(async () => {
+    try {
+      await waitEditorStable()
+      bindViewStateEvents()
+      await restoreCurrentViewState(currentNoteId.value)
+
+      const currentMode = getCurrentMode()
+      if (configStore.config?.ui_config) {
+        configStore.config.ui_config.editor_mode = currentMode
+      }
+    } finally {
+      isSwitchingMode = false
+    }
+  }, delay)
+}
+
+function bindLayoutSwitchEvents() {
+  unbindLayoutEvents?.()
+
+  // 用 mousedown/touchstart 在失焦前先保存，避免点击工具栏后选区丢了
+  const preHandler = (e: Event) => {
+    const target = e.target as HTMLElement | null
+    if (!isLayoutTriggerTarget(target)) return
+    saveCurrentViewState(currentNoteId.value)
+  }
+
+  // 用 click 在 Vditor 完成切换后做恢复
+  const postHandler = (e: Event) => {
+    const target = e.target as HTMLElement | null
+    if (!isLayoutCommitTarget(target)) return
+
+    const waitPreview = Boolean(
+        target?.closest('[data-type="preview"]') || target?.closest('[data-type="both"]')
+    )
+
+    scheduleLayoutRestoreAfterSwitch(waitPreview)
+  }
+
+  document.addEventListener("mousedown", preHandler, true)
+  document.addEventListener("touchstart", preHandler, true)
+  document.addEventListener("click", postHandler, true)
+
+  unbindLayoutEvents = () => {
+    document.removeEventListener("mousedown", preHandler, true)
+    document.removeEventListener("touchstart", preHandler, true)
+    document.removeEventListener("click", postHandler, true)
+  }
+}
+
 function handleVisibilityChange() {
   if (document.visibilityState === "hidden") {
-    saveEditorPosition()
+    saveCurrentViewState()
   }
 }
-function handlePageHide() {
-  saveEditorPosition()
-}
 
+function handlePageHide() {
+  saveCurrentViewState()
+}
+// 这段实现的要点是：
+// 每个 note 每个 mode 各存一份
+// 同mode：恢复精确滚动 + 精确选区
+// 跨mode：恢复滚动比例，不强行复用别的mode的光标
+// 预览区：单独存preview.element.scrollTop
+// 这和 Vditor 现有结构是匹配的：它有三种编辑模式，getCurrentMode()/focus()/blur() 都是围绕 currentMode 工作；预览区也有单独的 preview.element/preview.previewElement 结构。工具栏 preview 按钮在 sv 和其他 mode 下隐藏编辑区的方式也不同，所以预览滚动最好单独记。
 onMounted(async () => {
   await nextTick()
   vditor.value = new Vditor(editorRef.value!, {
@@ -440,68 +658,66 @@ B -->|No| D[结束]
     },
     input(value) {
       if (isSettingValue || isSwitchingMode) return
+
       content.value = value
       emit("update:content", value)
+
       if (currentNoteId.value) {
         localStorage.setItem(buildCacheKey(currentNoteId.value), value)
       }
-      scheduleSaveEditorPosition(currentNoteId.value)
+
+      scheduleSaveCurrentViewState(currentNoteId.value)
     },
     focus() {
-      scheduleSaveEditorPosition(currentNoteId.value)
+      scheduleSaveCurrentViewState(currentNoteId.value)
     },
     blur() {
-      scheduleSaveEditorPosition(currentNoteId.value)
+      scheduleSaveCurrentViewState(currentNoteId.value)
+    },
+    select() {
+      scheduleSaveCurrentViewState(currentNoteId.value)
     },
     after: async () => {
       syncEditorFromProps(props.note)
-      bindEditorPositionEvents()
+      bindViewStateEvents()
+      bindLayoutSwitchEvents()
+
       await waitEditorStable()
-      await restoreEditorPosition(props.note?.id ?? null)
-      //监听模式切换
-      const handler = (e: MouseEvent) => {
-        const target = e.target as HTMLElement | null
-        if (!target) return
-        // 这里只能尽量模糊匹配，具体 class/data-attr 得看实际 DOM，应该是[data-type="edit-mode"]
-        const clickedModeEntry =
-            target.closest('[data-type="edit-mode"]') ||
-            target.closest(".vditor-panel") ||
-            target.closest(".vditor-hint")
-        if (!clickedModeEntry) return
-        setTimeout(() => {
-          const currentMode = vditor.value?.getCurrentMode()
-          if (!currentMode) return
-          configStore.config!.ui_config.editor_mode = currentMode
-        }, 0)
+      await restoreCurrentViewState(props.note?.id ?? null)
+
+      const currentMode = getCurrentMode()
+      if (configStore.config?.ui_config) {
+        configStore.config.ui_config.editor_mode = currentMode
       }
-      document.addEventListener("click", handler, true)
     },
   })
   console.log("Vditor 初始化完成")
-
+  document.addEventListener("visibilitychange", handleVisibilityChange)
+  window.addEventListener("pagehide", handlePageHide)
 })
 
 watch(
     () => props.note?.id,
     async (newId, oldId) => {
-      // 切走旧 note 前先保存旧 note 的位置
+      clearPositionSaveTimer()
+      clearLayoutRestoreTimer()
+
+      // 切走旧 note 前先保存旧 note 当前 mode 的状态
       if (oldId) {
-        saveEditorPosition(oldId)
+        saveCurrentViewState(oldId)
       }
+
       syncEditorFromProps(props.note)
-      // 顺手记住“最后打开的是哪篇”
+
       if (newId) {
         localStorage.setItem("note-last-open-id", String(newId))
       }
       if (!newId || !vditor.value) return
-
       const token = ++restoreToken
       await waitEditorStable()
-
-      // 防止快速切 note 产生旧 restore 覆盖新 restore
       if (token !== restoreToken) return
-
-      await restoreEditorPosition(newId)
+      bindViewStateEvents()
+      await restoreCurrentViewState(newId)
     },
     { immediate: true }
 )
@@ -515,15 +731,24 @@ watch(
 
 watch(
     () => props.note?.content,
-    (value) => {
+    async (value) => {
       if (!vditor.value) return
 
       const nextValue = value ?? ""
       const currentValue = vditor.value.getValue()
 
       if (currentValue !== nextValue) {
+        const noteId = currentNoteId.value
+        content.value = nextValue
         isSettingValue = true
+
         vditor.value.setValue(nextValue)
+
+        await waitEditorStable()
+
+        if (noteId && noteId === currentNoteId.value) {
+          await restoreCurrentViewState(noteId)
+        }
 
         requestAnimationFrame(() => {
           isSettingValue = false
@@ -536,35 +761,43 @@ watch(localTitle, (value) => {
   emit("update:title", value)
 })
 
-watch(localTitle, (value) => {
-  emit("update:title", value)
-})
 
 onDeactivated(() => {
-  saveEditorPosition()
+  clearPositionSaveTimer()
+  clearLayoutRestoreTimer()
+  saveCurrentViewState()
+
+  unbindPositionEvents?.()
+  unbindPositionEvents = null
+
+  unbindLayoutEvents?.()
+  unbindLayoutEvents = null
 })
 
 onActivated(async () => {
-  if (!currentNoteId.value) return
+  if (!currentNoteId.value || !vditor.value) return
+
+  bindViewStateEvents()
+  bindLayoutSwitchEvents()
+
   await waitEditorStable()
-  await restoreEditorPosition(currentNoteId.value)
+  await restoreCurrentViewState(currentNoteId.value)
 })
 
 onUnmounted(() => {
-  saveEditorPosition()
-
-  if (positionSaveTimer) {
-    window.clearTimeout(positionSaveTimer)
-  }
+  clearPositionSaveTimer()
+  clearLayoutRestoreTimer()
+  saveCurrentViewState()
 
   unbindPositionEvents?.()
+  unbindPositionEvents = null
+
+  unbindLayoutEvents?.()
+  unbindLayoutEvents = null
+
   document.removeEventListener("visibilitychange", handleVisibilityChange)
   window.removeEventListener("pagehide", handlePageHide)
 
-  vditor.value?.destroy()
-})
-
-onUnmounted(() => {
   vditor.value?.destroy()
 })
 </script>

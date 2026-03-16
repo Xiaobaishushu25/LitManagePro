@@ -11,6 +11,7 @@ use crate::services::commands::tag::{
 };
 use std::process::exit;
 use std::sync::{mpsc, Mutex};
+use log::error;
 use tauri::{Emitter, State};
 use tauri_plugin_autostart::MacosLauncher;
 use tracing::info;
@@ -93,7 +94,7 @@ async fn first_run(app_handle: tauri::AppHandle,rx: State<'_, Mutex<Option<mpsc:
 }
 #[tauri::command]
 async fn exit_app() -> Result<(), ()> {
-    info!("退出程序");
+    error!("退出程序");//观察是否能够正常退出
     // sleep(Duration::from_secs(1)).await;
     exit(0)
 }

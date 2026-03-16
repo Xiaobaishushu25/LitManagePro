@@ -1,0 +1,32 @@
+/* 只在 vditor 内恢复默认列表样式，避免被 reset / UI 库覆盖 */
+/*在VditorNote.vue中最后导入，不知道哪个组件库把Vditor一些css给覆盖掉了导致列表编号不显示*/
+/*https://github.com/Vanessa219/vditor/issues/1381*/
+.vditor-reset ol,
+.vditor-wysiwyg ol,
+.vditor-ir ol {
+    list-style: decimal !important;
+    padding-left: 2em !important;
+    margin-left: 0 !important;
+}
+
+.vditor-reset ul,
+.vditor-wysiwyg ul,
+.vditor-ir ul {
+    list-style: disc !important;
+    padding-left: 2em !important;
+    margin-left: 0 !important;
+}
+
+.vditor-reset li,
+.vditor-wysiwyg li,
+.vditor-ir li {
+    display: list-item !important;
+}
+
+/* 防止某些 reset 把 marker 干掉 */
+.vditor-reset li::marker,
+.vditor-wysiwyg li::marker,
+.vditor-ir li::marker {
+    color: inherit !important;
+    font-size: inherit !important;
+}

@@ -10,6 +10,7 @@ import CustomModal from "../../util/CustomModal.vue"
 import { invoke } from "@tauri-apps/api/core"
 import { message } from "../../message"
 import useConfigStore from "../../stroe/config.ts";
+import "../../vditor-fix.css"
 
 const props = defineProps<{
   note: NoteResponseDto | null
@@ -169,7 +170,7 @@ function getInternalVditor(): any {
 
 function getCurrentMode(): EditorMode {
   return (vditor.value?.getCurrentMode?.() ??
-      (configStore.config?.ui_config.editor_mode || "ir")) as EditorMode
+      (configStore.config?.note_config?.editor_mode || "ir")) as EditorMode
 }
 
 function getModeEditorElement(mode: EditorMode = getCurrentMode()): HTMLElement | null {
@@ -249,10 +250,10 @@ function getNodePath(root: Node, node: Node): number[] | null {
   let current: Node | null = node
 
   while (current && current !== root) {
-    const parent = current.parentNode
+    const parent: Node | null = current.parentNode
     if (!parent) return null
 
-    const index = Array.from(parent.childNodes).indexOf(current)
+    const index = Array.from(parent.childNodes).indexOf(<ChildNode>current)
     if (index < 0) return null
 
     path.unshift(index)
@@ -496,8 +497,8 @@ function scheduleLayoutRestoreAfterSwitch(waitPreview = false) {
       await restoreCurrentViewState(currentNoteId.value)
 
       const currentMode = getCurrentMode()
-      if (configStore.config?.ui_config) {
-        configStore.config.ui_config.editor_mode = currentMode
+      if (configStore.config?.note_config) {
+        configStore.config.note_config.editor_mode = currentMode
       }
     } finally {
       isSwitchingMode = false
@@ -543,7 +544,6 @@ function handleVisibilityChange() {
     saveCurrentViewState()
   }
 }
-
 function handlePageHide() {
   saveCurrentViewState()
 }
@@ -553,18 +553,72 @@ function handlePageHide() {
 // 跨mode：恢复滚动比例，不强行复用别的mode的光标
 // 预览区：单独存preview.element.scrollTop
 // 这和 Vditor 现有结构是匹配的：它有三种编辑模式，getCurrentMode()/focus()/blur() 都是围绕 currentMode 工作；预览区也有单独的 preview.element/preview.previewElement 结构。工具栏 preview 按钮在 sv 和其他 mode 下隐藏编辑区的方式也不同，所以预览滚动最好单独记。
+
+//监听大纲是否打开
+let unbindOutlineObserver: (() => void) | null = null
+function observeOutlineState() {
+  const root = editorRef.value
+  if (!root) {
+    console.log("observeOutlineState: root 不存在")
+    return () => {}
+  }
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      const target = m.target as HTMLElement
+      if (
+          m.type === "attributes" &&
+          m.attributeName === "style" &&
+          target.classList.contains("vditor-outline")
+      ) {
+        const visible = getComputedStyle(target).display !== "none"
+        console.log("大纲面板:", visible ? "打开" : "关闭")
+        
+        // 保存大纲状态到配置
+        if (configStore.config?.note_config) {
+          configStore.config.note_config.outline_enabled = visible
+        }
+      }
+    }
+  })
+  observer.observe(root, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["style"],
+  })
+  return () => {
+    observer.disconnect()
+  }
+}
+//setOutlineVisible可以控制大纲的打开或者关闭，但是我直接在配置里面可以初始化，就没用上
+//@ts-ignore
+function setOutlineVisible(visible: boolean) {
+  const vd = (vditor.value as any)?.vditor ?? vditor.value
+  if (!vd?.outline) return
+  vd.options.outline.enable = visible
+  vd.outline.toggle(vd, visible)
+
+  const btn = vd.toolbar?.elements?.outline?.firstElementChild as HTMLElement | null
+  if (btn) {
+    btn.classList.toggle("vditor-menu--current", visible)
+  }
+}
+
 onMounted(async () => {
   await nextTick()
   vditor.value = new Vditor(editorRef.value!, {
     cdn: '/vditor',// 使用本地资源（把 node_modules 中 vditor 的 dist 复制到本地保存），不然 dev 模式下没问题，但是打包后编辑器找不到资源
     height: "100%",
     minHeight: 500,
-    mode: configStore.config?.ui_config.editor_mode || "ir",
+    mode: configStore.config?.note_config?.editor_mode || "ir",
     theme: "classic",
     icon: "material",
     placeholder: "开始写 Markdown / LaTeX / Mermaid ...",
     cache: {
       enable: false
+    },
+    outline: {
+      enable: configStore.config?.note_config?.outline_enabled ?? false,
+      position:"left"//目前大纲默认在左边并且不可更改位置，其实可以配置到右边
     },
     preview: {
       delay: 200,
@@ -658,14 +712,11 @@ B -->|No| D[结束]
     },
     input(value) {
       if (isSettingValue || isSwitchingMode) return
-
       content.value = value
       emit("update:content", value)
-
       if (currentNoteId.value) {
         localStorage.setItem(buildCacheKey(currentNoteId.value), value)
       }
-
       scheduleSaveCurrentViewState(currentNoteId.value)
     },
     focus() {
@@ -682,17 +733,21 @@ B -->|No| D[结束]
       bindViewStateEvents()
       bindLayoutSwitchEvents()
 
+      unbindOutlineObserver?.()
+      unbindOutlineObserver = observeOutlineState()
+
       await waitEditorStable()
       await restoreCurrentViewState(props.note?.id ?? null)
 
       const currentMode = getCurrentMode()
-      if (configStore.config?.ui_config) {
-        configStore.config.ui_config.editor_mode = currentMode
+      if (configStore.config?.note_config) {
+        configStore.config.note_config.editor_mode = currentMode
       }
     },
   })
   console.log("Vditor 初始化完成")
   document.addEventListener("visibilitychange", handleVisibilityChange)
+  observeOutlineState()
   window.addEventListener("pagehide", handlePageHide)
 })
 
@@ -770,6 +825,9 @@ onDeactivated(() => {
   unbindPositionEvents?.()
   unbindPositionEvents = null
 
+  unbindOutlineObserver?.()
+  unbindOutlineObserver = null
+
   unbindLayoutEvents?.()
   unbindLayoutEvents = null
 })
@@ -794,6 +852,9 @@ onUnmounted(() => {
 
   unbindLayoutEvents?.()
   unbindLayoutEvents = null
+
+  unbindOutlineObserver?.()
+  unbindOutlineObserver = null
 
   document.removeEventListener("visibilitychange", handleVisibilityChange)
   window.removeEventListener("pagehide", handlePageHide)

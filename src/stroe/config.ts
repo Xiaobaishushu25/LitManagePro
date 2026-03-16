@@ -220,12 +220,12 @@ const useConfigStore = defineStore('config', () => {
 
     function saveLastOpenedNotes(noteIds: number[]) {
         if (config.value) {
-            config.value.ui_config.last_opened_notes = noteIds
+            config.value.note_config.last_opened_notes = noteIds
         }
     }
 
     function getLastOpenedNotes(): number[] {
-        return config.value?.ui_config.last_opened_notes || []
+        return config.value?.note_config.last_opened_notes || []
     }
 
     function removeSaveTags(id_sum:number) {

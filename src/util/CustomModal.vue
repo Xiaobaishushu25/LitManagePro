@@ -34,17 +34,16 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits(['update:show']);
+const emit = defineEmits(['update:show'])
 
 const closeModal = () => {
-  emit('update:show', false);
-};
+  emit('update:show', false)
+}
 
 const confirmAction = () => {
   props.onConfirm?.()
-  closeModal();
-};
-
+  closeModal()
+}
 </script>
 
 <template>
@@ -57,9 +56,9 @@ const confirmAction = () => {
       transform-origin="center"
       @close="closeModal"
       :segmented="{
-        content: true,
-        footer: 'soft',
-      }"
+      content: true,
+      footer: 'soft',
+    }"
       action-class="action"
       action-style="padding: 0 !important"
   >
@@ -71,12 +70,18 @@ const confirmAction = () => {
         {{ title }}
       </div>
     </template>
-      <slot></slot>
+
+    <slot></slot>
+
     <template #action>
-      <n-flex justify="end">
-        <n-button size="small" @click="closeModal">取消</n-button>
-        <n-button size="small" type="success" class="text-black" @click="confirmAction">确认</n-button>
-      </n-flex>
+      <slot name="action">
+        <n-flex justify="end">
+          <n-button size="small" @click="closeModal">取消</n-button>
+          <n-button size="small" type="success" class="text-black" @click="confirmAction">
+            确认
+          </n-button>
+        </n-flex>
+      </slot>
     </template>
   </n-modal>
 </template>

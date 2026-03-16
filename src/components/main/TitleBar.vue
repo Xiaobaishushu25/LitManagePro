@@ -278,7 +278,7 @@ async function open_note_list(){
       <template #trigger>
         <img src="../../assets/icon/app.ico" class="w-4 h-4" alt="ICO Icon">
       </template>
-      v3.1.2
+      v3.1.3
     </n-tooltip>
     <label class="pl-1">天书</label>
     <div class="pl-5">
@@ -307,5 +307,5 @@ async function open_note_list(){
 </template>
 
 <style>
-/*样式转移到/main/TitleBar.vue中了*/
+/*样式转移到/components/TitleBar.vue中了*/
 </style>

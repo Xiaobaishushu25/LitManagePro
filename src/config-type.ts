@@ -5,10 +5,15 @@ interface UiConfig {
     save_tag_groups: number[][];
     last_use_tags:[number[], number[]];
     table_expand:boolean,
+}
+
+interface NoteConfig {
     // 最近打开的笔记 ID 列表
     last_opened_notes: number[];
     // 编辑器模式："ir" (即时渲染), "wysiwyg" (所见即所得), "sv" (分屏)
     editor_mode: "ir" | "wysiwyg" | "sv";
+    // 大纲面板是否打开
+    outline_enabled: boolean;
 }
 interface AppConfig {
     auto_start:boolean,
@@ -52,6 +57,7 @@ interface Config {
     ai_config: AiConfig;
     exe_configs: ExeConfig[];
     shortcut_tree: ShortcutNode[];
+    note_config: NoteConfig;
 }
 
-export type { Config, UiConfig,ExeConfig, AiConfig, ShortcutNode}
+export type { Config, UiConfig,ExeConfig, AiConfig, ShortcutNode, NoteConfig}

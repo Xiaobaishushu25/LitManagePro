@@ -37,6 +37,7 @@ pub struct Config {
     pub ai_config: AiConfig,
     pub exe_configs: Vec<ExeConfig>,
     shortcut_tree: Vec<ShortcutNode>,
+    note_config: NoteConfig,
 }
 
 impl Config {
@@ -84,6 +85,7 @@ impl Default for Config {
             ai_config: AiConfig::default(),
             exe_configs: vec![],
             shortcut_tree: ShortcutNode::default_tree(),
+            note_config: NoteConfig::default(),
         }
     }
 }
@@ -100,10 +102,6 @@ pub struct UiConfig {
     last_use_tags: [Vec<i32>; 2],
     //表格是否展开总结行 (在有总结的情况时)
     table_expand: bool,
-    //最近打开的笔记 ID 列表
-    last_opened_notes: Vec<i32>,
-    //编辑器模式："ir" (即时渲染), "wysiwyg" (所见即所得), "sv" (分屏)
-    editor_mode: String,
 }
 impl Default for UiConfig {
     fn default() -> Self {
@@ -113,8 +111,26 @@ impl Default for UiConfig {
             save_tag_groups: vec![],
             last_use_tags: [vec![], vec![]],
             table_expand: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NoteConfig {
+    //最近打开的笔记 ID 列表
+    last_opened_notes: Vec<i32>,
+    //编辑器模式："ir" (即时渲染), "wysiwyg" (所见即所得), "sv" (分屏)
+    editor_mode: String,
+    //大纲面板是否打开
+    outline_enabled: bool,
+}
+
+impl Default for NoteConfig {
+    fn default() -> Self {
+        NoteConfig {
             last_opened_notes: vec![],
             editor_mode: "ir".to_string(),
+            outline_enabled: false,
         }
     }
 }

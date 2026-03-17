@@ -42,8 +42,21 @@ async fn segment_pdf(path: &str, id: i32) -> AppResult<String> {
     Ok(out_path.to_string_lossy().to_string())
 }
 async fn extract_pdf(path: &str) -> AppResult<String> {
-    let bytes = std::fs::read(path)?;
-    Ok(pdf_extract::extract_text_from_mem(&bytes)?)
+    match std::fs::read(path) {
+        Ok(bytes) => {
+            match pdf_extract::extract_text_from_mem(&bytes) {
+                Ok(text) => Ok(text),
+                Err(e) => {
+                    error!("提取 PDF 内容失败：文件路径={}, 错误详情={:#}", path, e);
+                    Err(e.into())
+                }
+            }
+        }
+        Err(e) => {
+            error!("读取 PDF 文件失败：文件路径={}, 错误详情={:#}", path, e);
+            Err(e.into())
+        }
+    }
 }
 /// 复制文件到按时间命名的文件夹中，并更新文件路径
 ///

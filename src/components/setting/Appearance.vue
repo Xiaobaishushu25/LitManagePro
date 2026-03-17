@@ -98,6 +98,9 @@ const key = ref()
 const defaultModel = ref()
 const maxConcurrency = ref(configStore.config?.ai_config.max_concurrency || 3)
 const onLine = ref(configStore.config?.ai_config.online || false)
+//应该是可以配置的，但是当前(v3.1.4)还没实现
+const paperAnalysisPrompt = ref(configStore.config?.ai_config.paper_analysis_prompt_template || `请你准确地根据提供给你的论文内容和联网搜索信息给出该论文的标题、作者、发表的刊物（会议或者期刊简称）、发表年份、并总结摘要和贡献点以及核心思想。摘要、贡献点以及核心思想请总结为简体中文。必须把回答信息序列化为 json 字符串，分别是 title，author，journal，year，abstract，contributions，remark，不要有任何额外信息。请务必准确，如果提供给你的内容中找不到需要的数据时请联网搜索。。`)
+
 // 将字符串数组转换为对象数组
 const modelOptions = computed(() => {
   return configStore.config?.ai_config.models[aiSupport.value]?.map(item => ({
@@ -352,6 +355,26 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
           <div class="setting-card-row">
             <label>是否开启联网搜索</label>
             <n-switch v-model:value="onLine" @update:value="configStore.config!.ai_config.online = $event"/>
+          </div>
+          <div class="setting-card-row">
+            <n-flex class="items-center" :size="2">
+              <label>论文分析提示词模板</label>
+              <n-tooltip trigger="hover">
+                <template #trigger>
+                  <inline-svg src="../assets/svg/what.svg" class="w-4 h-4"></inline-svg>
+                </template>
+                自定义AI分析论文时使用的提示词。
+              </n-tooltip>
+            </n-flex>
+          </div>
+          <div class="setting-card-row">
+            <n-input
+                v-model:value="paperAnalysisPrompt"
+                type="textarea"
+                placeholder="请输入提示词模板"
+                rows="10"
+                @blur="() => {}"
+            />
           </div>
         </div>
       </n-flex>

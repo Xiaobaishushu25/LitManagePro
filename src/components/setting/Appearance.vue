@@ -11,6 +11,16 @@ import {disable, enable, isEnabled} from "@tauri-apps/plugin-autostart";
 
 const configStore = useConfigStore()
 
+// 打开日志目录
+async function openLogDirectory() {
+  try {
+    await invoke('open_log_directory')
+    message.success('已打开日志目录')
+  } catch (error) {
+    message.error(`打开日志目录失败：${error}`)
+  }
+}
+
 const defaultModelRef = ref()
 //------------------------------------app设置begin----------------------------------------
 const autoStart = ref(configStore.config?.app_config.auto_start || false)
@@ -214,6 +224,23 @@ const renderOption = (info: { node: VNode, option: SelectOption, selected: boole
           <div class="setting-card-row">
             <label>是否开机自动启动</label>
             <n-switch v-model:value="autoStart"/>
+          </div>
+          <div class="setting-card-row">
+            <n-flex class="items-center" :size="2">
+              <label>日志存储位置</label>
+              <n-tooltip trigger="hover">
+                <template #trigger>
+                  <inline-svg src="../assets/svg/what.svg" class="w-4 h-4"></inline-svg>
+                </template>
+                点击查看应用程序日志文件所在位置。
+              </n-tooltip>
+            </n-flex>
+            <n-button size="small" @click="openLogDirectory">
+              <template #icon>
+                <inline-svg src="../assets/svg/Folder24Regular.svg" class="w-4 h-4"></inline-svg>
+              </template>
+              打开日志目录
+            </n-button>
           </div>
         </div>
 

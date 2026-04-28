@@ -82,7 +82,80 @@ function insertMath() {
     vditor.value.insertValue("$$\n\n$$")
   }
 }
+/*AI 复制出来的 Markdown/LaTeX 格式和 Vditor 支持的公式格式不完全一致。
+粘贴处理里，再加一步：把 AI 常用的 \[、\]、\(、\) 自动转换成 Vditor 更容易识别的 $ / $$ 公式格式。
+* */
+function normalizeAiMarkdownPaste(text: string) {
+  let md = text
+      .replace(/\r\n?/g, "\n")
+      .replace(/[\u2028\u2029]/g, "\n")
+      .replace(/\u00a0/g, " ")
+  // 块级公式：\[ ... \] => $$ ... $$
+  md = md.replace(/\\\[\s*([\s\S]*?)\s*\\\]/g, (_all: string, formula: string) => {
+    return `$$\n${formula.trim()}\n$$`
+  })
+  // 行内公式：\( ... \) => $...$
+  md = md.replace(/\\\(([\s\S]*?)\\\)/g, (_all: string, formula: string) => {
+    return `$${formula.trim()}$`
+  })
+  // 兜底：有些内容粘贴后可能已经变成单独一行的 [ 和 ]
+  md = md.replace(
+      /(^|\n)\s*\[\s*\n([\s\S]*?)\n\s*\]\s*(?=\n|$)/g,
+      (all: string, prefix: string, formula: string) => {
+        const body = formula.trim()
 
+        const looksLikeFormula =
+            /\\[a-zA-Z]+|[_^=]|[A-Za-z]\s*[+\-*/]\s*[A-Za-z0-9]/.test(body)
+
+        return looksLikeFormula ? `${prefix}$$\n${body}\n$$` : all
+      }
+  )
+  return md
+}
+/*
+v3.2.4引入：
+部分 AI 工具复制内容时会同时携带 HTML 和纯文本格式，Vditor 在处理 HTML 粘贴时可能导致 Markdown 换行被合并，进而出现标题、段落全部变成一行的问题。
+现已优化粘贴逻辑，对 Markdown 内容优先使用纯文本格式，保证换行和结构正常保留。
+* */
+function bindPlainMarkdownPaste() {
+  const root = editorRef.value
+  const vd = vditor.value
+
+  if (!root || !vd) return () => {}
+
+  const handler = (e: ClipboardEvent) => {
+    const cd = e.clipboardData
+    if (!cd) return
+    // 不拦截图片、文件粘贴，避免影响 Vditor 原本上传能力
+    if (cd.files && cd.files.length > 0) return
+    const plain = cd.getData("text/plain")
+    const html = cd.getData("text/html")
+    // 没有 HTML 时，通常是正常纯文本粘贴，不需要管
+    if (!plain || !html) return
+    // const md = plain
+    //     .replace(/\r\n?/g, "\n")
+    //     .replace(/[\u2028\u2029]/g, "\n")
+    //     .replace(/\u00a0/g, " ")
+    const md = normalizeAiMarkdownPaste(plain)
+    // 只拦截比较像 Markdown 的内容
+    const looksLikeMarkdown =
+        /(^|\n)\s{0,3}(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s+|```|~~~|\|.+\||\$\$)/.test(md) ||
+        md.includes("\n\n")
+    if (!looksLikeMarkdown) return
+    e.preventDefault()
+    e.stopPropagation()
+    e.stopImmediatePropagation()
+
+    vd.insertValue(md, true)
+
+    scheduleSaveCurrentViewState(currentNoteId.value)
+  }
+  // capture=true 很关键：抢在 Vditor 自己处理 paste 前执行
+  root.addEventListener("paste", handler, true)
+  return () => {
+    root.removeEventListener("paste", handler, true)
+  }
+}
 function handleSave() {
   emit("save")
 }
@@ -144,6 +217,7 @@ let positionSaveTimer: number | null = null
 let layoutRestoreTimer: number | null = null
 let unbindPositionEvents: (() => void) | null = null
 let unbindLayoutEvents: (() => void) | null = null
+let unbindPlainMarkdownPaste: (() => void) | null = null
 let restoreToken = 0
 
 function clearPositionSaveTimer() {
@@ -733,6 +807,9 @@ B -->|No| D[结束]
       bindViewStateEvents()
       bindLayoutSwitchEvents()
 
+      unbindPlainMarkdownPaste?.()
+      unbindPlainMarkdownPaste = bindPlainMarkdownPaste()
+
       unbindOutlineObserver?.()
       unbindOutlineObserver = observeOutlineState()
 
@@ -825,6 +902,9 @@ onDeactivated(() => {
   unbindPositionEvents?.()
   unbindPositionEvents = null
 
+  unbindPlainMarkdownPaste?.()
+  unbindPlainMarkdownPaste = null
+
   unbindOutlineObserver?.()
   unbindOutlineObserver = null
 
@@ -837,6 +917,9 @@ onActivated(async () => {
 
   bindViewStateEvents()
   bindLayoutSwitchEvents()
+
+  unbindPlainMarkdownPaste?.()
+  unbindPlainMarkdownPaste = bindPlainMarkdownPaste()
 
   await waitEditorStable()
   await restoreCurrentViewState(currentNoteId.value)
@@ -852,6 +935,9 @@ onUnmounted(() => {
 
   unbindLayoutEvents?.()
   unbindLayoutEvents = null
+
+  unbindPlainMarkdownPaste?.()
+  unbindPlainMarkdownPaste = null
 
   unbindOutlineObserver?.()
   unbindOutlineObserver = null

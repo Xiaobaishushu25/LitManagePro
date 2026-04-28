@@ -2854,7 +2854,7 @@ checksum = "4ee93343901ab17bd981295f2cf0026d4ad018c7c31ba84549a4ddbb47a45104"
 
 [[package]]
 name = "litmanagepro"
-version = "3.1.4"
+version = "3.2.4"
 dependencies = [
  "anyhow",
  "clipboard-rs",

@@ -116,3 +116,31 @@ pub async fn add_new_exe(path: String) -> Result<ExeConfig, String> {
         }
     }
 }
+
+/// 打开日志文件所在目录
+#[tauri::command]
+pub async fn open_log_directory() -> Result<(), String> {
+    use crate::config::CURRENT_DIR;
+    use std::path::PathBuf;
+    
+    let log_path = CURRENT_DIR.join("data").join("log");
+    
+    // 如果目录不存在，先创建
+    if !log_path.exists() {
+        if let Err(e) = std::fs::create_dir_all(&log_path) {
+            error!("创建日志目录失败：{}", e);
+            return Err(format!("创建日志目录失败：{}", e));
+        }
+    }
+    
+    match open::that(&log_path) {
+        Ok(_) => {
+            info!("已打开日志目录：{:?}", log_path);
+            Ok(())
+        }
+        Err(e) => {
+            error!("打开日志目录失败：{}", e);
+            Err(format!("打开日志目录失败：{}", e))
+        }
+    }
+}
